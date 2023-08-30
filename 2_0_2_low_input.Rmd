@@ -1,0 +1,651 @@
+---
+title: "2.0.2 Low input results"
+output:
+  html_document:
+    fig_width: 6
+    fig_height: 4
+    df_print: paged
+editor_options: 
+  chunk_output_type: inline
+---
+
+# Low input data
+
+```{r}
+library(tximport)
+library(tidyverse)
+# library(ggfortify)
+library(myTAI)
+```
+
+Some stages in the _Ectocarpus_, i.e. the meiospores and mitospores can only be accessed through low input RNA-seq.
+This will most likely introduce technical biases. Here, I show the difference between low and total RNA data.
+This analysis is an update to `Test_impactoflowinput.html`.
+
+# Read low input data (in _Ectocarpus_)
+
+This is the same process as `1.0 Save counts`.
+
+```{r}
+Ec_age <- readr::read_tsv("data/2880_gene_ages.tsv") %>% dplyr::rename(GeneID = `#gene`)
+```
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+sample_info_ec_full <- 
+  readr::read_tsv("metadata_final.tsv") %>% 
+  dplyr::filter(Species == "Ec") %>%
+  dplyr::mutate(
+    N_cell = dplyr::case_when(
+      str_detect(Stage, "meiospore|mitospore|gamete") ~ "unicellular",
+      TRUE ~ "multicellular"))
+  #     Stage, "meiospore|mitospore|gamete" ~ "unicellular",
+  #   TRUE ~ "multicellular")
+  # )
+
+sample_info_ec <- 
+  sample_info_ec_full %>%
+  dplyr::filter(
+    SeqProt == "Low") %>% 
+  dplyr::filter(Experiment == "RAP") %>%
+  dplyr::filter(Tissue %in% c("All", "rhizoid")) %>%
+  tidyr::unite("stage_tissue", Stage:Tissue, remove = FALSE) %>%
+  dplyr::mutate(
+    stage_tissue = stringr::str_remove(stage_tissue, '_All')
+    ) %>%
+  dplyr::arrange(
+    base::match(
+      Stage, 
+      c("meiospore", "earlyGA", "immGA", "matGA", "oldGA", "gamete", "earlyPSP", "immPSP", "matPSP", "mitospore"))
+    ) %>%
+  dplyr::filter(!SampleName %in% c("F_oldGA_R_1", "F_oldGA_R_2"))
+
+
+sample_info_ec$Stage <- 
+  factor(
+    sample_info_ec$Stage, 
+    levels = c("meiospore", "earlyGA", "immGA", "matGA", "oldGA", "gamete", "earlyPSP", "immPSP", "matPSP", "mitospore"))
+
+Ec_files <- 
+  stringr::str_c(
+    "data/Ec_salmon2/", 
+    sample_info_ec$LibName, 
+    "/quant.sf") %>%
+  purrr::set_names(sample_info_ec$SampleName)
+
+Ec_tx2gene <- 
+  dplyr::select(Ec_age, GeneID) %>% 
+  dplyr::mutate(IsoID = GeneID)
+```
+
+```{r}
+# use abundance
+Ec_txi <- 
+  tximport(
+    Ec_files, 
+    type = "salmon", 
+    tx2gene = Ec_tx2gene,
+    countsFromAbundance = "lengthScaledTPM")
+```
+
+```{r}
+Ec_abundance <-
+  readr::read_csv("data/Ec_abundance.csv") %>%
+  dplyr::select(
+    !dplyr::contains("_low_")
+  )
+# using the same gene set as the total data
+Ec_abundance_low <-
+  Ec_txi$abundance[Ec_abundance$GeneID, ] %>%
+  tibble::as_tibble(rownames = "GeneID")
+```
+
+# Plot low input distribution
+
+## Zero reads
+
+```{r}
+#pivot longer than plot 0s
+Ec_abundance_pivot <- 
+  Ec_abundance %>%
+  tidyr::pivot_longer(!GeneID, names_to = "SampleName", values_to = "abundance") %>%
+  dplyr::mutate(SeqProt = "Total")
+
+Ec_abundance_low_pivot <- 
+  Ec_abundance_low %>%
+  tidyr::pivot_longer(!GeneID, names_to = "SampleName", values_to = "abundance") %>%
+  dplyr::mutate(SeqProt = "Low")
+
+Ec_binded <- 
+  rbind(Ec_abundance_pivot, Ec_abundance_low_pivot) %>%
+  dplyr::left_join(sample_info_ec_full)
+
+Ec_binded %>%
+  dplyr::group_by(SampleName, .drop = FALSE) %>%
+  dplyr::summarise(N_zeros = sum(abundance==0)) %>%
+  dplyr::left_join(sample_info_ec_full) %>%
+  ggplot2::ggplot(aes(x = SeqProt, y = 100*N_zeros/11582, colour = Stage)) +
+  ggplot2::geom_jitter(width = 0.3, size = 4, alpha = 0.5) +
+  ggplot2::labs(x = "Sequencing protocol", 
+                y = "Zero counts (as % of total genes 11582)",
+                title = "A lot of low inputs have 0 reads",
+                subtitle = "Ectocarpus") +
+  ggplot2::theme_classic()
+```
+
+## Normal distribution?
+
+```{r}
+devtools::install_github("LotharukpongJS/zFPKM")
+library(zFPKM)
+# Ec_zfpkm <- zFPKM::zFPKM(
+#   Ec_abundance %>% 
+#     remove_rownames %>% 
+#     column_to_rownames(var="GeneID")
+#   )
+
+zFPKM::zFPKMPlot(
+  Ec_abundance %>% 
+    remove_rownames %>% 
+    column_to_rownames(var="GeneID")
+  ) + 
+  ggplot2::labs(
+    x = "log2(TPM)",
+    title = "total RNA")
+
+zFPKM::zFPKMPlot(
+  Ec_abundance_low %>% 
+    remove_rownames %>% 
+    column_to_rownames(var="GeneID")
+  ) + 
+  ggplot2::labs(
+    x = "log2(TPM)",
+    title = "low-input RNA")
+```
+
+# Plot low input TAI
+
+## Prepare data
+
+```{r}
+TAI_process <- function(expression_set, age_data, transform = "none", pseudocount = 0, integerise = FALSE){
+  INPUT <- 
+    expression_set
+  PES_data <- 
+    INPUT %>% 
+    dplyr::left_join(
+      dplyr::select(age_data, c("GeneID","rank"))) %>%
+    dplyr::relocate(rank) %>%
+    tidyr::drop_na()
+  if (transform == "rank") {
+    PES_data <- myTAI::tf(PES_data, FUN = function(x) apply(x, 2, base::rank))
+  } else if (transform != "none") {
+    tf_func <- match.fun(transform)
+    PES_data <- myTAI::tf(PES_data, FUN = tf_func, pseudocount = pseudocount, integerise = integerise)
+  }
+  TAI_tibble <-
+    PES_data %>%
+    myTAI::TAI() %>%
+    tibble::as_tibble(rownames = "SampleName") %>%
+    dplyr::rename(TAI = value)
+  return(TAI_tibble)
+}
+```
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+TAI_bind <- 
+  rbind(
+    TAI_process(Ec_abundance, Ec_age),
+    TAI_process(Ec_abundance_low, Ec_age)
+  ) %>% 
+  left_join(sample_info_ec_full)
+
+TAI_bind.sqrt <- 
+  rbind(
+    TAI_process(Ec_abundance, Ec_age, transform = "sqrt"),
+    TAI_process(Ec_abundance_low, Ec_age, transform = "sqrt")
+  ) %>% 
+  left_join(sample_info_ec_full)
+
+TAI_bind.log2 <- 
+  rbind(
+    TAI_process(Ec_abundance, Ec_age, transform = "log2", pseudocount = 1),
+    TAI_process(Ec_abundance_low, Ec_age, transform = "log2", pseudocount = 1)
+  ) %>% 
+  left_join(sample_info_ec_full)
+
+TAI_bind.rank <- 
+  rbind(
+    TAI_process(Ec_abundance, Ec_age, transform = "rank"),
+    TAI_process(Ec_abundance_low, Ec_age, transform = "rank")
+  ) %>% 
+  left_join(sample_info_ec_full)
+
+library(DESeq2)
+TAI_bind.rlog <- 
+  rbind(
+    TAI_process(Ec_abundance, Ec_age, transform = "rlog", integerise = TRUE),
+    TAI_process(Ec_abundance_low, Ec_age, transform = "rlog", integerise = TRUE)
+  ) %>% 
+  left_join(sample_info_ec_full)
+```
+
+## Plot
+
+```{r}
+TAI_bind %>%
+  ggplot2::ggplot(
+    aes(x = SeqProt, y = TAI, colour = Stage)
+  ) +
+  ggplot2::geom_jitter(width = 0.3, size = 4, alpha = 0.5) +
+  ggplot2::labs(x = "Sequencing protocol", 
+                y = "TAI",
+                title = "TAI differs",
+                subtitle = "Ectocarpus (TPM)") +
+  ggplot2::theme_classic()
+
+TAI_bind.sqrt %>%
+  ggplot2::ggplot(
+    aes(x = SeqProt, y = TAI, colour = Stage)
+  ) +
+  ggplot2::geom_jitter(width = 0.3, size = 4, alpha = 0.5) +
+  ggplot2::labs(x = "Sequencing protocol", 
+                y = "TAI",
+                title = "TAI differs",
+                subtitle = "Ectocarpus sqrt(TPM)") +
+  ggplot2::theme_classic()
+
+TAI_bind.log2 %>%
+  ggplot2::ggplot(
+    aes(x = SeqProt, y = TAI, colour = Stage)
+  ) +
+  ggplot2::geom_jitter(width = 0.3, size = 4, alpha = 0.5) +
+  ggplot2::labs(x = "Sequencing protocol", 
+                y = "TAI",
+                title = "TAI differs",
+                subtitle = "Ectocarpus log2(TPM+1)") +
+  ggplot2::theme_classic()
+
+TAI_bind.rank %>%
+  ggplot2::ggplot(
+    aes(x = SeqProt, y = TAI, colour = Stage)
+  ) +
+  ggplot2::geom_jitter(width = 0.3, size = 4, alpha = 0.5) +
+  ggplot2::labs(x = "Sequencing protocol", 
+                y = "TAI",
+                title = "TAI differs",
+                subtitle = "Ectocarpus rank(TPM)") +
+  ggplot2::theme_classic()
+
+TAI_bind.rlog %>%
+  ggplot2::ggplot(
+    aes(x = SeqProt, y = TAI, colour = Stage)
+  ) +
+  ggplot2::geom_jitter(width = 0.3, size = 4, alpha = 0.5) +
+  ggplot2::labs(x = "Sequencing protocol", 
+                y = "TAI",
+                title = "TAI differs",
+                subtitle = "Ectocarpus rlog(TPM)") +
+  ggplot2::theme_classic()
+```
+
+## But unicellular stages tend to be younger
+
+```{r}
+TAI_bind %>%
+  dplyr::filter(SeqProt == "Low") %>%
+  ggplot2::ggplot(
+    aes(x = N_cell, y = TAI, colour = Stage, shape = Sex)
+  ) +
+  ggplot2::geom_jitter(width = 0.3, size = 4, alpha = 0.5) +
+  ggplot2::labs(x = "Life cycle phase", 
+                y = "TAI",
+                title = "Unicellular stages are younger",
+                subtitle = "Ectocarpus (TPM)") +
+  ggplot2::theme_classic()
+
+TAI_bind.sqrt %>%
+  dplyr::filter(SeqProt == "Low") %>%
+  ggplot2::ggplot(
+    aes(x = N_cell, y = TAI, colour = Stage, shape = Sex)
+  ) +
+  ggplot2::geom_jitter(width = 0.3, size = 4, alpha = 0.5) +
+  ggplot2::labs(x = "Life cycle phase", 
+                y = "TAI",
+                title = "Unicellular stages are younger",
+                subtitle = "Ectocarpus sqrt(TPM)") +
+  ggplot2::theme_classic()
+
+TAI_bind.log2 %>%
+  dplyr::filter(SeqProt == "Low") %>%
+  ggplot2::ggplot(
+    aes(x = N_cell, y = TAI, colour = Stage, shape = Sex)
+  ) +
+  ggplot2::geom_jitter(width = 0.3, size = 4, alpha = 0.5) +
+  ggplot2::labs(x = "Life cycle phase", 
+                y = "TAI",
+                title = "Unicellular stages are younger",
+                subtitle = "Ectocarpus log2(TPM+1)") +
+  ggplot2::theme_classic()
+
+TAI_bind.rank %>%
+  dplyr::filter(SeqProt == "Low") %>%
+  ggplot2::ggplot(
+    aes(x = N_cell, y = TAI, colour = Stage, shape = Sex)
+  ) +
+  ggplot2::geom_jitter(width = 0.3, size = 4, alpha = 0.5) +
+  ggplot2::labs(x = "Life cycle phase", 
+                y = "TAI",
+                title = "Unicellular stages are younger",
+                subtitle = "Ectocarpus rank(TPM)") +
+  ggplot2::theme_classic()
+
+TAI_bind.rlog %>%
+  dplyr::filter(SeqProt == "Low") %>%
+  ggplot2::ggplot(
+    aes(x = N_cell, y = TAI, colour = Stage, shape = Sex)
+  ) +
+  ggplot2::geom_jitter(width = 0.3, size = 4, alpha = 0.5) +
+  ggplot2::labs(x = "Life cycle phase", 
+                y = "TAI",
+                title = "Unicellular stages are younger",
+                subtitle = "Ectocarpus rlog(TPM)") +
+  ggplot2::theme_classic()
+```
+
+# TAI profile
+
+```{r}
+construct_PES <- 
+  function(
+    ExpressionMatrix, 
+    GeneAgeTable, 
+    metadata, 
+    AVG = median,
+    grouping_var = "Stage",
+    name_var = "LibName",
+    transform_opt = F,
+    transformation){
+  RepCol <- 
+    metadata %>% 
+    dplyr::group_by(.data[[grouping_var]]) %>% 
+    dplyr::summarize(n=dplyr::n()) %>% 
+    dplyr::arrange(
+      base::factor(
+        .data[[grouping_var]], 
+        levels = base::unique(metadata[,grouping_var][[1]])
+        )
+      ) %>% 
+    base::as.vector()
+  # making sure the metadata and the expression set match
+  PES <- 
+    ExpressionMatrix %>%
+    dplyr::left_join(
+      dplyr::select(
+        GeneAgeTable, 
+        c(GeneID, rank)
+        )
+      ) %>%
+    dplyr::rename("PS" = rank) %>%
+    tidyr::drop_na() %>% # NAs can ruin the transformation.
+    dplyr::relocate(PS, GeneID) 
+  if(transform_opt){
+    if(transformation == "rlog"){
+      PES <-
+        myTAI::tf(
+          PES,
+          FUN = rlog,
+          integerise = TRUE)
+    }
+    else if(transformation == "vst"){
+      PES <-
+        myTAI::tf(
+          PES,
+          FUN = vst,
+          integerise = TRUE)
+    }
+  }
+  # return(RepCol)
+  PES_FILT <- 
+    PES %>%
+    dplyr::select(1:2 | metadata[,name_var][[1]])
+  # return(PES_FILT)
+  OUT <- PES_FILT %>%
+    myTAI::CollapseReplicates(
+      RepCol$n,
+      AVG, 
+      stage.names = base::as.character(RepCol[[grouping_var]]))
+  return(OUT)
+}
+
+```
+
+```{r}
+Ec_abundance_25f_low <-
+  Ec_abundance_low %>%
+  dplyr::select(1 | dplyr::starts_with("F_"))
+Ec_abundance_32m_low <-
+  Ec_abundance_low %>%
+  dplyr::select(1 | dplyr::starts_with("M_"))
+
+# Ec_PES_25f_low <- 
+Ec_PES_25f_low <-
+  construct_PES(
+    Ec_abundance_25f_low, 
+    Ec_age, 
+    dplyr::filter(
+      sample_info_ec, 
+      Sex == "F"),
+    name_var = "SampleName"
+    )
+# I took some time to realise I had to add as.character() to myTAI::CollapseReplicates()
+
+Ec_PES_32m_low <- 
+  construct_PES(
+    Ec_abundance_32m_low, 
+    Ec_age, 
+    dplyr::filter(
+      sample_info_ec, 
+      Sex == "M"),
+    name_var = "SampleName"
+    )
+
+# rlog transforms
+Ec_PES_25f_low.rlog <- 
+  construct_PES(
+    Ec_abundance_25f_low, 
+    Ec_age, 
+    dplyr::filter(
+      sample_info_ec, 
+      Sex == "F"),
+    name_var = "SampleName",
+    transform_opt = TRUE,
+    transformation = "rlog"
+    )
+Ec_PES_32m_low.rlog <- 
+  construct_PES(
+    Ec_abundance_32m_low, 
+    Ec_age, 
+    dplyr::filter(
+      sample_info_ec, 
+      Sex == "M"),
+    name_var = "SampleName",
+    transform_opt = TRUE,
+    transformation = "rlog"
+    )
+
+```
+
+
+```{r}
+#TI stands for transcriptome index
+TI.preplot <- function(ExpressionSet, permutations = 5000, ordered_stages){
+  std <- 
+    myTAI::bootMatrix(
+      ExpressionSet = ExpressionSet, 
+      permutations  = permutations) %>% 
+    apply(2, stats::sd)
+  TI.out <- 
+    myTAI::TAI(ExpressionSet) %>%
+    tibble::as_tibble(rownames = "Stage", colnames = c("TAI", "PS")) %>% 
+    dplyr::bind_cols(as_tibble(std)) %>%
+    dplyr::rename(TAI = 2, sd = 3)
+  return(TI.out)
+}
+```
+
+```{r}
+Ec_TAI_25f_low <-
+  TI.preplot(Ec_PES_25f_low) %>%
+  dplyr::mutate(Sex = "F")
+Ec_TAI_25f_low.sqrt <-
+  TI.preplot(myTAI::tf(Ec_PES_25f_low, FUN = sqrt)) %>%
+  dplyr::mutate(Sex = "F")
+Ec_TAI_25f_low.log2 <-
+  TI.preplot(myTAI::tf(Ec_PES_25f_low, FUN = log2, pseudocount = 1)) %>%
+  dplyr::mutate(Sex = "F")
+Ec_TAI_25f_low.rank <-
+  TI.preplot(myTAI::tf(Ec_PES_25f_low, FUN = function(x) apply(x, 2, base::rank))) %>%
+  dplyr::mutate(Sex = "F")
+Ec_TAI_25f_low.rlog <-
+  TI.preplot(Ec_PES_25f_low.rlog) %>%
+  dplyr::mutate(Sex = "F")
+
+Ec_TAI_32m_low <-
+  TI.preplot(Ec_PES_32m_low) %>%
+  dplyr::mutate(Sex = "M")
+Ec_TAI_32m_low.sqrt <-
+  TI.preplot(myTAI::tf(Ec_PES_32m_low, FUN = sqrt)) %>%
+  dplyr::mutate(Sex = "M")
+Ec_TAI_32m_low.log2 <-
+  TI.preplot(myTAI::tf(Ec_PES_32m_low, FUN = log2, pseudocount = 1)) %>%
+  dplyr::mutate(Sex = "M")
+Ec_TAI_32m_low.rank <-
+  TI.preplot(myTAI::tf(Ec_PES_32m_low, FUN = function(x) apply(x, 2, base::rank))) %>%
+  dplyr::mutate(Sex = "M")
+Ec_TAI_32m_low.rlog <-
+  TI.preplot(Ec_PES_32m_low.rlog) %>%
+  dplyr::mutate(Sex = "M")
+```
+
+```{r}
+stage_order <- 
+  function(female, male, metadata){
+    data_bind <-  
+      rbind(male, female)
+    data_bind$Stage <-
+      base::factor(
+        data_bind$Stage,
+        levels(metadata$Stage)
+      )
+    return(data_bind)
+  }
+```
+```{r}
+# TAI_bind2_ordered <- 
+#   rbind(Ec_TAI_25f_low, Ec_TAI_32m_low)
+# TAI_bind2_ordered$Stage <- 
+#   base::factor(
+#     TAI_bind2_ordered$Stage, 
+#     levels(sample_info_ec$Stage))
+
+stage_order(Ec_TAI_25f_low, Ec_TAI_32m_low, sample_info_ec) %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = Sex,
+      colour = Sex,
+      fill = Sex)) +
+  ggplot2::geom_errorbar(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    width = 0.3, size = 2, alpha = 0.5) +
+  ggplot2::geom_point(size = 3) +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Ectocarpus (low input; 5000 permutations)",
+       subtitle = "TPM")
+
+stage_order(Ec_TAI_25f_low.sqrt, Ec_TAI_32m_low.sqrt, sample_info_ec) %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = Sex,
+      colour = Sex,
+      fill = Sex)) +
+  ggplot2::geom_errorbar(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ),
+    width = 0.3, size = 2, alpha = 0.5) +
+  ggplot2::geom_point(size = 3) +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Ectocarpus (low input; 5000 permutations)",
+       subtitle = "sqrt(TPM)")
+
+stage_order(Ec_TAI_25f_low.log2, Ec_TAI_32m_low.log2, sample_info_ec) %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = Sex,
+      colour = Sex,
+      fill = Sex)) +
+  ggplot2::geom_errorbar(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    width = 0.3, size = 2, alpha = 0.5) +
+  ggplot2::geom_point(size = 3) +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Ectocarpus (low input; 5000 permutations)",
+       subtitle = "log2(TPM+1)")
+
+stage_order(Ec_TAI_25f_low.rank, Ec_TAI_32m_low.rank, sample_info_ec) %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = Sex,
+      colour = Sex,
+      fill = Sex)) +
+  ggplot2::geom_errorbar(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ),
+    width = 0.3, size = 2, alpha = 0.5) +
+  ggplot2::geom_point(size = 3) +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Ectocarpus (low input; 5000 permutations)",
+       subtitle = "rank(TPM)")
+
+stage_order(Ec_TAI_25f_low.rlog, Ec_TAI_32m_low.rlog, sample_info_ec) %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = Sex,
+      colour = Sex,
+      fill = Sex)) +
+  ggplot2::geom_errorbar(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ),
+    width = 0.3, size = 2, alpha = 0.5) +
+  ggplot2::geom_point(size = 3) +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Ectocarpus (low input; 5000 permutations)",
+       subtitle = "rlog(TPM)")
+```
+
+Get session info.
+
+```{r}
+devtools::session_info()
+```

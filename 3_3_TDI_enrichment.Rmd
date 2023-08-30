@@ -1,0 +1,526 @@
+---
+title: "3.3 TDI enrichment"
+output:
+  html_document:
+    fig_width: 6
+    fig_height: 4
+    df_print: paged
+editor_options: 
+  chunk_output_type: inline
+---
+
+# Are some DS enriched?
+
+```{r}
+library(tidyverse)
+library(myTAI)
+#  myTAI v1.0.1.9000 2023-07-12 Github (drostlab/myTAI@46eb927)
+```
+
+# Fucus analysis
+
+Here, I focus on the stages that generates the _Fucus_ embryo, i.e. stages *not* `gamates` nor `matSP`.
+
+```{r}
+Fd_DES <-
+  readr::read_csv(file = "data/Fd_DES.csv") %>%
+  dplyr::select(!c("gamete","matSP"))
+Fs_DES <-
+  readr::read_csv(file = "data/Fs_DES.csv") %>%
+  dplyr::select(!c("gamete","matSP"))
+```
+
+sqrt-tranformed
+
+```{r}
+Fd_DES.sqrt <-
+  readr::read_csv(file = "data/Fd_DES.sqrt.csv") %>%
+  dplyr::select(!c("gamete","matSP"))
+Fs_DES.sqrt <-
+  readr::read_csv(file = "data/Fs_DES.sqrt.csv") %>%
+  dplyr::select(!c("gamete","matSP"))
+```
+
+log2-tranformed
+
+```{r}
+Fd_DES.log2 <-
+  readr::read_csv(file = "data/Fd_DES.log2.csv") %>%
+  dplyr::select(!c("gamete","matSP"))
+Fs_DES.log2 <-
+  readr::read_csv(file = "data/Fs_DES.log2.csv") %>%
+  dplyr::select(!c("gamete","matSP"))
+
+# different sexes
+Fd_DES_sex.log2 <-
+  readr::read_csv(file = "data/Fd_DES_M.log2.csv") %>%
+  dplyr::rename(gamete_M = V1)
+Fd_DES_sex.log2 <-
+  readr::read_csv(file = "data/Fd_DES_F.log2.csv") %>%
+  dplyr::rename(gamete_F = V1) %>%
+  left_join(Fd_DES_sex.log2)
+Fs_DES_sex.log2 <-
+  readr::read_csv(file = "data/Fs_DES_M.log2.csv") %>% 
+  dplyr::rename_with(
+    ~ paste0(.x, "_M"),
+    dplyr::starts_with(c("gamete", "mat")) &! dplyr::ends_with("_F"))
+Fs_DES_sex.log2 <-
+  readr::read_csv(file = "data/Fs_DES_F.log2.csv") %>% 
+  dplyr::rename_with(
+    ~ paste0(.x, "_F"),
+    dplyr::starts_with(c("gamete", "mat")) &! dplyr::ends_with("_M")) %>%
+  dplyr::left_join(Fs_DES_sex.log2)
+
+Fs_DES_sex_mat.log2 <- 
+  Fs_DES_sex.log2 %>%
+  dplyr::select(!dplyr::starts_with("gamete"))
+Fs_DES_sex_gam.log2 <- 
+  Fs_DES_sex.log2 %>%
+  dplyr::select(!dplyr::starts_with("mat"))
+
+# different tissues
+Fd_DES_matSP.log2 <-
+  readr::read_csv(file = "data/Fd_DES_matSP.log2.csv")
+Fs_DES_M_matSP.log2 <-
+  readr::read_csv(file = "data/Fs_DES_M_matSP.log2.csv")
+Fs_DES_F_matSP.log2 <-
+  readr::read_csv(file = "data/Fs_DES_F_matSP.log2.csv")
+
+
+Fs_DES_matSP_holdfast.log2 <-
+  Fs_DES_M_matSP.log2 %>% 
+  dplyr::select(1:2 | dplyr::starts_with("holdfast")) %>%
+  dplyr::rename_with(
+    ~ paste0(.x, "_M"),
+    dplyr::starts_with(c("holdfast")) &! dplyr::ends_with("_F"))
+Fs_DES_matSP_holdfast.log2 <-
+  Fs_DES_F_matSP.log2 %>% 
+  dplyr::select(1:2 | dplyr::starts_with("holdfast")) %>%
+  dplyr::rename_with(
+    ~ paste0(.x, "_F"),
+    dplyr::starts_with(c("holdfast")) &! dplyr::ends_with("_M")) %>%
+  dplyr::left_join(Fs_DES_matSP_holdfast.log2)
+
+Fs_DES_matSP_reptip.log2 <-
+  Fs_DES_M_matSP.log2 %>% 
+  dplyr::select(1:2 | dplyr::starts_with("reptip")) %>%
+  dplyr::rename_with(
+    ~ paste0(.x, "_M"),
+    dplyr::starts_with(c("reptip")) &! dplyr::ends_with("_F"))
+Fs_DES_matSP_reptip.log2 <-
+  Fs_DES_F_matSP.log2 %>% 
+  dplyr::select(1:2 | dplyr::starts_with("reptip")) %>%
+  dplyr::rename_with(
+    ~ paste0(.x, "_F"),
+    dplyr::starts_with(c("reptip")) &! dplyr::ends_with("_M")) %>%
+  dplyr::left_join(Fs_DES_matSP_reptip.log2)
+
+Fs_DES_matSP_stipe.log2 <-
+  Fs_DES_M_matSP.log2 %>% 
+  dplyr::select(1:2 | dplyr::starts_with("stipe")) %>%
+  dplyr::rename_with(
+    ~ paste0(.x, "_M"),
+    dplyr::starts_with(c("stipe")) &! dplyr::ends_with("_F"))
+Fs_DES_matSP_stipe.log2 <-
+  Fs_DES_F_matSP.log2 %>% 
+  dplyr::select(1:2 | dplyr::starts_with("stipe")) %>%
+  dplyr::rename_with(
+    ~ paste0(.x, "_F"),
+    dplyr::starts_with(c("stipe")) &! dplyr::ends_with("_M")) %>%
+  dplyr::left_join(Fs_DES_matSP_stipe.log2)
+
+Fs_DES_matSP_vegtip.log2 <-
+  Fs_DES_M_matSP.log2 %>% 
+  dplyr::select(1:2 | dplyr::starts_with("vegtip")) %>%
+  dplyr::rename_with(
+    ~ paste0(.x, "_M"),
+    dplyr::starts_with(c("vegtip")) &! dplyr::ends_with("_F"))
+Fs_DES_matSP_vegtip.log2 <-
+  Fs_DES_F_matSP.log2 %>% 
+  dplyr::select(1:2 | dplyr::starts_with("vegtip")) %>%
+  dplyr::rename_with(
+    ~ paste0(.x, "_F"),
+    dplyr::starts_with(c("vegtip")) &! dplyr::ends_with("_M")) %>%
+  dplyr::left_join(Fs_DES_matSP_vegtip.log2)
+```
+
+rank-tranformed
+
+```{r}
+Fd_DES.rank <-
+  readr::read_csv(file = "data/Fd_DES.rank.csv") %>%
+  dplyr::select(!c("gamete","matSP"))
+Fs_DES.rank <-
+  readr::read_csv(file = "data/Fs_DES.rank.csv") %>%
+  dplyr::select(!c("gamete","matSP"))
+```
+
+rlog-tranformed
+
+```{r}
+Fd_DES.rlog <-
+  readr::read_csv(file = "data/Fd_DES.rlog.csv") %>%
+  dplyr::select(!c("gamete","matSP"))
+Fs_DES.rlog <-
+  readr::read_csv(file = "data/Fs_DES.rlog.csv") %>%
+  dplyr::select(!c("gamete","matSP"))
+```
+
+## PlotCategoryExpr()
+
+### Fucus distichus
+
+```{r}
+# PlotCategoryExpr(
+#   ExpressionSet = Fd_DES.log2,
+#   legendName    = "DS",
+#   test.stat     = TRUE,
+#   type          = "category-centered",
+#   distr.type    = "boxplot",
+#   log.expr      = FALSE) +
+#   ggplot2::labs(
+#     title = "Fucus distichus",
+#     subtitle = "log2(TPM+1)"
+#   )
+
+PlotCategoryExpr(
+  ExpressionSet = Fd_DES.log2,
+  legendName    = "DS",
+  test.stat     = TRUE,
+  type          = "stage-centered",
+  distr.type    = "boxplot",
+  log.expr      = FALSE) +
+  ggplot2::labs(
+    title = "Fucus distichus development",
+    subtitle = "log2(TPM+1)"
+  )
+
+PlotCategoryExpr(
+  ExpressionSet = Fd_DES_sex.log2,
+  legendName    = "DS",
+  test.stat     = TRUE,
+  type          = "stage-centered",
+  distr.type    = "boxplot",
+  log.expr      = FALSE) +
+  ggplot2::labs(
+    title = "Fucus distichus gamete sexes",
+    subtitle = "log2(TPM+1)"
+  )
+```
+
+```{r}
+PlotCategoryExpr(
+  ExpressionSet = Fd_DES_matSP.log2,
+  legendName    = "DS",
+  test.stat     = TRUE,
+  type          = "stage-centered",
+  distr.type    = "boxplot",
+  log.expr      = FALSE) +
+  ggplot2::labs(
+    title = "Fucus distichus matSP tissues",
+    subtitle = "log2(TPM+1)"
+  )
+```
+
+### Fucus serratus
+
+```{r}
+# PlotCategoryExpr(
+#   ExpressionSet = Fs_DES.log2,
+#   legendName    = "DS",
+#   test.stat     = TRUE,
+#   type          = "category-centered",
+#   distr.type    = "boxplot",
+#   log.expr      = FALSE) +
+#   ggplot2::labs(
+#     title = "Fucus serratus",
+#     subtitle = "log2(TPM+1)"
+#   )
+
+PlotCategoryExpr(
+  ExpressionSet = Fs_DES.log2,
+  legendName    = "DS",
+  test.stat     = TRUE,
+  type          = "stage-centered",
+  distr.type    = "boxplot",
+  log.expr      = FALSE) +
+  ggplot2::labs(
+    title = "Fucus serratus development",
+    subtitle = "log2(TPM+1)"
+  )
+
+PlotCategoryExpr(
+  ExpressionSet = Fs_DES_sex_gam.log2,
+  legendName    = "DS",
+  test.stat     = TRUE,
+  type          = "stage-centered",
+  distr.type    = "boxplot",
+  log.expr      = FALSE) +
+  ggplot2::labs(
+    title = "Fucus serratus gamete sexes",
+    subtitle = "log2(TPM+1)"
+  )
+
+PlotCategoryExpr(
+  ExpressionSet = Fs_DES_sex_mat.log2,
+  legendName    = "DS",
+  test.stat     = TRUE,
+  type          = "stage-centered",
+  distr.type    = "boxplot",
+  log.expr      = FALSE) +
+  ggplot2::labs(
+    title = "Fucus serratus matSP sexes",
+    subtitle = "log2(TPM+1)"
+  )
+```
+
+```{r}
+PlotCategoryExpr(
+  ExpressionSet = Fs_DES_M_matSP.log2,
+  legendName    = "DS",
+  test.stat     = TRUE,
+  type          = "stage-centered",
+  distr.type    = "boxplot",
+  log.expr      = FALSE) +
+  ggplot2::labs(
+    title = "Fucus serratus matSP (male) tissues",
+    subtitle = "log2(TPM+1)"
+  )
+
+PlotCategoryExpr(
+  ExpressionSet = Fs_DES_F_matSP.log2,
+  legendName    = "DS",
+  test.stat     = TRUE,
+  type          = "stage-centered",
+  distr.type    = "boxplot",
+  log.expr      = FALSE) +
+  ggplot2::labs(
+    title = "Fucus serratus matSP (female) tissues",
+    subtitle = "log2(TPM+1)"
+  )
+```
+
+```{r}
+PlotCategoryExpr(
+  ExpressionSet = Fs_DES_matSP_vegtip.log2,
+  legendName    = "DS",
+  test.stat     = TRUE,
+  type          = "stage-centered",
+  distr.type    = "boxplot",
+  log.expr      = FALSE) +
+  ggplot2::labs(
+    title = "Fucus serratus matSP vegtip",
+    subtitle = "log2(TPM+1)"
+  )
+
+PlotCategoryExpr(
+  ExpressionSet = Fs_DES_matSP_reptip.log2,
+  legendName    = "DS",
+  test.stat     = TRUE,
+  type          = "stage-centered",
+  distr.type    = "boxplot",
+  log.expr      = FALSE) +
+  ggplot2::labs(
+    title = "Fucus serratus matSP reptip",
+    subtitle = "log2(TPM+1)"
+  )
+
+PlotCategoryExpr(
+  ExpressionSet = Fs_DES_matSP_stipe.log2,
+  legendName    = "DS",
+  test.stat     = TRUE,
+  type          = "stage-centered",
+  distr.type    = "boxplot",
+  log.expr      = FALSE) +
+  ggplot2::labs(
+    title = "Fucus serratus matSP stipe",
+    subtitle = "log2(TPM+1)"
+  )
+
+PlotCategoryExpr(
+  ExpressionSet = Fs_DES_matSP_holdfast.log2,
+  legendName    = "DS",
+  test.stat     = TRUE,
+  type          = "stage-centered",
+  distr.type    = "boxplot",
+  log.expr      = FALSE) +
+  ggplot2::labs(
+    title = "Fucus serratus matSP holdfast",
+    subtitle = "log2(TPM+1)"
+  )
+```
+
+The results are a lot clearer with our RNA-seq data compared to the microarray data of PhyloExpressionSetExample.
+
+# Ectocarpus analysis
+
+Here, I focus on the stages that generates the _Fucus_ embryo, i.e. stages *not* `gamates` nor `matSP`.
+
+```{r}
+Ec_DES_32m <-
+  readr::read_csv(file = "data/Ec_DES_32m.csv")
+Ec_DES_25f <-
+  readr::read_csv(file = "data/Ec_DES_25f.csv")
+```
+
+sqrt-tranformed
+
+```{r}
+Ec_DES_32m.sqrt <-
+  readr::read_csv(file = "data/Ec_DES_32m.sqrt.csv")
+Ec_DES_25f.sqrt <-
+  readr::read_csv(file = "data/Ec_DES_25f.sqrt.csv")
+```
+
+log2-tranformed
+
+```{r}
+Ec_DES_32m.log2 <-
+  readr::read_csv(file = "data/Ec_DES_32m.log2.csv")
+Ec_DES_25f.log2 <-
+  readr::read_csv(file = "data/Ec_DES_25f.log2.csv")
+```
+
+rank-tranformed
+
+```{r}
+Ec_DES_32m.rank <-
+  readr::read_csv(file = "data/Ec_DES_32m.rank.csv")
+Ec_DES_25f.rank <-
+  readr::read_csv(file = "data/Ec_DES_25f.rank.csv")
+```
+
+rlog-tranformed
+
+```{r}
+Ec_DES_32m.rlog <-
+  readr::read_csv(file = "data/Ec_DES_32m.rlog.csv")
+Ec_DES_25f.rlog <-
+  readr::read_csv(file = "data/Ec_DES_25f.rlog.csv")
+```
+
+## PlotCategoryExpr()
+
+### Ectocaprus Male
+
+```{r, fig.height = 4, fig.width = 15}
+PlotCategoryExpr(
+  ExpressionSet = Ec_DES_32m.log2,
+  legendName    = "DS",
+  test.stat     = TRUE,
+  type          = "stage-centered",
+  distr.type    = "boxplot",
+  log.expr      = FALSE) +
+  ggplot2::labs(
+    title = "Ectocarpus (male)",
+    subtitle = "log2(TPM+1)"
+  )
+
+
+PlotCategoryExpr(
+  ExpressionSet = Ec_DES_25f.log2,
+  legendName    = "DS",
+  test.stat     = TRUE,
+  type          = "stage-centered",
+  distr.type    = "boxplot",
+  log.expr      = FALSE) +
+  ggplot2::labs(
+    title = "Ectocarpus (female)",
+    subtitle = "log2(TPM+1)"
+  )
+
+PlotCategoryExpr(
+  ExpressionSet = Ec_DES_32m.rlog,
+  legendName    = "DS",
+  test.stat     = TRUE,
+  type          = "stage-centered",
+  distr.type    = "boxplot",
+  log.expr      = FALSE) +
+  ggplot2::labs(
+    title = "Ectocarpus (male)",
+    subtitle = "rlog(TPM+1)"
+  )
+
+
+PlotCategoryExpr(
+  ExpressionSet = Ec_DES_25f.rlog,
+  legendName    = "DS",
+  test.stat     = TRUE,
+  type          = "stage-centered",
+  distr.type    = "boxplot",
+  log.expr      = FALSE) +
+  ggplot2::labs(
+    title = "Ectocarpus (female)",
+    subtitle = "rlog(TPM+1)"
+  )
+```
+
+```{r, fig.height = 4, fig.width = 8}
+PlotCategoryExpr(
+  ExpressionSet = dplyr::select(Ec_DES_32m.log2, c(1,2) | dplyr::ends_with("PSP")),
+  legendName    = "DS",
+  test.stat     = TRUE,
+  type          = "stage-centered",
+  distr.type    = "boxplot",
+  log.expr      = FALSE) +
+  ggplot2::labs(
+    title = "Ectocarpus (male) multicellular PSP",
+    subtitle = "log2(TPM+1)"
+  )
+
+
+PlotCategoryExpr(
+  ExpressionSet = dplyr::select(Ec_DES_25f.log2, c(1,2) | dplyr::ends_with("PSP")),
+  legendName    = "DS",
+  test.stat     = TRUE,
+  type          = "stage-centered",
+  distr.type    = "boxplot",
+  log.expr      = FALSE) +
+  ggplot2::labs(
+    title = "Ectocarpus (female) multicellular PSP",
+    subtitle = "log2(TPM+1)"
+  )
+```
+
+```{r, fig.height = 4, fig.width = 8}
+PlotCategoryExpr(
+  ExpressionSet = dplyr::select(Ec_DES_32m.log2, c(1,2) | dplyr::ends_with("GA")),
+  legendName    = "DS",
+  test.stat     = TRUE,
+  type          = "stage-centered",
+  distr.type    = "boxplot",
+  log.expr      = FALSE) +
+  ggplot2::labs(
+    title = "Ectocarpus (male) multicellular GA",
+    subtitle = "log2(TPM+1)"
+  )
+
+
+PlotCategoryExpr(
+  ExpressionSet = dplyr::select(Ec_DES_25f.log2, c(1,2) | dplyr::ends_with("GA")),
+  legendName    = "DS",
+  test.stat     = TRUE,
+  type          = "stage-centered",
+  distr.type    = "boxplot",
+  log.expr      = FALSE) +
+  ggplot2::labs(
+    title = "Ectocarpus (female) multicellular GA",
+    subtitle = "log2(TPM+1)"
+  )
+```
+
+# Summary
+
+In Fucus, all DS's are clearly differentially expressed on average between developmental stages (as defined in myTAI’s PlotCategoryExpr()). In F. distichus gametes, males have a lower expression level across all DS’s. In F. serratus gametes, this is also the case. F. serratus is dioecious and in the matSP, we find that all DS except D4 is significantly differentially regulated between sexes when averaging all constituent tissues together, though the trace is weak.
+
+Between tissue types of matSP in both Fucus species, essentially all gene age categories are differentially expressed. Focusing on the differences between sexes of matSP tissue types in the dioecious F. serratus, we see no significant differences between sexes in the vegetative tip (vegtip). DS1, DS3 and DS5 are differentially expressed in the holdfast (weakly). All DS's are differentially expressed in the stipe. As we would suspect, the sex-differences are significant in the reproductive tip (reptip).
+
+Together, this indicates that genes of all DS's are recruited to play a large role in the development of Fucus. All DS's plays a weak role in adult sex differentiation in dioecious F. serratus. In both F. serratus and F. distichus, the gametes differentially expresses all DS’s. It is surprising that many DS are differentially expressed between sexes in the stipe in the dioecious F. serratus, compared to other non-reproductive tissues such as the holdfast and vegtip. As we expect, differential DS expression is significant between sexes in the reptip, whose cell-type composition foretells the differences in the gamete. Furthermore, it is surprising that the signals for differentially expressed DS differ from those of PS.
+
+Compared to the age profile in Fucus, in Ectocarpus all DS's are differentially expressed between developmental stages, even when considering just the multicellular PSP or GA. This points to a more dynamic transcriptional landscape through development, which involves genes from all levels of purifying selection (mostly since dNdS lies mostly under 1). When including all stages together, we see that the unicellar stages have less expression across all DS, though this difference could be due to the lower RNA quality in meiospores and mitospores. Lastly, unlike Ectocarpus, in Fucus, we have only 5 DS's. Thus, the resolution for this analysis is reduced in Fucus.
+
+Get session info.
+
+```{r}
+devtools::session_info()
+```

@@ -1,0 +1,476 @@
+---
+title: "1.0 Read importing"
+output:
+  html_document:
+    fig_width: 6
+    fig_height: 4
+    df_print: paged
+editor_options: 
+  chunk_output_type: inline
+---
+
+# Importing RNA-seq reads
+
+```{r}
+# BiocManager::install("tximport")
+library(tximport)
+library(tidyverse)
+```
+
+```{r}
+selectGenes <- function(counts, min.count=2){
+  keep <-
+    counts[rowMeans(counts)>min.count, ]
+  return(keep)
+}
+```
+
+Note: previously I had been using `edgeR::cpm()` based on [this blogpost](https://seqqc.wordpress.com/2020/02/17/removing-low-count-genes-for-rna-seq-downstream-analysis/). However, I think it is easier just to keep genes with less than 2 average TPM.
+
+# Load age data
+
+Then, read the gene age data for all species under study. Gene ages were chosen based on the isoform with the oldest age profile.
+
+```{r}
+Ec_age <- readr::read_tsv("data/2880_gene_ages.tsv") %>% dplyr::rename(GeneID = `#gene`)
+Fd_age <- readr::read_tsv("data/Fd_age_complete.tsv") %>% 
+  dplyr::mutate(GeneID = str_remove(GeneID, '\\.p[0-9].*')) %>%
+  dplyr::group_by(GeneID) %>%
+  dplyr::slice(which.min(rank)) %>%
+  dplyr::ungroup()
+Fs_age <- readr::read_tsv("data/Fs_age_complete.tsv") %>% 
+  dplyr::mutate(GeneID = str_remove(GeneID, '\\.p[0-9].*')) %>%
+  dplyr::group_by(GeneID) %>%
+  dplyr::slice(which.min(rank)) %>%
+  dplyr::ungroup()
+```
+
+# Load count data
+
+## Load _F. distichus_ count data
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+sample_info_fd <- 
+  readr::read_tsv("metadata_final.tsv") %>% 
+  dplyr::filter(Experiment == "RAP") %>%
+  dplyr::filter(Species == "Fd") %>%
+  dplyr::filter(!SampleName %in% c("4w_2", "1w_1")) %>%
+  dplyr::filter(SeqProt == "Total") %>%
+  tidyr::unite("stage_tissue", Stage:Tissue, remove = FALSE) %>%
+  dplyr::mutate(
+    stage_tissue = str_remove(stage_tissue, '_All')
+    ) %>%
+  dplyr::arrange(
+    base::match(
+      Stage, 
+      c("gamete", "24H", "48H", "1w", "3w", "4w", "matSP"))
+    ) %>%
+  dplyr::mutate(
+    Stage = case_when(
+      Species == "Fd" & Stage == "24H" ~ "E1",
+      Species == "Fd" & Stage == "48H" ~ "E2",
+      Species == "Fd" & Stage == "1w" ~ "E3",
+      Species == "Fd" & Stage == "3w" ~ "E4",
+      Species == "Fd" & Stage == "4w" ~ "E5",
+      TRUE ~ Stage
+      )
+    )
+
+Fd_files <- 
+  stringr::str_c(
+    "data/Fd_salmon/salmon/", 
+    sample_info_fd$LibName, 
+    "/quant.sf") %>%
+  purrr::set_names(sample_info_fd$LibName)
+
+Fd_tx2gene <- 
+  dplyr::select(Fd_age, GeneID) %>% 
+  dplyr::mutate(IsoID = GeneID)
+
+```
+
+```{r}
+# use abundance
+Fd_txi <- 
+  tximport(
+    Fd_files, 
+    type = "salmon", 
+    tx2gene = Fd_tx2gene,
+    countsFromAbundance = "lengthScaledTPM")
+Fd_keep <- 
+  selectGenes(Fd_txi$abundance, min.count = 2)
+# Fd_exp_M <- 
+#   Fd_keep[, grep("Fd_m", colnames(Fd_keep))]
+# Fd_exp_F <- 
+#   Fd_keep[, grep("Fd_f", colnames(Fd_keep))]
+```
+
+in Fd, out of 9914 genes, we keep 7898
+
+## Load _F. serratus_ count data
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+sample_info_fs <- 
+  readr::read_tsv("metadata_final.tsv") %>% 
+  dplyr::filter(Experiment == "RAP") %>%
+  dplyr::filter(Species == "Fs") %>%
+  dplyr::filter(SeqProt == "Total") %>% 
+  tidyr::unite("stage_tissue", Stage:Tissue, remove = FALSE) %>%
+  dplyr::mutate(
+    stage_tissue = stringr::str_remove(stage_tissue, '_All')
+    ) %>%
+  dplyr::arrange(
+    base::match(
+      Stage, 
+      c("gamete", "24H", "48H", "1w", "3w", "4w", "matSP"))
+    )
+
+Fs_files <- 
+  stringr::str_c(
+    "data/Fs_salmon/salmon/", 
+    sample_info_fs$LibName, 
+    "/quant.sf") %>%
+  purrr::set_names(sample_info_fs$LibName)
+
+Fs_tx2gene <- 
+  dplyr::select(Fs_age, GeneID) %>% 
+  dplyr::mutate(IsoID = GeneID)
+```
+
+```{r}
+# use abundance
+Fs_txi <- 
+  tximport(
+    Fs_files, 
+    type = "salmon", 
+    tx2gene = Fs_tx2gene,
+    countsFromAbundance = "lengthScaledTPM")
+Fs_keep <- 
+  selectGenes(Fs_txi$abundance, min.count = 2)
+# Fs_exp_M <- 
+#   Fs_keep[, grep("Fs_M", colnames(Fs_keep))]
+# Fs_exp_F <- 
+#   Fs_keep[, grep("Fs_F", colnames(Fs_keep))]
+```
+
+in Fs, out of 13362 genes, we keep 8291
+
+
+## Load _F. serratus_ count data
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+sample_info_ec <- 
+  readr::read_tsv("metadata_final.tsv") %>% 
+  dplyr::filter(Species == "Ec") %>%
+  dplyr::filter(
+    SeqProt == "Total" | Stage %in% c("meiospore", "mitospore")) %>% 
+  dplyr::filter(Tissue %in% c("All", "rhizoid")) %>%
+  tidyr::unite("stage_tissue", Stage:Tissue, remove = FALSE) %>%
+  dplyr::mutate(
+    stage_tissue = stringr::str_remove(stage_tissue, '_All')
+    ) %>%
+  dplyr::arrange(
+    base::match(
+      Stage, 
+      c("meiospore", "earlyGA", "immGA", "matGA", "oldGA", "gamete", "earlyPSP", "immPSP", "matPSP", "mitospore"))
+    ) %>%
+  dplyr::filter(!SampleName %in% c("F_oldGA_R_1", "F_oldGA_R_2"))
+
+sample_info_ec$Stage <- 
+  factor(
+    sample_info_ec$Stage, 
+    levels = c("meiospore", "earlyGA", "immGA", "matGA", "oldGA", "gamete", "earlyPSP", "immPSP", "matPSP", "mitospore"))
+# Maybe I have to do this for Fucus species too?
+
+Ec_files <- 
+  stringr::str_c(
+    "data/Ec_salmon2/", 
+    sample_info_ec$LibName, 
+    "/quant.sf") %>%
+  purrr::set_names(sample_info_ec$SampleName)
+
+Ec_tx2gene <- 
+  dplyr::select(Ec_age, GeneID) %>% 
+  dplyr::mutate(IsoID = GeneID)
+```
+
+```{r}
+# use abundance
+Ec_txi <- 
+  tximport(
+    Ec_files, 
+    type = "salmon", 
+    tx2gene = Ec_tx2gene,
+    countsFromAbundance = "lengthScaledTPM")
+Ec_keep <- 
+  selectGenes(Ec_txi$abundance, min.count = 2)
+# Ec_exp_32m <- 
+#   Ec_keep[, grep("^M_", colnames(Ec_keep))]
+# Ec_exp_25f <- 
+#   Ec_keep[, grep("^F_", colnames(Ec_keep))]
+```
+
+in Ec, out of 16732 genes, we keep 11582
+
+## Filter counts based on abundance threshold
+
+Here we use counts from `tximport` rather than abunance.
+
+```{r}
+Fd_counts <-
+  Fd_txi$counts[rownames(Fd_keep), ]
+Fs_counts <-
+  Fs_txi$counts[rownames(Fs_keep), ]
+Ec_counts <-
+  Ec_txi$counts[rownames(Ec_keep), ]
+```
+
+# Applying noisyR
+
+[_noisyR_](https://core-bioinformatics.github.io/noisyR/) can be used to remove genes that are thought to behave noisily. This filter is admittedly quite aggressive, removing a large proportion of the gene set. However, this approach is useful for determining a smaller set of high confidence DEG etc.
+
+```{r}
+library(noisyr)
+```
+
+## Remove noise
+
+```{r}
+Fd_counts.denoised <- 
+  noisyr::noisyr(
+    approach.for.similarity.calculation = "counts",
+    expression.matrix = Fd_counts
+  )
+Fs_counts.denoised <- 
+  noisyr::noisyr(
+    approach.for.similarity.calculation = "counts",
+    expression.matrix = Fs_counts
+  )
+Ec_counts.denoised <- 
+  noisyr::noisyr(
+    approach.for.similarity.calculation = "counts",
+    expression.matrix = Ec_counts
+  )
+
+Fd_abundance.denoised <- 
+  noisyr::noisyr(
+    approach.for.similarity.calculation = "counts",
+    expression.matrix = Fd_keep
+  )
+Fs_abundance.denoised <- 
+  noisyr::noisyr(
+    approach.for.similarity.calculation = "counts",
+    expression.matrix = Fs_keep
+  )
+Ec_abundance.denoised <- 
+  noisyr::noisyr(
+    approach.for.similarity.calculation = "counts",
+    expression.matrix = Ec_keep
+  )
+```
+
+In _F. distichus_, we retain *1962* out of 7898 genes. In _F. serratus_, we retain *2214* out of 8291. In _Ectocarpus_, we retain *2695* out of 11582.
+
+```{r}
+Fd_abundance <- Fd_keep
+Fs_abundance <- Fs_keep
+Ec_abundance <- Ec_keep
+
+htree.denoised <- stats::hclust(dist(t(log2(Fd_abundance.denoised+1))), method = "average")
+graphics::plot(htree.denoised, xlab = "hclust log2(denoised.abundance+1)", main = "Fucus distichus (denoised)")
+htree.out <- stats::hclust(dist(t(log2(Fd_abundance+1))), method = "average")
+graphics::plot(htree.out, xlab = "hclust log2(abundance+1)", main = "Fucus distichus (raw)")
+
+graphics::hist(
+  base::log2(Fd_abundance.denoised[,10]+1), 
+  breaks = 50, 
+  main = "log2(denoised.abundance+1) Fucus distichus (sample 10 Fd_zygotes_48h_1)", 
+  xlim = c(0,16))
+graphics::hist(
+  base::log2(Fd_abundance[,10]+1), 
+  breaks = 50, 
+  main = "log2(abundance+1) Fucus distichus (sample 10 Fd_zygotes_48h_1)", 
+  xlim = c(0,16))
+
+htree.denoised <- stats::hclust(dist(t(log2(Fs_abundance.denoised+1))), method = "average")
+graphics::plot(htree.denoised, xlab = "hclust log2(denoised.abundance+1)", main = "Fucus serratus (denoised)")
+htree.out <- stats::hclust(dist(t(log2(Fs_abundance+1))), method = "average")
+graphics::plot(htree.out, xlab = "hclust log2(abundance+1)", main = "Fucus serratus (raw)")
+
+graphics::hist(
+  base::log2(Fs_abundance.denoised[,10]+1), 
+  breaks = 50, 
+  main = "log2(denoised.abundance+1) Fucus serratus (sample 10 Fs_X_zygotes_48h_1)", 
+  xlim = c(0,16))
+graphics::hist(
+  base::log2(Fs_abundance[,10]+1), 
+  breaks = 50, 
+  main = "log2(abundance+1) Fucus serratus (sample 10 Fs_X_zygotes_48h_1)", 
+  xlim = c(0,16))
+
+htree.denoised <- stats::hclust(dist(t(log2(Ec_abundance.denoised+1))), method = "average")
+graphics::plot(htree.denoised, xlab = "hclust log2(denoised.abundance+1)", main = "Ectocarpus (denoised)")
+htree.out <- stats::hclust(dist(t(log2(Ec_abundance+1))), method = "average")
+graphics::plot(htree.out, xlab = "hclust log2(abundance+1)", main = "Ectocarpus (raw)")
+
+graphics::hist(
+  base::log2(Ec_abundance.denoised[,10]+1), 
+  breaks = 50, 
+  main = "log2(denoised.abundance+1) Ectocarpus (sample 10 F_immGA_1)", 
+  xlim = c(0,16))
+graphics::hist(
+  base::log2(Ec_abundance[,10]+1), 
+  breaks = 50, 
+  main = "log2(abundance+1) Ectocarpus (sample 10 F_immGA_1)", 
+  xlim = c(0,16))
+```
+
+With the count data (I have changed the plots to show abundance instead) the first dendogram (denoised) made more sense with the distribution of the _Fucus distichus_ gametes. MatSP clustered better together and zygotes were clustered roughly based on developmental stages. There was a steep transition between 48H and 1w onwards. This was not seen with the log2(x+1) transformed raw data. Some of this improvement was seen with _Fucus serratus_ and _Ectocarpus_. *However*, I now show the abundance data. The results are less clear with `hclust`, though we have to keep in mind some of its limitations. What we do know is that the _distances between the samples have gotten smaller._
+
+The histogram shows a lot of lower expressed genes are removed. I am unsure about the weird peaks in the _Fucus data_ but I think this is because a lot of genes have 0 expression. This was seen with the gamete samples in _Ectocarpus_.
+
+# Save count data
+
+## Save _F. distichus_ count data
+
+Save abundance
+
+```{r}
+Fd_keep %>% 
+  dplyr::as_tibble(rownames = "GeneID") %>%
+  readr::write_csv(file = "data/Fd_abundance.csv")
+```
+
+Save denoised abundance
+
+```{r}
+Fd_abundance.denoised %>% 
+  dplyr::as_tibble(rownames = "GeneID") %>%
+  readr::write_csv(file = "data/Fd_abundance_denoised.csv")
+```
+
+Save counts
+
+```{r}
+# use counts
+Fd_counts %>% 
+  dplyr::as_tibble(rownames = "GeneID") %>%
+  readr::write_csv(file = "data/Fd_counts.csv")
+```
+
+Save denoised counts
+
+```{r}
+Fd_counts.denoised %>% 
+  dplyr::as_tibble(rownames = "GeneID") %>%
+  readr::write_csv(file = "data/Fd_counts_denoised.csv")
+```
+
+Save metafile
+
+```{r}
+sample_info_fd %>% 
+  readr::write_csv(file = "data/sample_info_fd.csv")
+```
+
+## Save _F. serratus_ count data
+
+Save abundance
+
+```{r}
+Fs_keep %>% 
+  dplyr::as_tibble(rownames = "GeneID") %>%
+  readr::write_csv(file = "data/Fs_abundance.csv")
+```
+
+Save denoised abundance
+
+```{r}
+Fs_abundance.denoised %>% 
+  dplyr::as_tibble(rownames = "GeneID") %>%
+  readr::write_csv(file = "data/Fs_abundance_denoised.csv")
+```
+
+Save counts
+
+```{r}
+# use counts
+Fs_counts %>% 
+  dplyr::as_tibble(rownames = "GeneID") %>%
+  readr::write_csv(file = "data/Fs_counts.csv")
+```
+
+Save denoised counts
+
+```{r}
+Fs_counts.denoised %>% 
+  dplyr::as_tibble(rownames = "GeneID") %>%
+  readr::write_csv(file = "data/Fs_counts_denoised.csv")
+```
+
+Save metafile
+
+```{r}
+sample_info_fs %>% 
+  readr::write_csv(file = "data/sample_info_fs.csv")
+```
+
+## Save _Ectocarpus_ count data
+
+Save abundance
+
+```{r}
+Ec_keep %>% 
+  dplyr::as_tibble(rownames = "GeneID") %>%
+  readr::write_csv(file = "data/Ec_abundance.csv")
+```
+
+Save denoised abundance
+
+```{r}
+Ec_abundance.denoised %>% 
+  dplyr::as_tibble(rownames = "GeneID") %>%
+  readr::write_csv(file = "data/Ec_abundance_denoised.csv")
+```
+
+Save counts
+
+```{r}
+# use counts
+Ec_counts %>% 
+  dplyr::as_tibble(rownames = "GeneID") %>%
+  readr::write_csv(file = "data/Ec_counts.csv")
+```
+
+Save denoised counts
+
+```{r}
+Ec_counts.denoised %>% 
+  dplyr::as_tibble(rownames = "GeneID") %>%
+  readr::write_csv(file = "data/Ec_counts_denoised.csv")
+```
+
+Save metafile
+
+```{r}
+sample_info_ec %>%
+  readr::write_csv(file = "data/sample_info_ec.csv")
+```
+
+## Save processed age data
+
+```{r}
+Ec_age %>%
+  readr::write_csv(file = "data/Ec_age_processed.csv")
+Fd_age %>%
+  readr::write_csv(file = "data/Fd_age_processed.csv")
+Fs_age %>%
+  readr::write_csv(file = "data/Fs_age_processed.csv")
+```
+
+
+Get session info.
+
+```{r}
+devtools::session_info()
+```

@@ -1,0 +1,540 @@
+---
+title: "1.2 myTAI dataset"
+output:
+  html_document:
+    fig_width: 6
+    fig_height: 4
+    df_print: paged
+editor_options: 
+  chunk_output_type: inline
+---
+
+# myTAI data standard
+
+```{r}
+library(tidyverse)
+library(myTAI)
+#  myTAI v1.0.1.9000 2023-07-12 Github (drostlab/myTAI@46eb927)
+library(DESeq2)
+# DESeq2 v1.38.3
+```
+
+Now that we saved the counts and abundances, we can turn the data into the pre-defined PhyloExpressionSet or DivergenceExpressionSet standard from myTAI.
+
+Here is an example.
+
+```{r}
+data("PhyloExpressionSetExample")
+head(PhyloExpressionSetExample)
+```
+
+# Loading the datasets
+
+First get the gene age data.
+
+```{r}
+Ec_age <- readr::read_csv("data/Ec_age_processed.csv")
+Fd_age <- readr::read_csv("data/Fd_age_processed.csv")
+Fs_age <- readr::read_csv("data/Fs_age_processed.csv")
+```
+
+Get the abundance data.
+
+```{r}
+Fd_abundance <-
+  readr::read_csv("data/Fd_abundance.csv")
+Fs_abundance <-
+  readr::read_csv("data/Fs_abundance.csv")
+Ec_abundance <-
+  readr::read_csv("data/Ec_abundance.csv")
+
+Ec_abundance_25f <-
+  Ec_abundance %>%
+  dplyr::select(1 | dplyr::starts_with("F_"))
+Ec_abundance_32m <-
+  Ec_abundance %>%
+  dplyr::select(1 | dplyr::starts_with("M_"))
+```
+
+Get the sample information.
+
+```{r}
+sample_info_fd <-
+  readr::read_csv("data/sample_info_fd.csv")
+sample_info_fs <-
+  readr::read_csv("data/sample_info_fs.csv")
+sample_info_ec <-
+  readr::read_csv("data/sample_info_ec.csv")
+```
+
+# Construct PES
+
+Function to construct the PhyloExpressionSet (PES), saving lines.
+
+```{r}
+construct_PES <- 
+  function(
+    ExpressionMatrix, 
+    GeneAgeTable, 
+    metadata, 
+    AVG = median,
+    grouping_var = "Stage",
+    name_var = "LibName",
+    transform_opt = F,
+    transformation){
+  RepCol <- 
+    metadata %>% 
+    dplyr::group_by(.data[[grouping_var]]) %>% 
+    dplyr::summarize(n=dplyr::n()) %>% 
+    dplyr::arrange(
+      base::factor(
+        .data[[grouping_var]], 
+        levels = base::unique(metadata[,grouping_var][[1]])
+        )
+      ) %>% 
+    base::as.vector()
+  # making sure the metadata and the expression set match
+  PES <- 
+    ExpressionMatrix %>%
+    dplyr::left_join(
+      dplyr::select(
+        GeneAgeTable, 
+        c(GeneID, rank)
+        )
+      ) %>%
+    dplyr::rename("PS" = rank) %>%
+    tidyr::drop_na() %>% # NAs can ruin the transformation.
+    dplyr::relocate(PS, GeneID) 
+  if(transform_opt){
+    if(transformation == "rlog"){
+      PES <-
+        myTAI::tf(
+          PES,
+          FUN = rlog, 
+          integerise = TRUE)
+    }
+    else if(transformation == "vst"){
+      PES <-
+        myTAI::tf(
+          PES,
+          FUN = vst, 
+          integerise = TRUE)
+    }
+  }
+  PES_FILT <- 
+    PES %>%
+    dplyr::select(1:2 | metadata[,name_var][[1]])
+  OUT <- PES_FILT %>%
+    myTAI::CollapseReplicates(
+      RepCol$n,
+      AVG, 
+      stage.names = RepCol[[grouping_var]])
+  return(OUT)
+}
+```
+
+Unlike rank, sqrt and log2 transformations, the rlog and vst transformation looks at the columns.
+This is why we select columns `dplyr::select(1:2 | metadata[,name_var][[1]])` and collaps replicates `myTAI::CollapseReplicates()` after choosing either of the two transformations.
+More about transformations in `1.3 Transformations`.
+
+```{r}
+Fd_PES <- 
+  construct_PES(
+    Fd_abundance,
+    Fd_age,
+    sample_info_fd
+  )
+Fd_PES_M <- 
+  construct_PES(
+    Fd_abundance,
+    Fd_age,
+    dplyr::filter(sample_info_fd, Sex == "M")
+  )
+Fd_PES_F <- 
+  construct_PES(
+    Fd_abundance,
+    Fd_age,
+    dplyr::filter(sample_info_fd, Sex == "F")
+  )
+
+Fs_PES <- 
+  construct_PES(
+    Fs_abundance,
+    Fs_age,
+    sample_info_fs
+  )
+Fs_PES_M <- 
+  construct_PES(
+    Fs_abundance,
+    Fs_age,
+    dplyr::filter(sample_info_fs, Sex == "M")
+  )
+Fs_PES_F <- 
+  construct_PES(
+    Fs_abundance,
+    Fs_age,
+    dplyr::filter(sample_info_fs, Sex == "F")
+  )
+
+Ec_PES_25f <- 
+  construct_PES(
+    Ec_abundance_25f, 
+    Ec_age, 
+    dplyr::filter(
+      sample_info_ec, 
+      Sex == "F"),
+    name_var = "SampleName"
+    )
+Ec_PES_32m <- 
+  construct_PES(
+    Ec_abundance_32m, 
+    Ec_age, 
+    dplyr::filter(
+      sample_info_ec, 
+      Sex == "M"),
+    name_var = "SampleName"
+    )
+```
+
+We further look into the PES of *all* _Fucus_ tissues in the matSP.
+
+```{r}
+Fd_PES_matSP <- 
+  construct_PES(
+    Fd_abundance,
+    Fd_age,
+    dplyr::filter(
+      sample_info_fd, 
+      Stage == "matSP"),
+    grouping_var = "Tissue"
+  )
+Fs_PES_F_matSP <- 
+  construct_PES(
+    Fs_abundance,
+    Fs_age,
+    dplyr::filter(
+      sample_info_fs, 
+      Stage == "matSP" & Sex == "F"),
+    grouping_var = "Tissue"
+  )
+Fs_PES_M_matSP <- 
+  construct_PES(
+    Fs_abundance,
+    Fs_age,
+    dplyr::filter(
+      sample_info_fs, 
+      Stage == "matSP" & Sex == "M"),
+    grouping_var = "Tissue"
+  )
+```
+
+rlog transformations of all the datasets.
+
+```{r}
+Fd_PES.rlog <- 
+  construct_PES(
+    Fd_abundance,
+    Fd_age,
+    sample_info_fd,
+    transform_opt = T,
+    transformation = "rlog"
+  )
+Fd_PES_M.rlog <- 
+  construct_PES(
+    Fd_abundance,
+    Fd_age,
+    dplyr::filter(sample_info_fd, Sex == "M"),
+    transform_opt = T,
+    transformation = "rlog"
+  )
+Fd_PES_F.rlog <- 
+  construct_PES(
+    Fd_abundance,
+    Fd_age,
+    dplyr::filter(sample_info_fd, Sex == "F"),
+    transform_opt = T,
+    transformation = "rlog"
+  )
+
+Fs_PES.rlog <- 
+  construct_PES(
+    Fs_abundance,
+    Fs_age,
+    sample_info_fs,
+    transform_opt = T,
+    transformation = "rlog"
+  )
+Fs_PES_M.rlog <- 
+  construct_PES(
+    Fs_abundance,
+    Fs_age,
+    dplyr::filter(sample_info_fs, Sex == "M"),
+    transform_opt = T,
+    transformation = "rlog"
+  )
+Fs_PES_F.rlog <- 
+  construct_PES(
+    Fs_abundance,
+    Fs_age,
+    dplyr::filter(sample_info_fs, Sex == "F"),
+    transform_opt = T,
+    transformation = "rlog"
+  )
+
+Ec_PES_25f.rlog <- 
+  construct_PES(
+    Ec_abundance_25f, 
+    Ec_age, 
+    dplyr::filter(
+      sample_info_ec, 
+      Sex == "F"),
+    name_var = "SampleName",
+    transform_opt = T,
+    transformation = "rlog"
+    )
+Ec_PES_32m.rlog <- 
+  construct_PES(
+    Ec_abundance_32m, 
+    Ec_age, 
+    dplyr::filter(
+      sample_info_ec, 
+      Sex == "M"),
+    name_var = "SampleName",
+    transform_opt = T,
+    transformation = "rlog"
+    )
+Fd_PES_matSP.rlog <- 
+  construct_PES(
+    Fd_abundance,
+    Fd_age,
+    dplyr::filter(
+      sample_info_fd, 
+      Stage == "matSP"),
+    grouping_var = "Tissue",
+    transform_opt = T,
+    transformation = "rlog"
+  )
+Fs_PES_F_matSP.rlog <- 
+  construct_PES(
+    Fs_abundance,
+    Fs_age,
+    dplyr::filter(
+      sample_info_fs, 
+      Stage == "matSP" & Sex == "F"),
+    grouping_var = "Tissue",
+    transform_opt = T,
+    transformation = "rlog"
+  )
+Fs_PES_M_matSP.rlog <- 
+  construct_PES(
+    Fs_abundance,
+    Fs_age,
+    dplyr::filter(
+      sample_info_fs, 
+      Stage == "matSP" & Sex == "M"),
+    grouping_var = "Tissue",
+    transform_opt = T,
+    transformation = "rlog"
+  )
+```
+
+# denoised data
+
+```{r}
+Fd_abundance.denoised <-
+  readr::read_csv("data/Fd_abundance_denoised.csv")
+Fs_abundance.denoised <-
+  readr::read_csv("data/Fs_abundance_denoised.csv")
+Ec_abundance.denoised <-
+  readr::read_csv("data/Ec_abundance_denoised.csv")
+
+Ec_abundance.denoised_25f <-
+  Ec_abundance.denoised %>%
+  dplyr::select(1 | dplyr::starts_with("F_"))
+Ec_abundance.denoised_32m <-
+  Ec_abundance.denoised %>%
+  dplyr::select(1 | dplyr::starts_with("M_"))
+```
+
+Developmental stages
+
+```{r}
+Fd_PES.denoised <- 
+  construct_PES(
+    Fd_abundance.denoised,
+    Fd_age,
+    sample_info_fd
+  )
+Fd_PES_M.denoised <- 
+  construct_PES(
+    Fd_abundance.denoised,
+    Fd_age,
+    dplyr::filter(sample_info_fd, Sex == "M")
+  )
+Fd_PES_F.denoised <- 
+  construct_PES(
+    Fd_abundance.denoised,
+    Fd_age,
+    dplyr::filter(sample_info_fd, Sex == "F")
+  )
+
+Fs_PES.denoised <- 
+  construct_PES(
+    Fs_abundance.denoised,
+    Fs_age,
+    sample_info_fs
+  )
+Fs_PES_M.denoised <- 
+  construct_PES(
+    Fs_abundance.denoised,
+    Fs_age,
+    dplyr::filter(sample_info_fs, Sex == "M")
+  )
+Fs_PES_F.denoised <- 
+  construct_PES(
+    Fs_abundance.denoised,
+    Fs_age,
+    dplyr::filter(sample_info_fs, Sex == "F")
+  )
+
+Ec_PES_25f.denoised <- 
+  construct_PES(
+    Ec_abundance.denoised_25f, 
+    Ec_age, 
+    dplyr::filter(
+      sample_info_ec, 
+      Sex == "F"),
+    name_var = "SampleName"
+    )
+Ec_PES_32m.denoised <- 
+  construct_PES(
+    Ec_abundance.denoised_32m, 
+    Ec_age, 
+    dplyr::filter(
+      sample_info_ec, 
+      Sex == "M"),
+    name_var = "SampleName"
+    )
+```
+
+Tissues
+
+```{r}
+Fd_PES_matSP.denoised <- 
+  construct_PES(
+    Fd_abundance.denoised,
+    Fd_age,
+    dplyr::filter(
+      sample_info_fd, 
+      Stage == "matSP"),
+    grouping_var = "Tissue"
+  )
+Fs_PES_F_matSP.denoised <- 
+  construct_PES(
+    Fs_abundance.denoised,
+    Fs_age,
+    dplyr::filter(
+      sample_info_fs, 
+      Stage == "matSP" & Sex == "F"),
+    grouping_var = "Tissue"
+  )
+Fs_PES_M_matSP.denoised <- 
+  construct_PES(
+    Fs_abundance.denoised,
+    Fs_age,
+    dplyr::filter(
+      sample_info_fs, 
+      Stage == "matSP" & Sex == "M"),
+    grouping_var = "Tissue"
+  )
+```
+
+In the denoised dataset, it makes little sense to apply the r-log transformation.
+
+
+
+# Save PES
+
+```{r}
+Fd_PES %>%
+  readr::write_csv(file = "data/Fd_PES.csv")
+Fd_PES_F %>%
+  readr::write_csv(file = "data/Fd_PES_F.csv")
+Fd_PES_M %>%
+  readr::write_csv(file = "data/Fd_PES_M.csv")
+Fs_PES %>%
+  readr::write_csv(file = "data/Fs_PES.csv")
+Fs_PES_F %>%
+  readr::write_csv(file = "data/Fs_PES_F.csv")
+Fs_PES_M %>%
+  readr::write_csv(file = "data/Fs_PES_M.csv")
+Ec_PES_32m %>%
+  readr::write_csv(file = "data/Ec_PES_32m.csv")
+Ec_PES_25f %>%
+  readr::write_csv(file = "data/Ec_PES_25f.csv")
+
+Fd_PES_matSP %>%
+  readr::write_csv(file = "data/Fd_PES_matSP.csv")
+Fs_PES_M_matSP %>%
+  readr::write_csv(file = "data/Fs_PES_M_matSP.csv")
+Fs_PES_F_matSP %>%
+  readr::write_csv(file = "data/Fs_PES_F_matSP.csv")
+
+## and the rlog transformed abundances
+
+Fd_PES.rlog %>%
+  readr::write_csv(file = "data/Fd_PES.rlog.csv")
+Fd_PES_F.rlog %>%
+  readr::write_csv(file = "data/Fd_PES_F.rlog.csv")
+Fd_PES_M.rlog %>%
+  readr::write_csv(file = "data/Fd_PES_M.rlog.csv")
+Fs_PES.rlog %>%
+  readr::write_csv(file = "data/Fs_PES.rlog.csv")
+Fs_PES_F.rlog %>%
+  readr::write_csv(file = "data/Fs_PES_F.rlog.csv")
+Fs_PES_M.rlog %>%
+  readr::write_csv(file = "data/Fs_PES_M.rlog.csv")
+Ec_PES_32m.rlog %>%
+  readr::write_csv(file = "data/Ec_PES_32m.rlog.csv")
+Ec_PES_25f.rlog %>%
+  readr::write_csv(file = "data/Ec_PES_25f.rlog.csv")
+
+Fd_PES_matSP.rlog %>%
+  readr::write_csv(file = "data/Fd_PES_matSP.rlog.csv")
+Fs_PES_M_matSP.rlog %>%
+  readr::write_csv(file = "data/Fs_PES_M_matSP.rlog.csv")
+Fs_PES_F_matSP.rlog %>%
+  readr::write_csv(file = "data/Fs_PES_F_matSP.rlog.csv")
+
+## and the denoised data
+
+Fd_PES.denoised %>%
+  readr::write_csv(file = "data/Fd_PES_denoised.csv")
+Fd_PES_F.denoised %>%
+  readr::write_csv(file = "data/Fd_PES_F_denoised.csv")
+Fd_PES_M.denoised %>%
+  readr::write_csv(file = "data/Fd_PES_M_denoised.csv")
+Fs_PES.denoised %>%
+  readr::write_csv(file = "data/Fs_PES_denoised.csv")
+Fs_PES_F.denoised %>%
+  readr::write_csv(file = "data/Fs_PES_F_denoised.csv")
+Fs_PES_M.denoised %>%
+  readr::write_csv(file = "data/Fs_PES_M_denoised.csv")
+Ec_PES_32m.denoised %>%
+  readr::write_csv(file = "data/Ec_PES_32m_denoised.csv")
+Ec_PES_25f.denoised %>%
+  readr::write_csv(file = "data/Ec_PES_25f_denoised.csv")
+
+Fd_PES_matSP.denoised %>%
+  readr::write_csv(file = "data/Fd_PES_matSP_denoised.csv")
+Fs_PES_M_matSP.denoised %>%
+  readr::write_csv(file = "data/Fs_PES_M_matSP_denoised.csv")
+Fs_PES_F_matSP.denoised %>%
+  readr::write_csv(file = "data/Fs_PES_F_matSP_denoised.csv")
+```
+
+Get session info.
+
+```{r}
+devtools::session_info()
+```

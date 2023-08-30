@@ -1,0 +1,711 @@
+---
+title: "5.0 GO enrichment"
+output:
+  html_document:
+    fig_width: 6
+    fig_height: 4
+    df_print: paged
+editor_options: 
+  chunk_output_type: inline
+---
+
+# Gene Ontology (GO) enrichment
+
+Based on the DEG and nonDEG datasets, we can assess whether certain GO categories are enriched. We use `Fisher’s exact` test statistics with the `parent-child algorithm` as implemented in `TopGO`.
+
+```{r}
+library(ggfortify)
+library(tximport)
+library(myTAI)
+library(topGO)
+library(Rgraphviz)
+library(tidyverse)
+```
+
+## Load data
+
+```{r}
+# Fs_ddsObj.wald_DEGlist <-
+#   base::readRDS("data/Fs_wald_DEG_list.rds")
+# Fd_ddsObj.wald_DEGlist <-
+#   base::readRDS("data/Fd_wald_DEG_list.rds")
+
+Fs_ddsObj.wald_nonDEGlist <-
+  base::readRDS("data/Fs_wald_nonDEG_list.rds")
+Fd_ddsObj.wald_nonDEGlist <-
+  base::readRDS("data/Fd_wald_nonDEG_list.rds")
+
+# Fs_ddsObj.denoised.wald_DEGlist <-
+#   base::readRDS("data/Fs_denoised_wald_DEG_list.rds")
+# Fd_ddsObj.denoised.wald_DEGlist <-
+#   base::readRDS("data/Fd_denoised_wald_DEG_list.rds")
+# 
+# Fs_ddsObj.denoised.wald_nonDEGlist <-
+#   base::readRDS("data/Fs_denoised_wald_nonDEG_list.rds")
+# Fd_ddsObj.denoised.wald_nonDEGlist <-
+#   base::readRDS("data/Fd_denoised_wald_nonDEG_list.rds")
+
+Fs_LRT.1000 <-
+  readr::read_csv("data/Fs_LRT_1000.csv")
+Fd_LRT.1000 <-
+  readr::read_csv("data/Fd_LRT_1000.csv")
+```
+
+```{r}
+get_DESeq2_contrasts <-
+  function(DEGlist, contrast_list){
+    if(!is.list(DEGlist)){
+      stop("Is not a list")
+    }
+    DEG_contrasts <-
+      tibble::tibble()
+    for(i in 1:length(contrast_list)){
+      DEG_contrasts_new <- 
+        DEGlist[[i]] %>%
+        tibble::as_tibble(rownames = "GeneID") %>%
+        dplyr::mutate(contrast = contrast_list[i])
+      DEG_contrasts <-
+        DEG_contrasts %>%
+        rbind(DEG_contrasts_new)
+    }
+    return(DEG_contrasts)
+  }
+```
+
+```{r}
+# Fucus serratus
+contrast_list <- 
+  c("48H vs 24H", "1w vs 48H", "3w vs 1w", "4w vs 3w")
+# Fs_DEG_contrasts <-
+#   get_DESeq2_contrasts(Fs_ddsObj.wald_DEGlist , contrast_list)
+Fs_nonDEG_contrasts <-
+  get_DESeq2_contrasts(Fs_ddsObj.wald_nonDEGlist, contrast_list)
+# Fs_denoised_DEG_contrasts <-
+#   get_DESeq2_contrasts(Fs_ddsObj.denoised.wald_DEGlist , contrast_list)
+# Fs_denoised_nonDEG_contrasts <-
+#   get_DESeq2_contrasts(Fs_ddsObj.denoised.wald_nonDEGlist, contrast_list)
+
+# Fucus distichus
+contrast_list <- 
+  c("E2 vs E1", "E3 vs E2", "E4 vs E3", "E5 vs E4")
+# Fd_DEG_contrasts <-
+#   get_DESeq2_contrasts(Fd_ddsObj.wald_DEGlist, contrast_list)
+Fd_nonDEG_contrasts <-
+  get_DESeq2_contrasts(Fd_ddsObj.wald_nonDEGlist, contrast_list)
+# Fd_denoised_DEG_contrasts <-
+#   get_DESeq2_contrasts(Fd_ddsObj.denoised.wald_DEGlist , contrast_list)
+# Fd_denoised_nonDEG_contrasts <-
+#   get_DESeq2_contrasts(Fd_ddsObj.denoised.wald_nonDEGlist, contrast_list)
+```
+
+### Load interproscan data
+
+```{r}
+GO_Fs <- read_delim("data/Interproscan/Fs_ips/F_serratus_pep.filt.processed.faa.tsv", 
+                    delim = "\t", col_select = c(1,14)) %>%
+  drop_na() %>%
+  filter(GO_term != "-") %>% 
+  separate_rows(GO_term, sep = "\\|") %>% 
+  dplyr::mutate(GeneID = str_remove(GeneID, "\\.[^.]+$")) %>% 
+  arrange(GeneID) %>%
+  distinct()
+
+GO_Fd <- read_delim("data/Interproscan/Fd_ips/F_distichus_pep.filt.processed.faa.tsv", 
+                    delim = "\t", col_select = c(1,14)) %>%
+  drop_na() %>%
+  filter(GO_term != "-") %>% 
+  separate_rows(GO_term, sep = "\\|") %>% 
+  dplyr::mutate(GeneID = str_remove(GeneID, "\\.[^.]+$")) %>% 
+  arrange(GeneID) %>%
+  distinct()
+```
+
+```R
+length(unique(GO_Fs$GO_term))
+length(unique(GO_Fs$GeneID))
+```
+
+There are 30,007 GO terms (whereof 2,040 are unique) attached to 12,672 genes in Fucus serratus.
+
+```R
+length(unique(GO_Fd$GO_term))
+length(unique(GO_Fd$GeneID))
+```
+
+There are 16,582 GO terms (whereof 1,928 are unique) attached to 7,118 genes in Fucus distichus.
+
+```{r}
+createGOdata <- function(geneList, ontology, gene2GO_map, nodeSize){
+  OUT <- 
+    methods::new(
+      "topGOdata", 
+      description = paste("GOtest", ontology, sep = "_"), 
+      ontology = ontology, 
+      allGenes = geneList,  
+      annot = annFUN.gene2GO, 
+      gene2GO = gene2GO_map, 
+      nodeSize = nodeSize)
+  return(OUT)
+}
+```
+
+`processedGOdata()` wraps around my function `createGOdata()`
+```{r}
+processedGOdata <-
+  function(DEG_contrasts, GO_data, GO_gene_mapping, ontology, nodeSize = 10, padj_threshold = 0.05){
+    # GO_background <-
+    #   dplyr::left_join(DEG_contrasts, GO_data) %>%
+    #   tidyr::drop_na()
+    # GO_query <-
+    #   dplyr::filter(GO_background, padj < 0.05)
+    # geneList <-
+    #   factor(as.integer(GO_background$GeneID %in% GO_query$GeneID))
+    # names(geneList) <- GO_background$GeneID
+    gene_background <-
+      DEG_contrasts %>%
+      tidyr::drop_na()
+    gene_query <-
+      dplyr::filter(gene_background, padj < padj_threshold)
+    geneList <-
+      factor(as.integer(gene_background$GeneID %in% gene_query$GeneID))
+    names(geneList) <- gene_background$GeneID
+    myGOdata <-
+      createGOdata(
+        geneList,
+        ontology = ontology,
+        gene2GO_map = GO_gene_mapping,
+        nodeSize = nodeSize
+        )
+    return(myGOdata)
+  }
+```
+
+To use `processedGOdata()`
+
+```R
+myGOdata_CC <-
+  processedGOdata(
+    DEG_contrasts = dplyr::filter(Fs_DEG_contrasts, contrast == "48H vs 24H"),
+    GO_data = GO_Fs,
+    GO_gene_mapping = GO_Fs_gene_mapping,
+    ontology = "CC")
+```
+
+`resultGO()` plots or outputs the significant GO terms.
+
+```{r}
+resultGO <- function(GOdata, algorithm, firstSigNodes = 5, sig = F, plot = F, fisher_adjusted_threshold = 0.1){
+  ## Calculate fisher exact test
+  result_fisher <- 
+    topGO::runTest(
+      object = GOdata,
+      algorithm = algorithm,
+      statistic = "fisher")
+  OUT <- 
+    topGO::GenTable(
+      object  = GOdata,
+      fisher = result_fisher,
+      topNodes = length(score(result_fisher)))
+  
+  ## Correct for multiple testing:
+  OUT$fisher <- as.numeric(OUT$fisher)
+  OUT$fisher_adjusted <- 
+    stats::p.adjust(p = OUT$fisher, method = c("fdr"))
+  if(sig == F & plot == F){
+    return(OUT)
+  }
+  ## Subset calls with significance higher than expected:
+  if(plot == F){
+    OUT_sig <- 
+      OUT %>%
+      dplyr::filter(fisher_adjusted < fisher_adjusted_threshold) %>%
+      dplyr::select(GO.ID, Term, Significant, Expected, fisher)
+    return(OUT_sig)
+  }
+  plot_OUT <- 
+    topGO::showSigOfNodes(
+      GOdata, 
+      score(result_fisher),
+      firstSigNodes = firstSigNodes,
+      useInfo ='all')
+  return(plot_OUT)
+}
+# also possible
+# resGO_sig <- resultGO(myGOdata, "weight01", firstSigNodes = 10, sig = T)
+```
+
+The script above were motivated three blogposts:
+
+-[Archetypalecology](https://archetypalecology.wordpress.com/2021/01/27/how-to-perform-kegg-and-go-enrichment-analysis-of-non-model-species-using-r/)
+
+-[Avrilomics](https://avrilomics.blogspot.com/2015/07/using-topgo-to-test-for-go-term.html)
+
+-[Zhiganglu](https://zhiganglu.com/post/topgo-ks-test/)
+
+For the GO analysis I used Fisher’s exact test. This is because it is more flexible. It is flexible because it requires a simpler input and assumes just two classes of genes - DEG (or nonDEG) and background. Node size 5 is recommended. Here are the top level GO categories:
+
+> CC = Cellular Compartment
+> MF = Molecular Function
+> BP = Biological Process
+
+```{r}
+GO_Fs_gene_mapping <- base::split(GO_Fs$GO_term, GO_Fs$GeneID)
+GO_Fd_gene_mapping <- base::split(GO_Fd$GO_term, GO_Fd$GeneID)
+```
+
+Here, I used `base::split()` rather than `topGO::readMapping()` because I have already loaded the `GO_Fs` and `GO_Fd` data. With `topGO::readMapping()`, GeneIDs with multiple GO terms are read (as expected) but (probably due to the GO annotations in different isoforms or different interproscan tools - not sure), we get duplicated element names in the output list.
+
+```R
+> read_delim("data/Interproscan/Fs_ips/F_serratus_pep.filt.processed.faa.tsv", 
++            delim = "\t", col_select = c(1,14)) %>%
++     drop_na() %>%
++     filter(GO_term != "-") %>%
++     dplyr::mutate(GeneID = str_remove(GeneID, "\\.[^.]+$")) %>%
++     distinct() %>%
++     write_csv("GO_input/temp_GOmap_Fs.csv")
+Rows: 247635 Columns: 2                                                                                                                                            
+── Column specification ────────────────────────────────────────────────────────────────────────────────────────────────────────
+Delimiter: "\t"
+chr (2): GeneID, GO_term
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Warning message:                                                                                                              
+One or more parsing issues, call `problems()` on your data frame for details, e.g.:
+  dat <- vroom(...)
+  problems(dat) 
+> 
+> gene_to_go_mapping <- readMappings(file = "GO_input/temp_GOmap_Fs.csv", sep = ",", IDsep = "\\|")
+> table(duplicated(names(gene_to_go_mapping)))
+
+FALSE  TRUE 
+12673  5775 
+> head(names(gene_to_go_mapping)[duplicated(names(gene_to_go_mapping))])
+[1] "ser_TRINITY_DN30930_c0_g1"  "ser_TRINITY_DN1578_c0_g1"   "ser_TRINITY_DN11998_c0_g1" 
+[4] "ser_TRINITY_DN11998_c0_g1"  "ser_TRINITY_DN3705_c0_g2"   "ser_TRINITY_DN166159_c0_g1"
+```
+
+Compare this to
+
+```R
+> table(duplicated(names(GO_Fs_gene_mapping)))
+
+FALSE 
+12672 
+> head(names(GO_Fs_gene_mapping)[duplicated(names(GO_Fs_gene_mapping))])
+character(0)
+```
+
+# GO×DEG analysis
+
+## Fucus serratus
+
+### DEG (LRT)
+
+```{r}
+gene_background_unique <- unique(Fs_nonDEG_contrasts$GeneID)
+geneList <-
+  factor(as.integer(gene_background_unique %in% Fs_LRT.1000$GeneID))
+names(geneList) <- gene_background_unique
+myGOdata_CC <-
+  createGOdata(
+    geneList,
+    ontology = "CC",
+    gene2GO_map = GO_Fs_gene_mapping,
+    nodeSize = 10
+    )
+myGOdata_BP <-
+  createGOdata(
+    geneList,
+    ontology = "BP",
+    gene2GO_map = GO_Fs_gene_mapping,
+    nodeSize = 10
+    )
+myGOdata_MF <-
+  createGOdata(
+    geneList,
+    ontology = "MF",
+    gene2GO_map = GO_Fs_gene_mapping,
+    nodeSize = 10
+    )
+
+resGO_CC <- 
+  resultGO(myGOdata_CC, algorithm = "parentchild", sig = T)
+resGO_BP <- 
+  resultGO(myGOdata_BP, algorithm = "parentchild", sig = T)
+resGO_MF <- 
+  resultGO(myGOdata_MF, algorithm = "parentchild", sig = T)
+```
+
+```{r}
+resGO_CC
+resGO_BP
+resGO_MF
+```
+
+### nonDEG genes (WALD)
+
+#### 48H vs 24H
+
+```{r}
+contrast = "48H vs 24H"
+genes_for_analysis = dplyr::filter(Fs_nonDEG_contrasts, contrast == contrast)
+
+myGOdata_CC <-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fs,
+    GO_gene_mapping = GO_Fs_gene_mapping,
+    ontology = "CC")
+myGOdata_BP <-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fs,
+    GO_gene_mapping = GO_Fs_gene_mapping,
+    ontology = "BP")
+myGOdata_MF <-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fs,
+    GO_gene_mapping = GO_Fs_gene_mapping,
+    ontology = "MF")
+
+resGO_CC <- 
+  resultGO(myGOdata_CC, algorithm = "parentchild", sig = T)
+resGO_BP <- 
+  resultGO(myGOdata_BP, algorithm = "parentchild", sig = T)
+resGO_MF <- 
+  resultGO(myGOdata_MF, algorithm = "parentchild", sig = T)
+```
+
+```{r}
+resGO_CC
+resGO_BP
+resGO_MF
+```
+
+#### 1w vs 48H
+
+```{r}
+contrast = "1w vs 48H"
+genes_for_analysis = dplyr::filter(Fs_nonDEG_contrasts, contrast == contrast)
+
+myGOdata_CC <-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fs,
+    GO_gene_mapping = GO_Fs_gene_mapping,
+    ontology = "CC")
+myGOdata_BP <-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fs,
+    GO_gene_mapping = GO_Fs_gene_mapping,
+    ontology = "BP")
+myGOdata_MF <-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fs,
+    GO_gene_mapping = GO_Fs_gene_mapping,
+    ontology = "MF")
+
+resGO_CC <- 
+  resultGO(myGOdata_CC, algorithm = "parentchild", sig = T)
+resGO_BP <- 
+  resultGO(myGOdata_BP, algorithm = "parentchild", sig = T)
+resGO_MF <- 
+  resultGO(myGOdata_MF, algorithm = "parentchild", sig = T)
+```
+
+```{r}
+resGO_CC
+resGO_BP
+resGO_MF
+```
+
+#### 3w vs 1w
+
+```{r}
+contrast = "3w vs 1w"
+genes_for_analysis = dplyr::filter(Fs_nonDEG_contrasts, contrast == contrast)
+
+myGOdata_CC <-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fs,
+    GO_gene_mapping = GO_Fs_gene_mapping,
+    ontology = "CC")
+myGOdata_BP <-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fs,
+    GO_gene_mapping = GO_Fs_gene_mapping,
+    ontology = "BP")
+myGOdata_MF <-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fs,
+    GO_gene_mapping = GO_Fs_gene_mapping,
+    ontology = "MF")
+
+resGO_CC <- 
+  resultGO(myGOdata_CC, algorithm = "parentchild", sig = T)
+resGO_BP <- 
+  resultGO(myGOdata_BP, algorithm = "parentchild", sig = T)
+resGO_MF <- 
+  resultGO(myGOdata_MF, algorithm = "parentchild", sig = T)
+```
+
+```{r}
+resGO_CC
+resGO_BP
+resGO_MF
+```
+
+#### 4w vs 3w
+
+```{r}
+contrast = "4w vs 3w"
+genes_for_analysis = dplyr::filter(Fs_nonDEG_contrasts, contrast == contrast)
+
+myGOdata_CC <-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fs,
+    GO_gene_mapping = GO_Fs_gene_mapping,
+    ontology = "CC")
+myGOdata_BP <-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fs,
+    GO_gene_mapping = GO_Fs_gene_mapping,
+    ontology = "BP")
+myGOdata_MF <-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fs,
+    GO_gene_mapping = GO_Fs_gene_mapping,
+    ontology = "MF")
+
+resGO_CC <- 
+  resultGO(myGOdata_CC, algorithm = "parentchild", sig = T)
+resGO_BP <- 
+  resultGO(myGOdata_BP, algorithm = "parentchild", sig = T)
+resGO_MF <- 
+  resultGO(myGOdata_MF, algorithm = "parentchild", sig = T)
+```
+
+```{r}
+resGO_CC
+resGO_BP
+resGO_MF
+```
+
+## Fucus distichus
+
+### DEG (LRT)
+
+```{r}
+gene_background_unique <- unique(Fd_nonDEG_contrasts$GeneID)
+geneList <-
+  factor(as.integer(gene_background_unique %in% Fd_LRT.1000$GeneID))
+names(geneList) <- gene_background_unique
+myGOdata_CC <-
+  createGOdata(
+    geneList,
+    ontology = "CC",
+    gene2GO_map = GO_Fd_gene_mapping,
+    nodeSize = 10
+    )
+myGOdata_BP <-
+  createGOdata(
+    geneList,
+    ontology = "BP",
+    gene2GO_map = GO_Fd_gene_mapping,
+    nodeSize = 10
+    )
+myGOdata_MF <-
+  createGOdata(
+    geneList,
+    ontology = "MF",
+    gene2GO_map = GO_Fd_gene_mapping,
+    nodeSize = 10
+    )
+
+resGO_CC <- 
+  resultGO(myGOdata_CC, algorithm = "parentchild", sig = T)
+resGO_BP <- 
+  resultGO(myGOdata_BP, algorithm = "parentchild", sig = T)
+resGO_MF <- 
+  resultGO(myGOdata_MF, algorithm = "parentchild", sig = T)
+```
+
+```{r}
+resGO_CC
+resGO_BP
+resGO_MF
+```
+
+### nonDEG genes (WALD)
+
+#### E2 vs E1
+
+```{r}
+contrast = "E2 vs E1"
+genes_for_analysis = dplyr::filter(Fd_nonDEG_contrasts, contrast == contrast)
+
+myGOdata_CC <-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fd,
+    GO_gene_mapping = GO_Fd_gene_mapping,
+    ontology = "CC")
+myGOdata_BP <-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fd,
+    GO_gene_mapping = GO_Fd_gene_mapping,
+    ontology = "BP")
+myGOdata_MF <-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fd,
+    GO_gene_mapping = GO_Fd_gene_mapping,
+    ontology = "MF")
+
+resGO_CC <- 
+  resultGO(myGOdata_CC, algorithm = "parentchild", sig = T)
+resGO_BP <- 
+  resultGO(myGOdata_BP, algorithm = "parentchild", sig = T)
+resGO_MF <- 
+  resultGO(myGOdata_MF, algorithm = "parentchild", sig = T)
+```
+
+```{r}
+resGO_CC
+resGO_BP
+resGO_MF
+```
+
+#### E3 vs E2
+
+```{r}
+contrast = "E3 vs E2"
+genes_for_analysis = dplyr::filter(Fd_nonDEG_contrasts, contrast == contrast)
+
+myGOdata_CC <-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fd,
+    GO_gene_mapping = GO_Fd_gene_mapping,
+    ontology = "CC")
+myGOdata_BP <-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fd,
+    GO_gene_mapping = GO_Fd_gene_mapping,
+    ontology = "BP")
+myGOdata_MF <-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fd,
+    GO_gene_mapping = GO_Fd_gene_mapping,
+    ontology = "MF")
+
+resGO_CC <- 
+  resultGO(myGOdata_CC, algorithm = "parentchild", sig = T)
+resGO_BP <- 
+  resultGO(myGOdata_BP, algorithm = "parentchild", sig = T)
+resGO_MF <- 
+  resultGO(myGOdata_MF, algorithm = "parentchild", sig = T)
+```
+
+```{r}
+resGO_CC
+resGO_BP
+resGO_MF
+```
+
+#### E4 vs E3
+
+```{r}
+contrast = "E4 vs E3"
+genes_for_analysis = dplyr::filter(Fd_nonDEG_contrasts, contrast == contrast)
+
+myGOdata_CC <-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fd,
+    GO_gene_mapping = GO_Fd_gene_mapping,
+    ontology = "CC")
+myGOdata_BP <-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fd,
+    GO_gene_mapping = GO_Fd_gene_mapping,
+    ontology = "BP")
+myGOdata_MF <-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fd,
+    GO_gene_mapping = GO_Fd_gene_mapping,
+    ontology = "MF")
+
+resGO_CC <- 
+  resultGO(myGOdata_CC, algorithm = "parentchild", sig = T)
+resGO_BP <- 
+  resultGO(myGOdata_BP, algorithm = "parentchild", sig = T)
+resGO_MF <- 
+  resultGO(myGOdata_MF, algorithm = "parentchild", sig = T)
+```
+
+```{r}
+resGO_CC
+resGO_BP
+resGO_MF
+```
+
+#### E5 vs E4
+
+```{r}
+contrast = "E5 vs E4"
+genes_for_analysis = dplyr::filter(Fd_nonDEG_contrasts, contrast == contrast)
+
+myGOdata_CC <-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fd,
+    GO_gene_mapping = GO_Fd_gene_mapping,
+    ontology = "CC")
+myGOdata_BP <-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fd,
+    GO_gene_mapping = GO_Fd_gene_mapping,
+    ontology = "BP")
+myGOdata_MF <-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fd,
+    GO_gene_mapping = GO_Fd_gene_mapping,
+    ontology = "MF")
+
+resGO_CC <- 
+  resultGO(myGOdata_CC, algorithm = "parentchild", sig = T)
+resGO_BP <- 
+  resultGO(myGOdata_BP, algorithm = "parentchild", sig = T)
+resGO_MF <- 
+  resultGO(myGOdata_MF, algorithm = "parentchild", sig = T)
+```
+
+```{r}
+resGO_CC
+resGO_BP
+resGO_MF
+```
+
+Get session info.
+
+```{r}
+devtools::session_info()
+```

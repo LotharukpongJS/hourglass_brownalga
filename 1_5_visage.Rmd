@@ -1,0 +1,132 @@
+---
+title: "1.5 Visualise age distribution"
+output:
+  html_document:
+    fig_width: 6
+    fig_height: 4
+    df_print: paged
+editor_options: 
+  chunk_output_type: inline
+---
+
+# Import dNdS estimates
+
+```{r}
+library(tidyverse)
+library(scales)
+```
+
+```{r}
+Ec_age <- readr::read_csv("data/Ec_age_processed.csv")
+Fd_age <- readr::read_csv("data/Fd_age_processed.csv")
+Fs_age <- readr::read_csv("data/Fs_age_processed.csv")
+```
+
+
+```{r fig.height = 2.5, fig.width = 3}
+Fd_age %>% 
+  dplyr::group_by(rank) %>% 
+  dplyr::summarise(count = dplyr::n()) %>%
+  tidyr::drop_na() %>%
+  ggplot2::ggplot(aes(x = rank, y = count)) + 
+  ggplot2::geom_line(size = 2) +
+  ggplot2::geom_point(shape = 21, colour = "black", fill = "white", size = 3, stroke = 1.5) +
+  ggplot2::labs(title = "PS size",
+       subtitle = "Fucus distichus",
+       fill = "GO term",
+       y = "Number of genes (log-scaled)",
+       x = "Gene age") +
+  ggplot2::theme_classic() +
+  ggplot2::scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x)),
+                limits = c(10,10^4)) +
+  ggplot2::annotation_logticks(sides = "b") +
+  ggplot2::scale_x_continuous(breaks=c(1, 2, 3, 4, 5, 6, 7, 8)) +
+  ggplot2::coord_flip()
+
+Fd_age %>% 
+  dplyr::group_by(rank) %>% 
+  dplyr::summarise(count = dplyr::n()) %>%
+  tidyr::drop_na() %>%
+  ggplot2::ggplot(aes(x = factor(rank), y = count)) + 
+  ggplot2::geom_col(colour = "black", fill = "black", width = 0.1) +
+  ggplot2::geom_point(shape = 21, colour = "#DC0000FF", fill = "white", size = 3, stroke = 1.5) +
+  ggplot2::labs(title = "PS size",
+       subtitle = "Fucus distichus",
+       fill = "GO term",
+       y = "Number of genes (log-scaled)",
+       x = "Gene age") +
+  ggplot2::theme_classic() +
+  ggplot2::scale_y_log10() +
+  ggplot2::coord_flip()
+
+Fd_age %>% 
+  dplyr::group_by(rank) %>% 
+  dplyr::summarise(count = dplyr::n()) %>%
+  tidyr::drop_na() %>%
+  ggplot2::ggplot(aes(x = factor(rank), y = count)) + 
+  ggplot2::geom_col(colour = "black", fill = "black", width = 0.1) +
+  ggplot2::geom_point(shape = 21, colour = "#DC0000FF", fill = "white", size = 3, stroke = 1.5) +
+  ggplot2::labs(title = "PS size",
+       subtitle = "Fucus distichus",
+       fill = "GO term",
+       y = "Number of genes (log-scaled)",
+       x = "Gene age") +
+  ggplot2::theme_classic() +
+  ggplot2::scale_y_log10()
+```
+
+```{r fig.height = 2.5, fig.width = 3}
+Fs_age %>% 
+  dplyr::group_by(rank) %>% 
+  dplyr::summarise(count = dplyr::n()) %>%
+  tidyr::drop_na() %>%
+  ggplot2::ggplot(aes(x = factor(rank), y = count)) + 
+  ggplot2::geom_col(colour = "black", fill = "black", width = 0.05) +
+  ggplot2::geom_point(shape = 21, colour = "#DC0000FF", fill = "white", size = 3, stroke = 1.5) +
+  ggplot2::labs(title = "PS size",
+       subtitle = "Fucus serratus",
+       fill = "GO term",
+       y = "Number of genes (log-scaled)",
+       x = "Gene age") +
+  ggplot2::theme_classic() +
+  ggplot2::scale_y_log10()
+```
+
+```{r fig.height = 3, fig.width = 3}
+Ec_age %>% 
+  dplyr::group_by(rank) %>% 
+  dplyr::summarise(count = dplyr::n()) %>%
+  tidyr::drop_na() %>%
+  ggplot2::ggplot(aes(x = factor(rank), y = count)) + 
+  ggplot2::geom_col(colour = "black", fill = "black", width = 0.05) +
+  ggplot2::geom_point(shape = 21, colour = "#DC0000FF", fill = "white", size = 3, stroke = 1.5) +
+  ggplot2::labs(title = "PS size",
+       subtitle = "Ectocarpus",
+       fill = "GO term",
+       y = "Number of genes (log-scaled)",
+       x = "Gene age") +
+  ggplot2::theme_classic() +
+  ggplot2::scale_y_log10() +
+  ggplot2::coord_flip()
+```
+
+```{r fig.height = 2.5, fig.width = 3}
+Ec_age %>% 
+  dplyr::group_by(rank) %>% 
+  dplyr::summarise(count = dplyr::n()) %>%
+  tidyr::drop_na() %>%
+  ggplot2::ggplot(aes(x = factor(rank), y = count)) + 
+  ggplot2::geom_col(colour = "black", fill = "black", width = 0.05) +
+  ggplot2::geom_point(shape = 21, colour = "#DC0000FF", fill = "white", size = 3, stroke = 1.5) +
+  ggplot2::labs(
+    title = "PS size",
+    subtitle = "Ectocarpus",
+    fill = "GO term",
+    y = "Number of genes (log-scaled)",
+    x = "Gene age") +
+  ggplot2::theme_classic() +
+  ggplot2::scale_y_log10()
+```
+
+

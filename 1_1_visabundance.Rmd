@@ -1,0 +1,120 @@
+---
+title: "1.1 Visualise abundance"
+output:
+  html_document:
+    fig_width: 6
+    fig_height: 4
+    df_print: paged
+editor_options: 
+  chunk_output_type: inline
+---
+
+# Importing RNA-seq reads
+
+```{r}
+library(tidyverse)
+```
+
+Since we have saved the abundance and count data, we now import and visualise the abundance.
+
+```{r}
+Fd_abundance <-
+  readr::read_csv("data/Fd_abundance.csv")
+Fs_abundance <-
+  readr::read_csv("data/Fs_abundance.csv")
+Ec_abundance <-
+  readr::read_csv("data/Ec_abundance.csv")
+sample_info_ec <-
+  readr::read_csv("data/sample_info_ec.csv")
+```
+
+# Visualise abundance
+
+## Visualise _F. distichus_ abundance
+
+```{r}
+Fd_vis <- 
+  Fd_abundance %>% 
+  dplyr::as_tibble(rownames = "GeneID") %>%
+  tidyr::pivot_longer(
+    !GeneID, 
+    names_to = "SampleName", 
+    values_to = "TPM"
+    )
+Fd_vis %>%
+  ggplot2::ggplot(aes(y = log2(TPM+1), x = SampleName)) +
+  ggplot2::geom_violin() +
+  ggplot2::geom_boxplot(width = 0.3, alpha = 0.2) +
+  ggplot2::theme(
+    legend.position ="none",
+    axis.text.x = 
+      element_text(angle = 90, vjust = 0.5, hjust=1)                
+    ) +
+  ggplot2::labs(
+    title = "Fucus distichus"
+  )
+```
+
+## Visualise _F. serratus_ abundance
+
+```{r}
+Fs_vis <- 
+  Fs_abundance %>% 
+  dplyr::as_tibble(rownames = "GeneID") %>%
+  tidyr::pivot_longer(
+    !GeneID, 
+    names_to = "SampleName", 
+    values_to = "TPM"
+    )
+Fs_vis %>%
+  ggplot2::ggplot(aes(y = log2(TPM+1), x = SampleName)) +
+  ggplot2::geom_violin() +
+  ggplot2::geom_boxplot(width = 0.3, alpha = 0.2) +
+  ggplot2::theme(
+    legend.position ="none",
+    axis.text.x = 
+      element_text(angle = 90, vjust = 0.5, hjust=1)                 
+    ) +
+  ggplot2::labs(
+    title = "Fucus serratus"
+  )
+```
+
+## Visualise _F. serratus_ abundance
+
+```{r}
+Ec_vis <- 
+  Ec_abundance %>% 
+  dplyr::as_tibble(rownames = "GeneID") %>%
+  tidyr::pivot_longer(
+    !GeneID, 
+    names_to = "SampleName", 
+    values_to = "TPM"
+    ) %>%
+  dplyr::left_join(sample_info_ec)
+
+Ec_vis %>%
+  ggplot2::ggplot(aes(y = log2(TPM+1), x = SampleName)) +
+  ggplot2::geom_violin() +
+  ggplot2::geom_boxplot(width = 0.3, alpha = 0.2) +
+  ggplot2::theme(
+    legend.position ="none",
+    axis.text.x = 
+      element_text(angle = 90, vjust = 0.5, hjust=1)                 
+    ) +
+  ggplot2::labs(
+    title = "Ectocarpus"
+  )
+
+Ec_vis %>%
+  ggplot2::ggplot(aes(x = log2(TPM), colour = SeqProt, group = SampleName)) +
+  ggplot2::geom_density() +
+  ggplot2::xlim(-5,20) +
+  ggplot2::facet_wrap(~ stage_tissue, nrow=2)
+```
+
+Get session info.
+
+```{r}
+devtools::session_info()
+```

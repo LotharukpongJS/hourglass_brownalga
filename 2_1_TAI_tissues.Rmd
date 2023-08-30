@@ -1,0 +1,756 @@
+---
+title: "2.1 TAI tissues in Fucus matSP"
+output:
+  html_document:
+    fig_width: 6
+    fig_height: 4
+    df_print: paged
+editor_options: 
+  chunk_output_type: inline
+---
+
+# TAI profiles of tissues
+
+For TAI profiles for the developmental stages, one can find them in `2.0 TAI profiles`.
+
+```{r}
+library(tidyverse)
+library(myTAI)
+```
+
+Non-transformed
+
+```{r}
+# tissues in the matSP
+Fd_PES_matSP <-
+  readr::read_csv(file = "data/Fd_PES_matSP.csv")
+Fs_PES_F_matSP <-
+  readr::read_csv(file = "data/Fs_PES_F_matSP.csv")
+Fs_PES_M_matSP <-
+  readr::read_csv(file = "data/Fs_PES_M_matSP.csv")
+```
+
+sqrt-tranformed
+
+```{r}
+# tissues in the matSP
+Fd_PES_matSP.sqrt <-
+  readr::read_csv(file = "data/Fd_PES_matSP.sqrt.csv")
+Fs_PES_F_matSP.sqrt <-
+  readr::read_csv(file = "data/Fs_PES_F_matSP.sqrt.csv")
+Fs_PES_M_matSP.sqrt <-
+  readr::read_csv(file = "data/Fs_PES_M_matSP.sqrt.csv")
+```
+
+log2-tranformed
+
+```{r}
+# tissues in the matSP
+Fd_PES_matSP.log2 <-
+  readr::read_csv(file = "data/Fd_PES_matSP.log2.csv")
+Fs_PES_F_matSP.log2 <-
+  readr::read_csv(file = "data/Fs_PES_F_matSP.log2.csv")
+Fs_PES_M_matSP.log2 <-
+  readr::read_csv(file = "data/Fs_PES_M_matSP.log2.csv")
+```
+
+rank-tranformed
+
+```{r}
+# tissues in the matSP
+Fd_PES_matSP.rank <-
+  readr::read_csv(file = "data/Fd_PES_matSP.rank.csv")
+Fs_PES_F_matSP.rank <-
+  readr::read_csv(file = "data/Fs_PES_F_matSP.rank.csv")
+Fs_PES_M_matSP.rank <-
+  readr::read_csv(file = "data/Fs_PES_M_matSP.rank.csv")
+```
+
+rlog-tranformed
+
+```{r}
+# tissues in the matSP
+Fd_PES_matSP.rlog <-
+  readr::read_csv(file = "data/Fd_PES_matSP.rlog.csv")
+Fs_PES_M_matSP.rlog <-
+  readr::read_csv(file = "data/Fs_PES_M_matSP.rlog.csv")
+Fs_PES_F_matSP.rlog <-
+  readr::read_csv(file = "data/Fs_PES_F_matSP.rlog.csv")
+```
+
+# Tissue-specific TAI
+
+```{r}
+#TI stands for transcriptome index
+TI.preplot <- function(ExpressionSet, permutations = 2000){
+  std <- 
+    myTAI::bootMatrix(
+      ExpressionSet = ExpressionSet, 
+      permutations  = permutations) %>% 
+    apply(2, stats::sd)
+  TI.out <- 
+    myTAI::TAI(ExpressionSet) %>%
+    tibble::as_tibble(rownames = "Tissue", colnames = c("TAI", "PS")) %>% 
+    dplyr::bind_cols(as_tibble(std)) %>%
+    dplyr::rename(TAI = 2, sd = 3)
+  return(TI.out)
+}
+```
+
+```{r}
+Fd_TAI_matSP <- 
+  TI.preplot(Fd_PES_matSP)
+Fs_TAI_F_matSP <- 
+  TI.preplot(Fs_PES_F_matSP) %>%
+  dplyr::mutate(Sex = "F")
+Fs_TAI_M_matSP <- 
+  TI.preplot(Fs_PES_M_matSP) %>%
+  dplyr::mutate(Sex = "M")
+
+# sqrt
+Fd_TAI_matSP.sqrt <- 
+  TI.preplot(Fd_PES_matSP.sqrt)
+Fs_TAI_F_matSP.sqrt <- 
+  TI.preplot(Fs_PES_F_matSP.sqrt) %>%
+  dplyr::mutate(Sex = "F")
+Fs_TAI_M_matSP.sqrt <- 
+  TI.preplot(Fs_PES_M_matSP.sqrt) %>%
+  dplyr::mutate(Sex = "M")
+
+# log2
+Fd_TAI_matSP.log2 <- 
+  TI.preplot(Fd_PES_matSP.log2)
+Fs_TAI_F_matSP.log2 <- 
+  TI.preplot(Fs_PES_F_matSP.log2) %>%
+  dplyr::mutate(Sex = "F")
+Fs_TAI_M_matSP.log2 <- 
+  TI.preplot(Fs_PES_M_matSP.log2) %>%
+  dplyr::mutate(Sex = "M")
+
+# rank
+Fd_TAI_matSP.rank <- 
+  TI.preplot(Fd_PES_matSP.rank)
+Fs_TAI_F_matSP.rank <- 
+  TI.preplot(Fs_PES_F_matSP.rank) %>%
+  dplyr::mutate(Sex = "F")
+Fs_TAI_M_matSP.rank <- 
+  TI.preplot(Fs_PES_M_matSP.rank) %>%
+  dplyr::mutate(Sex = "M")
+
+# rlog
+Fd_TAI_matSP.rlog <- 
+  TI.preplot(Fd_PES_matSP.rlog)
+Fs_TAI_F_matSP.rlog <- 
+  TI.preplot(Fs_PES_F_matSP.rlog) %>%
+  dplyr::mutate(Sex = "F")
+Fs_TAI_M_matSP.rlog <- 
+  TI.preplot(Fs_PES_M_matSP.rlog) %>%
+  dplyr::mutate(Sex = "M")
+```
+
+```{r}
+# maybe I could use geom text? Yes, it is possible but I cannot add the position jitter correctly.
+plot_tissue_Fd <- function(preplot_out){
+  plot_out <- 
+    preplot_out %>%
+    ggplot2::ggplot(
+      aes(
+        x = "Mixed",
+        y = TAI,
+        group = Tissue
+        )
+      ) +
+    ggplot2::geom_point(
+      size = 4, 
+      position = ggplot2::position_dodge(width=0.9),
+      colour = "#00A087FF") +
+    ggplot2::geom_errorbar(
+      aes(ymin = TAI - sd, ymax = TAI + sd),
+      width = 0.1,
+      position = ggplot2::position_dodge(width=0.9),
+      colour = "#00A087FF") +
+    ggplot2::geom_text(
+      aes(label = Tissue),
+      vjust = -0.9,
+      angle = 90,
+      position = ggplot2::position_dodge(width = 0.9)) +
+    # ggsci::scale_colour_npg() +
+    ggplot2::labs(
+      x = "Sex",
+      title = "Fucus distichus \n(matSP)"
+    ) +
+    ggplot2::theme_classic()
+  return(plot_out)
+}
+
+plot_tissue_Fs <- function(preplot_out){
+  plot_out <- 
+    preplot_out %>%
+    ggplot2::ggplot(
+      aes(
+        x = Sex,
+        y = TAI,
+        group = Tissue,
+        colour = Sex
+        )
+      ) +
+    ggplot2::geom_point(
+      size = 4, 
+      position = ggplot2::position_dodge(width=0.9)) +
+    ggplot2::geom_errorbar(
+      aes(ymin = TAI - sd, ymax = TAI + sd),
+      width = 0.1,
+      position = ggplot2::position_dodge(width=0.9)) +
+    ggplot2::geom_text(
+      aes(label = Tissue),
+      vjust = -0.9,
+      angle = 90,
+      position = ggplot2::position_dodge(width = 0.9),
+      colour = "black") +
+    ggplot2::scale_colour_discrete(
+      c("#E64B35FF", "#4DBBD5FF"), 
+      guide = "none") +
+    ggplot2::labs(
+      x = "Sex",
+      title = "Fucus serratus \n(matSP)",
+      colour = NULL
+    ) +
+    ggplot2::theme_classic()
+  return(plot_out)
+}
+# https://stackoverflow.com/questions/35654364/ggplot-jitter-geom-errorbar
+# `ggplot2::position_jitter(seed = 1)` can also be used.
+# https://stackoverflow.com/questions/56816072/position-dodge-and-nudge-y-together
+# For colours:
+# scales::show_col(ggsci::pal_npg("nrc")(9))
+```
+
+
+```{r, fig.height = 4, fig.width = 2}
+plot_tissue_Fd(Fd_TAI_matSP) + 
+  ggplot2::labs(subtitle = "TPM")
+plot_tissue_Fd(Fd_TAI_matSP.sqrt) + 
+  ggplot2::labs(subtitle = "sqrt(TPM)")
+plot_tissue_Fd(Fd_TAI_matSP.log2) + 
+  ggplot2::labs(subtitle = "log2(TPM+1)")
+plot_tissue_Fd(Fd_TAI_matSP.rank) + 
+  ggplot2::labs(subtitle = "rank(TPM)")
+plot_tissue_Fd(Fd_TAI_matSP.rlog) + 
+  ggplot2::labs(subtitle = "rlog(TPM)")
+```
+
+```{r, fig.height = 4, fig.width = 3}
+base::rbind(Fs_TAI_F_matSP, Fs_TAI_M_matSP) %>%
+  plot_tissue_Fs() + 
+  ggplot2::labs(subtitle = "TPM")
+
+base::rbind(Fs_TAI_F_matSP.sqrt, Fs_TAI_M_matSP.sqrt) %>%
+  plot_tissue_Fs() + 
+  ggplot2::labs(subtitle = "sqrt(TPM)")
+
+base::rbind(Fs_TAI_F_matSP.log2, Fs_TAI_M_matSP.log2) %>%
+  plot_tissue_Fs() + 
+  ggplot2::labs(subtitle = "log2(TPM)")
+
+base::rbind(Fs_TAI_F_matSP.rank, Fs_TAI_M_matSP.rank) %>%
+  plot_tissue_Fs() + 
+  ggplot2::labs(subtitle = "rank(TPM)")
+
+base::rbind(Fs_TAI_F_matSP.rlog, Fs_TAI_M_matSP.rlog) %>%
+  plot_tissue_Fs() + 
+  ggplot2::labs(subtitle = "rlog(TPM)")
+```
+
+## Perform `FlatLineTest()`
+
+```{r}
+Fd_PES_matSP_tS <- 
+  tfStability(
+    Fd_PES_matSP,
+    transforms = c("none", "sqrt", "log2", "rank"),
+    permutations = 5000
+    )
+Fd_PES_matSP_tS_processed <-
+  tibble::as_tibble(Fd_PES_matSP_tS, rownames = "transformation")
+
+Fs_PES_F_matSP_tS <- 
+  tfStability(
+    Fs_PES_F_matSP,
+    transforms = c("none", "sqrt", "log2", "rank"),
+    permutations = 5000
+    )
+Fs_PES_F_matSP_tS_processed <-
+  tibble::as_tibble(Fs_PES_F_matSP_tS, rownames = "transformation")
+
+Fs_PES_M_matSP_tS <- 
+  tfStability(
+    Fs_PES_M_matSP,
+    transforms = c("none", "sqrt", "log2", "rank"),
+    permutations = 5000
+    )
+Fs_PES_M_matSP_tS_processed <-
+  tibble::as_tibble(Fs_PES_M_matSP_tS, rownames = "transformation")
+
+# rlog data
+
+Fd_PES_matSP_tS.rlog <- 
+  tfStability(
+    Fd_PES_matSP.rlog,
+    transforms = c("none"), # it is already transformed.
+    permutations = 5000
+    )
+Fd_PES_matSP_tS.rlog_processed <-
+  tibble::as_tibble(Fd_PES_matSP_tS.rlog, rownames = "transformation") %>%
+  dplyr::mutate(transformation = "rlog")
+
+Fs_PES_F_matSP_tS.rlog <- 
+  tfStability(
+    Fs_PES_F_matSP.rlog,
+    transforms = c("none"), # it is already transformed.
+    permutations = 5000
+    )
+Fs_PES_F_matSP_tS.rlog_processed <-
+  tibble::as_tibble(Fs_PES_F_matSP_tS.rlog, rownames = "transformation") %>%
+  dplyr::mutate(transformation = "rlog")
+
+Fs_PES_M_matSP_tS.rlog <- 
+  tfStability(
+    Fs_PES_M_matSP.rlog,
+    transforms = c("none"), # it is already transformed.
+    permutations = 5000
+    )
+Fs_PES_M_matSP_tS.rlog_processed <-
+  tibble::as_tibble(Fs_PES_M_matSP_tS.rlog, rownames = "transformation") %>%
+  dplyr::mutate(transformation = "rlog")
+
+# combine data
+
+Fd_PES_matSP_tS_res <- 
+  dplyr::bind_rows(Fd_PES_matSP_tS_processed, Fd_PES_matSP_tS.rlog_processed) %>%
+  dplyr::rename("pval" = value) %>%
+  dplyr::mutate(test = "FlatLineTest")
+
+Fs_PES_F_matSP_tS_res <- 
+  dplyr::bind_rows(Fs_PES_F_matSP_tS_processed, Fs_PES_F_matSP_tS.rlog_processed) %>%
+  dplyr::rename("pval" = value) %>%
+  dplyr::mutate(test = "FlatLineTest")
+
+Fs_PES_M_matSP_tS_res <- 
+  dplyr::bind_rows(Fs_PES_M_matSP_tS_processed, Fs_PES_M_matSP_tS.rlog_processed) %>%
+  dplyr::rename("pval" = value) %>%
+  dplyr::mutate(test = "FlatLineTest")
+
+```
+
+_Fucus distichus_
+
+```{r, fig.height = 3.5, fig.width = 5}
+Fd_PES_matSP_tS_res %>%
+  ggplot2::ggplot(
+    aes(
+      y = -log10(pval), 
+      x = transformation)) +
+  ggplot2::geom_col(width = 0.05) +
+  ggplot2::geom_point(size = 5) +
+  ggplot2::geom_hline(
+    yintercept = -log10(0.05), 
+    colour = "#E64B35FF",
+    linetype = 'dashed',
+    size = 2
+    ) +
+  ggplot2::annotate(
+    "label",
+    x = 0.7, 
+    y = max(max(-log10(Fd_PES_matSP_tS_res$pval))/6, 2.5),
+    label = "pval < 0.05",
+    # angle = 270,
+    colour = "#E64B35FF") +
+  ggplot2::labs(
+    title = "Fucus distichus matSP",
+    subtitle = "FlatLineTest",
+    x = "Transformation"
+  ) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_classic()
+```
+
+_Fucus serratus_
+
+```{r, fig.height = 3.5, fig.width = 5}
+Fs_PES_F_matSP_tS_res %>%
+  ggplot2::ggplot(
+    aes(
+      y = -log10(pval), 
+      x = transformation)) +
+  ggplot2::geom_col(width = 0.05) +
+  ggplot2::geom_point(size = 5) +
+  ggplot2::geom_hline(
+    yintercept = -log10(0.05), 
+    colour = "#E64B35FF",
+    linetype = 'dashed',
+    size = 2
+    ) +
+  ggplot2::annotate(
+    "label",
+    x = 0.7, 
+    y = max(max(-log10(Fs_PES_F_matSP_tS_res$pval))/6, 2.5),
+    label = "pval < 0.05",
+    # angle = 270,
+    colour = "#E64B35FF") +
+  ggplot2::labs(
+    title = "Fucus serratus matSP (female)",
+    subtitle = "FlatLineTest",
+    x = "Transformation"
+  ) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_classic()
+
+Fs_PES_M_matSP_tS_res %>%
+  ggplot2::ggplot(
+    aes(
+      y = -log10(pval), 
+      x = transformation)) +
+  ggplot2::geom_col(width = 0.05) +
+  ggplot2::geom_point(size = 5) +
+  ggplot2::geom_hline(
+    yintercept = -log10(0.05), 
+    colour = "#E64B35FF",
+    linetype = 'dashed',
+    size = 2
+    ) +
+  ggplot2::annotate(
+    "label",
+    x = 0.7, 
+    y = max(max(-log10(Fs_PES_M_matSP_tS_res$pval))/6, 2.5),
+    label = "pval < 0.05",
+    # angle = 270,
+    colour = "#E64B35FF") +
+  ggplot2::labs(
+    title = "Fucus serratus matSP (male)",
+    subtitle = "FlatLineTest",
+    x = "Transformation"
+  ) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_classic()
+```
+
+# denoised data
+
+
+Non-transformed
+
+```{r}
+# tissues in the matSP
+Fd_PES_matSP.denoised <-
+  readr::read_csv(file = "data/Fd_PES_matSP_denoised.csv")
+Fs_PES_F_matSP.denoised <-
+  readr::read_csv(file = "data/Fs_PES_F_matSP_denoised.csv")
+Fs_PES_M_matSP.denoised <-
+  readr::read_csv(file = "data/Fs_PES_M_matSP_denoised.csv")
+```
+
+sqrt-tranformed
+
+```{r}
+# tissues in the matSP
+Fd_PES_matSP.sqrt.denoised <-
+  readr::read_csv(file = "data/Fd_PES_matSP.sqrt_denoised.csv")
+Fs_PES_F_matSP.sqrt.denoised <-
+  readr::read_csv(file = "data/Fs_PES_F_matSP.sqrt_denoised.csv")
+Fs_PES_M_matSP.sqrt.denoised <-
+  readr::read_csv(file = "data/Fs_PES_M_matSP.sqrt_denoised.csv")
+```
+
+log2-tranformed
+
+```{r}
+# tissues in the matSP
+Fd_PES_matSP.log2.denoised <-
+  readr::read_csv(file = "data/Fd_PES_matSP.log2_denoised.csv")
+Fs_PES_F_matSP.log2.denoised <-
+  readr::read_csv(file = "data/Fs_PES_F_matSP.log2_denoised.csv")
+Fs_PES_M_matSP.log2.denoised <-
+  readr::read_csv(file = "data/Fs_PES_M_matSP.log2_denoised.csv")
+```
+
+####
+
+
+```{r}
+Fd_TAI_matSP.denoised <- 
+  TI.preplot(Fd_PES_matSP.denoised)
+Fs_TAI_F_matSP.denoised <- 
+  TI.preplot(Fs_PES_F_matSP.denoised) %>%
+  dplyr::mutate(Sex = "F")
+Fs_TAI_M_matSP.denoised <- 
+  TI.preplot(Fs_PES_M_matSP.denoised) %>%
+  dplyr::mutate(Sex = "M")
+
+# sqrt
+Fd_TAI_matSP.sqrt.denoised <- 
+  TI.preplot(Fd_PES_matSP.sqrt.denoised)
+Fs_TAI_F_matSP.sqrt.denoised <- 
+  TI.preplot(Fs_PES_F_matSP.sqrt.denoised) %>%
+  dplyr::mutate(Sex = "F")
+Fs_TAI_M_matSP.sqrt.denoised <- 
+  TI.preplot(Fs_PES_M_matSP.sqrt.denoised) %>%
+  dplyr::mutate(Sex = "M")
+
+# log2
+Fd_TAI_matSP.log2.denoised <- 
+  TI.preplot(Fd_PES_matSP.log2.denoised)
+Fs_TAI_F_matSP.log2.denoised <- 
+  TI.preplot(Fs_PES_F_matSP.log2.denoised) %>%
+  dplyr::mutate(Sex = "F")
+Fs_TAI_M_matSP.log2.denoised <- 
+  TI.preplot(Fs_PES_M_matSP.log2.denoised) %>%
+  dplyr::mutate(Sex = "M")
+```
+
+```{r}
+# maybe I could use geom text? Yes, it is possible but I cannot add the position jitter correctly.
+plot_tissue_Fd <- function(preplot_out){
+  plot_out <- 
+    preplot_out %>%
+    ggplot2::ggplot(
+      aes(
+        x = "Mixed",
+        y = TAI,
+        group = Tissue
+        )
+      ) +
+    ggplot2::geom_point(
+      size = 4, 
+      position = ggplot2::position_dodge(width=0.9),
+      colour = "#00A087FF") +
+    ggplot2::geom_errorbar(
+      aes(ymin = TAI - sd, ymax = TAI + sd),
+      width = 0.1,
+      position = ggplot2::position_dodge(width=0.9),
+      colour = "#00A087FF") +
+    ggplot2::geom_text(
+      aes(label = Tissue),
+      vjust = -0.9,
+      angle = 90,
+      position = ggplot2::position_dodge(width = 0.9)) +
+    # ggsci::scale_colour_npg() +
+    ggplot2::labs(
+      x = "Sex",
+      title = "Fucus distichus \n(matSP)"
+    ) +
+    ggplot2::theme_classic()
+  return(plot_out)
+}
+
+plot_tissue_Fs <- function(preplot_out){
+  plot_out <- 
+    preplot_out %>%
+    ggplot2::ggplot(
+      aes(
+        x = Sex,
+        y = TAI,
+        group = Tissue,
+        colour = Sex
+        )
+      ) +
+    ggplot2::geom_point(
+      size = 4, 
+      position = ggplot2::position_dodge(width=0.9)) +
+    ggplot2::geom_errorbar(
+      aes(ymin = TAI - sd, ymax = TAI + sd),
+      width = 0.1,
+      position = ggplot2::position_dodge(width=0.9)) +
+    ggplot2::geom_text(
+      aes(label = Tissue),
+      vjust = -0.9,
+      angle = 90,
+      position = ggplot2::position_dodge(width = 0.9),
+      colour = "black") +
+    ggplot2::scale_colour_discrete(
+      c("#E64B35FF", "#4DBBD5FF"), 
+      guide = "none") +
+    ggplot2::labs(
+      x = "Sex",
+      title = "Fucus serratus \n(matSP)",
+      colour = NULL
+    ) +
+    ggplot2::theme_classic()
+  return(plot_out)
+}
+# https://stackoverflow.com/questions/35654364/ggplot-jitter-geom-errorbar
+# `ggplot2::position_jitter(seed = 1)` can also be used.
+# https://stackoverflow.com/questions/56816072/position-dodge-and-nudge-y-together
+# For colours:
+# scales::show_col(ggsci::pal_npg("nrc")(9))
+```
+
+
+```{r, fig.height = 4, fig.width = 2}
+plot_tissue_Fd(Fd_TAI_matSP.denoised) + 
+  ggplot2::labs(subtitle = "TPM [denoised]")
+plot_tissue_Fd(Fd_TAI_matSP.sqrt.denoised) + 
+  ggplot2::labs(subtitle = "sqrt(TPM) [denoised]")
+plot_tissue_Fd(Fd_TAI_matSP.log2.denoised) + 
+  ggplot2::labs(subtitle = "log2(TPM+1) [denoised]")
+```
+
+```{r, fig.height = 4, fig.width = 3}
+base::rbind(Fs_TAI_F_matSP.denoised, Fs_TAI_M_matSP.denoised) %>%
+  plot_tissue_Fs() + 
+  ggplot2::labs(subtitle = "TPM [denoised]")
+
+base::rbind(Fs_TAI_F_matSP.sqrt.denoised, Fs_TAI_M_matSP.sqrt.denoised) %>%
+  plot_tissue_Fs() + 
+  ggplot2::labs(subtitle = "sqrt(TPM) [denoised]")
+
+base::rbind(Fs_TAI_F_matSP.log2.denoised, Fs_TAI_M_matSP.log2.denoised) %>%
+  plot_tissue_Fs() + 
+  ggplot2::labs(subtitle = "log2(TPM) [denoised]")
+```
+
+## Perform `FlatLineTest()`
+
+```{r}
+Fd_PES_matSP_tS.denoised <- 
+  tfStability(
+    Fd_PES_matSP.denoised,
+    transforms = c("none", "sqrt", "log2", "rank"),
+    permutations = 5000
+    )
+Fd_PES_matSP_tS_processed.denoised <-
+  tibble::as_tibble(Fd_PES_matSP_tS.denoised, rownames = "transformation")
+
+Fs_PES_F_matSP_tS.denoised <- 
+  tfStability(
+    Fs_PES_F_matSP.denoised,
+    transforms = c("none", "sqrt", "log2", "rank"),
+    permutations = 5000
+    )
+Fs_PES_F_matSP_tS_processed.denoised <-
+  tibble::as_tibble(Fs_PES_F_matSP_tS.denoised, rownames = "transformation")
+
+Fs_PES_M_matSP_tS.denoised <- 
+  tfStability(
+    Fs_PES_M_matSP.denoised,
+    transforms = c("none", "sqrt", "log2", "rank"),
+    permutations = 5000
+    )
+Fs_PES_M_matSP_tS_processed.denoised <-
+  tibble::as_tibble(Fs_PES_M_matSP_tS.denoised, rownames = "transformation")
+
+# combine data
+
+Fd_PES_matSP_tS_res.denoised <- 
+  Fd_PES_matSP_tS_processed.denoised %>%
+  dplyr::rename("pval" = value) %>%
+  dplyr::mutate(test = "FlatLineTest")
+
+Fs_PES_F_matSP_tS_res.denoised <- 
+  Fs_PES_F_matSP_tS_processed.denoised %>%
+  dplyr::rename("pval" = value) %>%
+  dplyr::mutate(test = "FlatLineTest")
+
+Fs_PES_M_matSP_tS_res.denoised <- 
+  Fs_PES_M_matSP_tS_processed.denoised %>%
+  dplyr::rename("pval" = value) %>%
+  dplyr::mutate(test = "FlatLineTest")
+
+```
+
+_Fucus distichus_
+
+```{r, fig.height = 3.5, fig.width = 5}
+Fd_PES_matSP_tS_res.denoised %>%
+  ggplot2::ggplot(
+    aes(
+      y = -log10(pval), 
+      x = transformation)) +
+  ggplot2::geom_col(width = 0.05) +
+  ggplot2::geom_point(size = 5) +
+  ggplot2::geom_hline(
+    yintercept = -log10(0.05), 
+    colour = "#E64B35FF",
+    linetype = 'dashed',
+    size = 2
+    ) +
+  ggplot2::annotate(
+    "label",
+    x = 0.7, 
+    y = max(max(-log10(Fd_PES_matSP_tS_res$pval))/6, 2.5),
+    label = "pval < 0.05",
+    # angle = 270,
+    colour = "#E64B35FF") +
+  ggplot2::labs(
+    title = "Fucus distichus matSP [denoised]",
+    subtitle = "FlatLineTest",
+    x = "Transformation"
+  ) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_classic()
+```
+
+_Fucus serratus_
+
+```{r, fig.height = 3.5, fig.width = 5}
+Fs_PES_F_matSP_tS_res.denoised %>%
+  ggplot2::ggplot(
+    aes(
+      y = -log10(pval), 
+      x = transformation)) +
+  ggplot2::geom_col(width = 0.05) +
+  ggplot2::geom_point(size = 5) +
+  ggplot2::geom_hline(
+    yintercept = -log10(0.05), 
+    colour = "#E64B35FF",
+    linetype = 'dashed',
+    size = 2
+    ) +
+  ggplot2::annotate(
+    "label",
+    x = 0.7, 
+    y = max(max(-log10(Fs_PES_F_matSP_tS_res$pval))/6, 2.5),
+    label = "pval < 0.05",
+    # angle = 270,
+    colour = "#E64B35FF") +
+  ggplot2::labs(
+    title = "Fucus serratus matSP (female) [denoised]",
+    subtitle = "FlatLineTest",
+    x = "Transformation"
+  ) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_classic()
+
+Fs_PES_M_matSP_tS_res.denoised %>%
+  ggplot2::ggplot(
+    aes(
+      y = -log10(pval), 
+      x = transformation)) +
+  ggplot2::geom_col(width = 0.05) +
+  ggplot2::geom_point(size = 5) +
+  ggplot2::geom_hline(
+    yintercept = -log10(0.05), 
+    colour = "#E64B35FF",
+    linetype = 'dashed',
+    size = 2
+    ) +
+  ggplot2::annotate(
+    "label",
+    x = 0.7, 
+    y = max(max(-log10(Fs_PES_M_matSP_tS_res$pval))/6, 2.5),
+    label = "pval < 0.05",
+    # angle = 270,
+    colour = "#E64B35FF") +
+  ggplot2::labs(
+    title = "Fucus serratus matSP (male) [denoised]",
+    subtitle = "FlatLineTest",
+    x = "Transformation"
+  ) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_classic()
+```
+
+Get session info.
+
+```{r}
+devtools::session_info()
+```

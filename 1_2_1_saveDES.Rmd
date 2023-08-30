@@ -1,0 +1,823 @@
+---
+title: "1.2.1 myTAI dataset (dNdS)"
+output:
+  html_document:
+    fig_width: 6
+    fig_height: 4
+    df_print: paged
+editor_options: 
+  chunk_output_type: inline
+---
+
+# myTAI data standard
+
+```{r}
+library(tidyverse)
+library(myTAI)
+#  myTAI v1.0.1.9000 2023-07-12 Github (drostlab/myTAI@46eb927)
+library(DESeq2)
+# DESeq2 v1.38.3
+
+# BiocManager::install(c("Biostrings", "GenomicRanges", "GenomicFeatures", "Rsamtools", "rtracklayer"))
+# devtools::install_github("HajkD/metablastr")
+# devtools::install_github("HajkD/orthologr")
+# library(orthologr)
+```
+
+Now that we saved the counts and abundances, we can turn the data into the pre-defined PhyloExpressionSet or DivergenceExpressionSet standard from myTAI.
+
+Here is an example.
+
+```{r}
+data("DivergenceExpressionSetExample")
+head(DivergenceExpressionSetExample)
+```
+
+# Loading the datasets
+
+First get the divergence-strata data.
+
+```{r}
+readr::read_csv2("data/Fs_DM.csv") %>% 
+  ggplot2::ggplot(aes(as.factor(DS))) +
+  ggplot2::geom_bar() +
+  ggplot2::labs(
+    title = "DS distribution",
+    subtitle = "F. serratus vs F. distichus",
+    x = "DS"
+  )
+```
+
+However, we cannot use the classic decile approach in _Fucus_ (as implemented in orthologr) because more than 10% of the genes have dN of 0 (thus, dNdS of 0). This is because these species are too similar to one another.
+
+This has been solved in the orthologr side.
+
+```r
+orthologr::divergence_stratigraphy(..., n_quantile = 8)
+```
+
+I shan't run it here because it is taking too much time.
+
+```{r}
+# orthologr_test_out <- 
+#   orthologr::divergence_stratigraphy(
+#   query_file = "/Users/sodai/Desktop/Algae/Fucus_transcriptome/data/Gene_info/Fucus_distichus/Fucus_distichus_de-novo-transcriptome.fasta.transdecoder_dir/longest_orfs.cds", 
+#   subject_file = "/Users/sodai/Desktop/Algae/Fucus_transcriptome/data/Gene_info/Fucus_serratus/Fucus_serratus_de-novo-transcriptome.fasta.transdecoder_dir/longest_orfs.cds",
+#   n_quantile = 8)
+```
+
+Luckily, I already have pre-computed dNdS between _Fucus_ species.
+
+```{r}
+Fd_dNdS <- readr::read_csv2("data/Fd_dNdS.csv") %>% 
+  drop_na() %>%
+  dplyr::mutate(GeneID = str_remove(query_id, '\\.p[0-9].*')) %>%
+  dplyr::mutate(dN = as.numeric(dN),
+                dS = as.numeric(dS),
+                dNdS = as.numeric(dNdS)) %>%
+  dplyr::group_by(GeneID) %>%
+  dplyr::slice(which.min(dNdS)) %>%
+  dplyr::ungroup()
+Fs_dNdS <- readr::read_csv2("data/Fs_dNdS.csv") %>% 
+  drop_na() %>%
+  dplyr::mutate(GeneID = str_remove(query_id, '\\.p[0-9].*')) %>%
+  dplyr::mutate(dN = as.numeric(dN),
+                dS = as.numeric(dS),
+                dNdS = as.numeric(dNdS)) %>%
+  dplyr::group_by(GeneID) %>%
+  dplyr::slice(which.min(dNdS)) %>%
+  dplyr::ungroup()
+Ec_dNdS <- readr::read_csv2("data/Ec7_Ecs_dNdS.csv") %>% 
+  drop_na() %>%
+  dplyr::mutate(GeneID = query_id) %>%
+  # dplyr::mutate(GeneID = str_remove(query_id, '\\.[0-9].*')) %>%
+  dplyr::mutate(dN = as.numeric(dN),
+                dS = as.numeric(dS),
+                dNdS = as.numeric(dNdS)) %>%
+  # dplyr::group_by(GeneID) %>%
+  # dplyr::slice(which.min(dNdS)) %>%
+  dplyr::ungroup()
+```
+
+In _F. distichus_, we retain 5,510 out of 8,275 (non-NAs) out of 11,182 genes. In _F. serratus_, we retain 5,554 out of 8,278 (non-NAs) out of 11,182 genes. In _Ectocarpus_, we retain 10,399 (non-NAs) out of 10,460 genes (only 82 genes were isoforms).
+
+```{r}
+stats::quantile(Fd_dNdS$dNdS,
+                probs = seq(0.0, 1, 0.1),
+                na.rm = TRUE)
+stats::quantile(Fs_dNdS$dN,
+                probs = seq(0.0, 1, 0.1),
+                na.rm = TRUE)
+stats::quantile(Ec_dNdS$dN,
+                probs = seq(0.0, 1, 0.1),
+                na.rm = TRUE)
+```
+
+We drop genes with more than dNdS of 2.
+
+```{r}
+Fs_dNdS_temp <- 
+  filter(Fs_dNdS, dNdS <= 2) %>% drop_na() # we keep 5,402 genes (prev. 5,554)
+Fd_dNdS_temp <- 
+  filter(Fd_dNdS, dNdS <= 2) %>% drop_na() # we keep 5,363 genes (prev. 5,510).
+Ec_dNdS_temp <- 
+  filter(Ec_dNdS, dNdS <= 2) %>% drop_na() # we keep 10,313 genes (prev. 10,317).
+
+Fs_dNdS_quival <- 
+  stats::quantile(
+    Fs_dNdS_temp[ , "dNdS"],
+    probs = seq(0.0, 1, 0.2),
+    na.rm = TRUE)
+Fd_dNdS_quival <- 
+  stats::quantile(
+    Fd_dNdS_temp[ , "dNdS"],
+    probs = seq(0.0, 1, 0.2),
+    na.rm = TRUE)
+Ec_dNdS_decval <- 
+  stats::quantile(
+    Ec_dNdS_temp[ , "dNdS"],
+    probs = seq(0.0, 1, 0.1),
+    na.rm = TRUE)
+
+Fs_dNdS_quintiles <- cut(Fs_dNdS_temp$dNdS, breaks = Fs_dNdS_quival, include.lowest = TRUE, labels = FALSE)
+Fs_dNdS_temp$DS <- Fs_dNdS_quintiles
+Fs_quintiles <- Fs_dNdS_temp %>% select(DS, GeneID)
+
+Fd_dNdS_quintiles <- cut(Fd_dNdS_temp$dNdS, breaks = Fd_dNdS_quival, include.lowest = TRUE, labels = FALSE)
+Fd_dNdS_temp$DS <- Fd_dNdS_quintiles
+Fd_quintiles <- Fd_dNdS_temp %>% select(DS, GeneID)
+
+Ec_dNdS_quintiles <- cut(Ec_dNdS_temp$dNdS, breaks = Ec_dNdS_decval, include.lowest = TRUE, labels = FALSE)
+Ec_dNdS_temp$DS <- Ec_dNdS_quintiles
+Ec_deciles <- Ec_dNdS_temp %>% select(DS, GeneID)
+
+rm(Fs_dNdS_temp)
+rm(Fd_dNdS_temp)
+rm(Ec_dNdS_temp)
+
+Fs_quantiles <- Fs_quintiles
+Fd_quantiles <- Fd_quintiles
+Ec_quantiles <- Ec_deciles
+```
+
+```{r}
+Fs_quantiles %>% 
+  ggplot2::ggplot(aes(DS)) +
+  ggplot2::geom_bar() +
+  ggplot2::labs(
+    title = "DS distribution",
+    subtitle = "F. serratus vs F. distichus",
+    x = "DS"
+  )
+
+Ec_quantiles %>% 
+  ggplot2::ggplot(aes(DS)) +
+  ggplot2::geom_bar() +
+  ggplot2::labs(
+    title = "DS distribution",
+    subtitle = "Ec7 vs Ec. siliculosus",
+    x = "DS"
+  )
+```
+
+Get the abundance data.
+
+```{r}
+Fd_abundance <-
+  readr::read_csv("data/Fd_abundance.csv")
+Fs_abundance <-
+  readr::read_csv("data/Fs_abundance.csv")
+Ec_abundance <-
+  readr::read_csv("data/Ec_abundance.csv")
+
+Ec_abundance_25f <-
+  Ec_abundance %>%
+  dplyr::select(1 | dplyr::starts_with("F_"))
+Ec_abundance_32m <-
+  Ec_abundance %>%
+  dplyr::select(1 | dplyr::starts_with("M_"))
+```
+
+Get the sample information.
+
+```{r}
+sample_info_fd <-
+  readr::read_csv("data/sample_info_fd.csv")
+sample_info_fs <-
+  readr::read_csv("data/sample_info_fs.csv")
+sample_info_ec <-
+  readr::read_csv("data/sample_info_ec.csv")
+```
+
+# Construct DES
+
+Function to construct the DivergenceExpressionSet (DES), saving lines.
+
+```{r}
+construct_DES <- 
+  function(
+    ExpressionMatrix, 
+    DivergenceMap, 
+    metadata, 
+    AVG = median,
+    grouping_var = "Stage",
+    name_var = "LibName",
+    transform_opt = F,
+    transformation){
+  RepCol <- 
+    metadata %>% 
+    dplyr::group_by(.data[[grouping_var]]) %>% 
+    dplyr::summarize(n=dplyr::n()) %>% 
+    dplyr::arrange(
+      base::factor(
+        .data[[grouping_var]], 
+        levels = base::unique(metadata[,grouping_var][[1]])
+        )
+      ) %>% 
+    base::as.vector()
+  # making sure the metadata and the expression set match
+  DES <- 
+    ExpressionMatrix %>%
+    dplyr::left_join(
+      dplyr::select(
+        DivergenceMap, 
+        c(GeneID, DS)
+        )
+      ) %>%
+    tidyr::drop_na() %>% # NAs can ruin the transformation.
+    dplyr::relocate(DS, GeneID) 
+  if(transform_opt){
+    if(transformation == "rlog"){
+      DES <-
+        myTAI::tf(
+          DES,
+          FUN = rlog, 
+          integerise = TRUE)
+    }
+    else if(transformation == "vst"){
+      DES <-
+        myTAI::tf(
+          DES,
+          FUN = vst, 
+          integerise = TRUE)
+    }
+  }
+  DES_FILT <- 
+    DES %>%
+    dplyr::select(1:2 | metadata[,name_var][[1]])
+  OUT <- DES_FILT %>%
+    myTAI::CollapseReplicates(
+      RepCol$n,
+      AVG, 
+      stage.names = RepCol[[grouping_var]])
+  return(OUT)
+}
+```
+
+Unlike rank, sqrt and log2 transformations, the rlog and vst transformation looks at the columns.
+This is why we select columns `dplyr::select(1:2 | metadata[,name_var][[1]])` and collaps replicates `myTAI::CollapseReplicates()` after choosing either of the two transformations.
+More about transformations in `1.3 Transformations`.
+
+```{r}
+Fd_DES <- 
+  construct_DES(
+    Fd_abundance,
+    Fd_quantiles,
+    sample_info_fd
+  )
+Fd_DES_M <- 
+  construct_DES(
+    Fd_abundance,
+    Fd_quantiles,
+    dplyr::filter(sample_info_fd, Sex == "M")
+  )
+Fd_DES_F <- 
+  construct_DES(
+    Fd_abundance,
+    Fd_quantiles,
+    dplyr::filter(sample_info_fd, Sex == "F")
+  )
+
+Fs_DES <- 
+  construct_DES(
+    Fs_abundance,
+    Fs_quantiles,
+    sample_info_fs
+  )
+Fs_DES_M <- 
+  construct_DES(
+    Fs_abundance,
+    Fs_quantiles,
+    dplyr::filter(sample_info_fs, Sex == "M")
+  )
+Fs_DES_F <- 
+  construct_DES(
+    Fs_abundance,
+    Fs_quantiles,
+    dplyr::filter(sample_info_fs, Sex == "F")
+  )
+
+Ec_DES_25f <- 
+  construct_DES(
+    Ec_abundance_25f, 
+    Ec_quantiles,
+    dplyr::filter(
+      sample_info_ec, 
+      Sex == "F"),
+    name_var = "SampleName"
+    )
+Ec_DES_32m <- 
+  construct_DES(
+    Ec_abundance_32m, 
+    Ec_quantiles,
+    dplyr::filter(
+      sample_info_ec, 
+      Sex == "M"),
+    name_var = "SampleName"
+    )
+```
+
+We further look into the DES of *all* _Fucus_ tissues in the matSP.
+
+```{r}
+Fd_DES_matSP <- 
+  construct_DES(
+    Fd_abundance,
+    Fd_quantiles,
+    dplyr::filter(
+      sample_info_fd, 
+      Stage == "matSP"),
+    grouping_var = "Tissue"
+  )
+Fs_DES_F_matSP <- 
+  construct_DES(
+    Fs_abundance,
+    Fs_quantiles,
+    dplyr::filter(
+      sample_info_fs, 
+      Stage == "matSP" & Sex == "F"),
+    grouping_var = "Tissue"
+  )
+Fs_DES_M_matSP <- 
+  construct_DES(
+    Fs_abundance,
+    Fs_quantiles,
+    dplyr::filter(
+      sample_info_fs, 
+      Stage == "matSP" & Sex == "M"),
+    grouping_var = "Tissue"
+  )
+```
+
+rlog transformations of all the datasets.
+
+```{r}
+Fd_DES.rlog <- 
+  construct_DES(
+    Fd_abundance,
+    Fd_quantiles,
+    sample_info_fd,
+    transform_opt = T,
+    transformation = "rlog"
+  )
+Fd_DES_M.rlog <- 
+  construct_DES(
+    Fd_abundance,
+    Fd_quantiles,
+    dplyr::filter(sample_info_fd, Sex == "M"),
+    transform_opt = T,
+    transformation = "rlog"
+  )
+Fd_DES_F.rlog <- 
+  construct_DES(
+    Fd_abundance,
+    Fd_quantiles,
+    dplyr::filter(sample_info_fd, Sex == "F"),
+    transform_opt = T,
+    transformation = "rlog"
+  )
+
+Fs_DES.rlog <- 
+  construct_DES(
+    Fs_abundance,
+    Fs_quantiles,
+    sample_info_fs,
+    transform_opt = T,
+    transformation = "rlog"
+  )
+Fs_DES_M.rlog <- 
+  construct_DES(
+    Fs_abundance,
+    Fs_quantiles,
+    dplyr::filter(sample_info_fs, Sex == "M"),
+    transform_opt = T,
+    transformation = "rlog"
+  )
+Fs_DES_F.rlog <- 
+  construct_DES(
+    Fs_abundance,
+    Fs_quantiles,
+    dplyr::filter(sample_info_fs, Sex == "F"),
+    transform_opt = T,
+    transformation = "rlog"
+  )
+
+Ec_DES_25f.rlog <- 
+  construct_DES(
+    Ec_abundance_25f, 
+    Ec_quantiles,
+    dplyr::filter(
+      sample_info_ec, 
+      Sex == "F"),
+    name_var = "SampleName",
+    transform_opt = T,
+    transformation = "rlog"
+    )
+Ec_DES_32m.rlog <- 
+  construct_DES(
+    Ec_abundance_32m, 
+    Ec_quantiles,
+    dplyr::filter(
+      sample_info_ec, 
+      Sex == "M"),
+    name_var = "SampleName",
+    transform_opt = T,
+    transformation = "rlog"
+    )
+Fd_DES_matSP.rlog <- 
+  construct_DES(
+    Fd_abundance,
+    Fd_quantiles,
+    dplyr::filter(
+      sample_info_fd, 
+      Stage == "matSP"),
+    grouping_var = "Tissue",
+    transform_opt = T,
+    transformation = "rlog"
+  )
+Fs_DES_F_matSP.rlog <- 
+  construct_DES(
+    Fs_abundance,
+    Fs_quantiles,
+    dplyr::filter(
+      sample_info_fs, 
+      Stage == "matSP" & Sex == "F"),
+    grouping_var = "Tissue",
+    transform_opt = T,
+    transformation = "rlog"
+  )
+Fs_DES_M_matSP.rlog <- 
+  construct_DES(
+    Fs_abundance,
+    Fs_quantiles,
+    dplyr::filter(
+      sample_info_fs, 
+      Stage == "matSP" & Sex == "M"),
+    grouping_var = "Tissue",
+    transform_opt = T,
+    transformation = "rlog"
+  )
+```
+
+# denoised data
+
+```{r}
+Fd_abundance.denoised <-
+  readr::read_csv("data/Fd_abundance_denoised.csv")
+Fs_abundance.denoised <-
+  readr::read_csv("data/Fs_abundance_denoised.csv")
+Ec_abundance.denoised <-
+  readr::read_csv("data/Ec_abundance_denoised.csv")
+
+Ec_abundance.denoised_25f <-
+  Ec_abundance.denoised %>%
+  dplyr::select(1 | dplyr::starts_with("F_"))
+Ec_abundance.denoised_32m <-
+  Ec_abundance.denoised %>%
+  dplyr::select(1 | dplyr::starts_with("M_"))
+```
+
+Developmental stages
+
+```{r}
+Fd_DES.denoised <- 
+  construct_DES(
+    Fd_abundance.denoised,
+    Fd_quantiles,
+    sample_info_fd
+  )
+Fd_DES_M.denoised <- 
+  construct_DES(
+    Fd_abundance.denoised,
+    Fd_quantiles,
+    dplyr::filter(sample_info_fd, Sex == "M")
+  )
+Fd_DES_F.denoised <- 
+  construct_DES(
+    Fd_abundance.denoised,
+    Fd_quantiles,
+    dplyr::filter(sample_info_fd, Sex == "F")
+  )
+
+Fs_DES.denoised <- 
+  construct_DES(
+    Fs_abundance.denoised,
+    Fs_quantiles,
+    sample_info_fs
+  )
+Fs_DES_M.denoised <- 
+  construct_DES(
+    Fs_abundance.denoised,
+    Fs_quantiles,
+    dplyr::filter(sample_info_fs, Sex == "M")
+  )
+Fs_DES_F.denoised <- 
+  construct_DES(
+    Fs_abundance.denoised,
+    Fs_quantiles,
+    dplyr::filter(sample_info_fs, Sex == "F")
+  )
+
+Ec_DES_25f.denoised <- 
+  construct_DES(
+    Ec_abundance.denoised_25f, 
+    Ec_quantiles,
+    dplyr::filter(
+      sample_info_ec, 
+      Sex == "F"),
+    name_var = "SampleName"
+    )
+Ec_DES_32m.denoised <- 
+  construct_DES(
+    Ec_abundance.denoised_32m, 
+    Ec_quantiles,
+    dplyr::filter(
+      sample_info_ec, 
+      Sex == "M"),
+    name_var = "SampleName"
+    )
+```
+
+Tissues
+
+```{r}
+Fd_DES_matSP.denoised <- 
+  construct_DES(
+    Fd_abundance.denoised,
+    Fd_quantiles,
+    dplyr::filter(
+      sample_info_fd, 
+      Stage == "matSP"),
+    grouping_var = "Tissue"
+  )
+Fs_DES_F_matSP.denoised <- 
+  construct_DES(
+    Fs_abundance.denoised,
+    Fs_quantiles,
+    dplyr::filter(
+      sample_info_fs, 
+      Stage == "matSP" & Sex == "F"),
+    grouping_var = "Tissue"
+  )
+Fs_DES_M_matSP.denoised <- 
+  construct_DES(
+    Fs_abundance.denoised,
+    Fs_quantiles,
+    dplyr::filter(
+      sample_info_fs, 
+      Stage == "matSP" & Sex == "M"),
+    grouping_var = "Tissue"
+  )
+```
+
+In the denoised dataset, it makes little sense to apply the r-log transformation.
+
+
+
+# Save DES
+
+```{r}
+Fd_DES %>%
+  readr::write_csv(file = "data/Fd_DES.csv")
+Fd_DES_F %>%
+  readr::write_csv(file = "data/Fd_DES_F.csv")
+Fd_DES_M %>%
+  readr::write_csv(file = "data/Fd_DES_M.csv")
+Fs_DES %>%
+  readr::write_csv(file = "data/Fs_DES.csv")
+Fs_DES_F %>%
+  readr::write_csv(file = "data/Fs_DES_F.csv")
+Fs_DES_M %>%
+  readr::write_csv(file = "data/Fs_DES_M.csv")
+Ec_DES_32m %>%
+  readr::write_csv(file = "data/Ec_DES_32m.csv")
+Ec_DES_25f %>%
+  readr::write_csv(file = "data/Ec_DES_25f.csv")
+
+Fd_DES_matSP %>%
+  readr::write_csv(file = "data/Fd_DES_matSP.csv")
+Fs_DES_M_matSP %>%
+  readr::write_csv(file = "data/Fs_DES_M_matSP.csv")
+Fs_DES_F_matSP %>%
+  readr::write_csv(file = "data/Fs_DES_F_matSP.csv")
+
+## and the rlog transformed abundances
+
+Fd_DES.rlog %>%
+  readr::write_csv(file = "data/Fd_DES.rlog.csv")
+Fd_DES_F.rlog %>%
+  readr::write_csv(file = "data/Fd_DES_F.rlog.csv")
+Fd_DES_M.rlog %>%
+  readr::write_csv(file = "data/Fd_DES_M.rlog.csv")
+Fs_DES.rlog %>%
+  readr::write_csv(file = "data/Fs_DES.rlog.csv")
+Fs_DES_F.rlog %>%
+  readr::write_csv(file = "data/Fs_DES_F.rlog.csv")
+Fs_DES_M.rlog %>%
+  readr::write_csv(file = "data/Fs_DES_M.rlog.csv")
+Ec_DES_32m.rlog %>%
+  readr::write_csv(file = "data/Ec_DES_32m.rlog.csv")
+Ec_DES_25f.rlog %>%
+  readr::write_csv(file = "data/Ec_DES_25f.rlog.csv")
+
+Fd_DES_matSP.rlog %>%
+  readr::write_csv(file = "data/Fd_DES_matSP.rlog.csv")
+Fs_DES_M_matSP.rlog %>%
+  readr::write_csv(file = "data/Fs_DES_M_matSP.rlog.csv")
+Fs_DES_F_matSP.rlog %>%
+  readr::write_csv(file = "data/Fs_DES_F_matSP.rlog.csv")
+
+## and the denoised data
+
+Fd_DES.denoised %>%
+  readr::write_csv(file = "data/Fd_DES_denoised.csv")
+Fd_DES_F.denoised %>%
+  readr::write_csv(file = "data/Fd_DES_F_denoised.csv")
+Fd_DES_M.denoised %>%
+  readr::write_csv(file = "data/Fd_DES_M_denoised.csv")
+Fs_DES.denoised %>%
+  readr::write_csv(file = "data/Fs_DES_denoised.csv")
+Fs_DES_F.denoised %>%
+  readr::write_csv(file = "data/Fs_DES_F_denoised.csv")
+Fs_DES_M.denoised %>%
+  readr::write_csv(file = "data/Fs_DES_M_denoised.csv")
+Ec_DES_32m.denoised %>%
+  readr::write_csv(file = "data/Ec_DES_32m_denoised.csv")
+Ec_DES_25f.denoised %>%
+  readr::write_csv(file = "data/Ec_DES_25f_denoised.csv")
+
+Fd_DES_matSP.denoised %>%
+  readr::write_csv(file = "data/Fd_DES_matSP_denoised.csv")
+Fs_DES_M_matSP.denoised %>%
+  readr::write_csv(file = "data/Fs_DES_M_matSP_denoised.csv")
+Fs_DES_F_matSP.denoised %>%
+  readr::write_csv(file = "data/Fs_DES_F_matSP_denoised.csv")
+```
+
+Also, save the gene-wise divergence-strata.
+
+```{r}
+Fd_quantiles %>%
+  readr::write_csv(file = "data/Fd_Fs_DM_5.csv")
+Fs_quantiles %>%
+  readr::write_csv(file = "data/Fs_Fd_DM_5.csv")
+Ec_quantiles %>%
+  readr::write_csv(file = "data/Ec_Es_DM_10.csv")
+```
+
+# Visualise dNdS & gene age correspondence
+
+```{r}
+library(scales)
+library(see)
+Ec_age <- readr::read_csv("data/Ec_age_processed.csv")
+Fd_age <- readr::read_csv("data/Fd_age_processed.csv")
+Fs_age <- readr::read_csv("data/Fs_age_processed.csv")
+```
+
+## For _Fucus_
+
+```{r fig.height = 2.5, fig.width = 4.5}
+Kendall_dNdS <- Fd_dNdS %>% 
+  filter(dNdS < 2, !dNdS == 0) %>%
+  left_join(Fd_age)
+Kendall_dNdS %>% drop_na() %>%
+  ggplot(aes(x = rank, y = dNdS, group = rank)) +
+  see::geom_violindot(dots_size = 0.2, binwidth = 0.02) +
+  labs(title = "Correlation between gene age and dNdS",
+       subtitle = "F. distichus",
+       x = "Gene age",
+       y = "dN/dS ratio\n(F. distichus vs F. serratus)") +
+  scale_x_continuous(breaks=c(1:max(Kendall_dNdS$rank, na.rm = TRUE))) +
+  theme_classic()
+res<-cor.test(Kendall_dNdS$rank,Kendall_dNdS$dNdS, method="kendall")
+res
+
+Kendall_dNdS <- Fs_dNdS %>%
+  filter(dNdS < 2, !dNdS == 0) %>%
+  left_join(Fs_age)
+Kendall_dNdS %>% drop_na() %>%
+  ggplot(aes(x = rank, y = dNdS, group = rank)) +
+  see::geom_violindot(dots_size = 0.2, binwidth = 0.02) +
+  labs(title = "Correlation between gene age and dNdS",
+       subtitle = "F. serratus",
+       x = "Gene age",
+       y = "dN/dS ratio\n(F. serratus vs F. distichus)") +
+  scale_x_continuous(breaks=c(1:max(Kendall_dNdS$rank, na.rm = TRUE))) +
+  theme_classic()
+res<-cor.test(Kendall_dNdS$rank,Kendall_dNdS$dNdS, method="kendall")
+res
+```
+
+```{r fig.height = 2.5, fig.width = 3.5}
+# Kendall_dNdS <- Fd_dNdS %>% 
+#   filter(dNdS == 0) %>%
+#   left_join(Fd_age)
+# Kendall_dNdS %>% drop_na() %>%
+#   ggplot(aes(x = rank)) +
+#   ggplot2::geom_bar() +
+#   labs(title = "Gene age and dNdS=0",
+#        subtitle = "F. distichus",
+#        x = "Gene age",
+#        y = "Genes where dNdS=0 \n(F. distichus vs F. serratus)") +
+#   scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8)) +
+#   theme_classic()
+
+Kendall_dNdS <- Fd_dNdS %>% 
+  mutate(zero = case_when(
+    dNdS == 0 ~ "dNdS=0",
+    TRUE ~ "dNdS>0")) %>%
+  left_join(Fd_age)
+Kendall_dNdS %>% drop_na() %>%
+  ggplot(aes(x = rank, fill = zero)) +
+  ggplot2::geom_bar(colour = "black") +
+  labs(title = "Gene age and dNdS=0",
+       subtitle = "F. distichus",
+       x = "Gene age",
+       y = "Number of genes",
+       fill = "") +
+  scale_x_continuous(breaks=c(1:max(Kendall_dNdS$rank, na.rm = TRUE))) +
+  theme_classic() +
+  scale_fill_manual(values = c("#DC0000FF", "white"))
+
+Kendall_dNdS <- Fs_dNdS %>% 
+  mutate(zero = case_when(
+    dNdS == 0 ~ "dNdS=0",
+    TRUE ~ "dNdS>0")) %>%
+  left_join(Fs_age)
+Kendall_dNdS %>% drop_na() %>%
+  ggplot(aes(x = rank, fill = zero)) +
+  ggplot2::geom_bar(colour = "black") +
+  labs(title = "Gene age and dNdS=0",
+       subtitle = "F. serratus",
+       x = "Gene age",
+       y = "Number of genes",
+       fill = "") +
+  scale_x_continuous(breaks=c(1:max(Kendall_dNdS$rank, na.rm = TRUE))) +
+  theme_classic() +
+  scale_fill_manual(values = c("#DC0000FF", "white"))
+```
+
+## For _Ectocaprus_
+
+```{r fig.height = 2.5, fig.width = 5.5}
+Kendall_dNdS <- Ec_dNdS %>% 
+  filter(dNdS < 2, !dNdS == 0) %>%
+  left_join(Ec_age)
+Kendall_dNdS %>% drop_na() %>%
+  ggplot(aes(x = rank, y = dNdS, group = rank)) +
+  see::geom_violindot(dots_size = 0.05, binwidth = 0.02) +
+  labs(title = "Correlation between gene age and dNdS",
+       subtitle = "Ectocarpus",
+       x = "Gene age",
+       y = "dN/dS ratio\n(Ec7 vs Ec. siliculosus)") +
+  scale_x_continuous(breaks=c(1:max(Kendall_dNdS$rank, na.rm = TRUE))) +
+  theme_classic()
+res<-cor.test(Kendall_dNdS$rank,Kendall_dNdS$dNdS, method="kendall")
+res
+```
+
+```{r fig.height = 2.5, fig.width = 4.5}
+Kendall_dNdS <- Ec_dNdS %>% 
+  mutate(zero = case_when(
+    dNdS == 0 ~ "dNdS=0",
+    TRUE ~ "dNdS>0")) %>%
+  left_join(Ec_age)
+Kendall_dNdS %>% drop_na() %>%
+  ggplot(aes(x = rank, fill = zero)) +
+  ggplot2::geom_bar(colour = "black") +
+  labs(title = "Gene age and dNdS=0",
+       subtitle = "Ectocarpus",
+       x = "Gene age",
+       y = "Number of genes",
+       fill = "") +
+  scale_x_continuous(breaks=c(1:max(Kendall_dNdS$rank, na.rm = TRUE))) +
+  theme_classic() +
+  scale_fill_manual(values = c("#DC0000FF", "white"))
+```
+
+Get session info.
+
+```{r}
+devtools::session_info()
+```

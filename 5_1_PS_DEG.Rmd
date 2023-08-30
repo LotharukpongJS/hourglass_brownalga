@@ -1,0 +1,498 @@
+---
+title: "5.1 PS enrichment in DEG"
+output:
+  html_document:
+    fig_width: 6
+    fig_height: 4
+    df_print: paged
+editor_options: 
+  chunk_output_type: inline
+---
+
+# Phylostratum enrichment in DEG
+
+Based on the DEG and nonDEG datasets, we can assess whether certain PS's are enriched. This can give us an idea of whether the development in _Fucus_ employs largely conserved genes or new genes.
+
+We use Wilcoxon rank-sum test (```wilcox.test()```), which is a nonparametric test that compares the distribution of two independent samples. The test does not assume any particular distribution of the data, so it can be used to compare samples that are not normally distributed or have unequal variances. It does assume that the data are distributed symmetrically around the median.
+
+We also use the `Fisher’s exact test` later to find which exact PS is significant in DEG or nonDEG.
+
+```{r}
+library(ggfortify)
+library(tximport)
+library(myTAI)
+library(topGO)
+library(Rgraphviz)
+library(tidyverse)
+```
+
+## Load data
+
+```{r}
+# Fs_ddsObj.wald_DEGlist <-
+#   base::readRDS("data/Fs_wald_DEG_list.rds")
+# Fd_ddsObj.wald_DEGlist <-
+#   base::readRDS("data/Fd_wald_DEG_list.rds")
+# 
+Fs_ddsObj.wald_nonDEGlist <-
+  base::readRDS("data/Fs_wald_nonDEG_list.rds")
+Fd_ddsObj.wald_nonDEGlist <-
+  base::readRDS("data/Fd_wald_nonDEG_list.rds")
+
+# Fs_ddsObj.denoised.wald_DEGlist <-
+#   base::readRDS("data/Fs_denoised_wald_DEG_list.rds")
+# Fd_ddsObj.denoised.wald_DEGlist <-
+#   base::readRDS("data/Fd_denoised_wald_DEG_list.rds")
+# 
+# Fs_ddsObj.denoised.wald_nonDEGlist <-
+#   base::readRDS("data/Fs_denoised_wald_nonDEG_list.rds")
+# Fd_ddsObj.denoised.wald_nonDEGlist <-
+#   base::readRDS("data/Fd_denoised_wald_nonDEG_list.rds")
+
+Fs_LRT.1000 <-
+  readr::read_csv("data/Fs_LRT_1000.csv")
+Fd_LRT.1000 <-
+  readr::read_csv("data/Fd_LRT_1000.csv")
+```
+
+```{r}
+get_DESeq2_contrasts <-
+  function(DEGlist, contrast_list){
+    if(!is.list(DEGlist)){
+      stop("Is not a list")
+    }
+    DEG_contrasts <-
+      tibble::tibble()
+    for(i in 1:length(contrast_list)){
+      DEG_contrasts_new <- 
+        DEGlist[[i]] %>%
+        tibble::as_tibble(rownames = "GeneID") %>%
+        dplyr::mutate(contrast = contrast_list[i])
+      DEG_contrasts <-
+        DEG_contrasts %>%
+        rbind(DEG_contrasts_new)
+    }
+    return(DEG_contrasts)
+  }
+```
+
+```{r}
+# Fucus serratus
+contrast_list <- 
+  c("48H vs 24H", "1w vs 48H", "3w vs 1w", "4w vs 3w")
+# Fs_DEG_contrasts <-
+#   get_DESeq2_contrasts(Fs_ddsObj.wald_DEGlist , contrast_list)
+Fs_nonDEG_contrasts <-
+  get_DESeq2_contrasts(Fs_ddsObj.wald_nonDEGlist, contrast_list)
+# Fs_denoised_DEG_contrasts <-
+#   get_DESeq2_contrasts(Fs_ddsObj.denoised.wald_DEGlist , contrast_list)
+# Fs_denoised_nonDEG_contrasts <-
+#   get_DESeq2_contrasts(Fs_ddsObj.denoised.wald_nonDEGlist, contrast_list)
+
+# Fucus distichus
+contrast_list <- 
+  c("E2 vs E1", "E3 vs E2", "E4 vs E3", "E5 vs E4")
+# Fd_DEG_contrasts <-
+#   get_DESeq2_contrasts(Fd_ddsObj.wald_DEGlist, contrast_list)
+Fd_nonDEG_contrasts <-
+  get_DESeq2_contrasts(Fd_ddsObj.wald_nonDEGlist, contrast_list)
+# Fd_denoised_DEG_contrasts <-
+#   get_DESeq2_contrasts(Fd_ddsObj.denoised.wald_DEGlist , contrast_list)
+# Fd_denoised_nonDEG_contrasts <-
+#   get_DESeq2_contrasts(Fd_ddsObj.denoised.wald_nonDEGlist, contrast_list)
+```
+
+#### Load age data
+
+```{r}
+Ec_age <- readr::read_csv("data/Ec_age_processed.csv")
+Fd_age <- readr::read_csv("data/Fd_age_processed.csv")
+Fs_age <- readr::read_csv("data/Fs_age_processed.csv")
+```
+
+# PS×DEG analysis (Wilcoxon's rank sum test)
+
+## Method
+
+#### compare nonDEG enrichment
+
+```{r}
+diffPS <- function(DEG_input, age_list, padj_threshold = 0.1, alternative = "two.sided", LRT.1000 = F){
+  PS_background <- DEG_input %>% 
+    dplyr::full_join(age_list)
+  if (!LRT.1000) {
+    PS_background <- tidyr::drop_na(PS_background)
+  }
+  PS_background$padj[is.na(PS_background$padj)] <- 1
+  PS_list <- PS_background %>%
+    dplyr::group_split(padj <= padj_threshold)
+  PS_query <- PS_list[[2]]
+  PS_nonquery <- PS_list[[1]]
+  wilcox_test <- 
+    stats::wilcox.test(PS_query$rank, PS_nonquery$rank, alternative = alternative)
+  return(wilcox_test)
+}
+```
+
+## Fucus serratus
+
+### Of all stages
+
+```{r}
+diffPS(DEG_input = Fs_LRT.1000, age_list = Fs_age, LRT.1000 = T, alternative = "greater")
+diffPS(DEG_input = Fs_LRT.1000, age_list = Fs_age, LRT.1000 = T, alternative = "less")
+diffPS(DEG_input = Fs_LRT.1000, age_list = Fs_age, LRT.1000 = T, alternative = "two.sided")
+```
+
+No significant differences in DEGs.
+
+```{r}
+# Fs_DEG_contrasts %>% distinct(GeneID) %>% nrow()
+# Fs_DEG_contrasts %>% drop_na() %>% distinct(GeneID) %>% nrow()
+```
+
+##### 48H vs 24H
+
+```{r}
+Fs_nonDEG_contrasts_input <- 
+  Fs_nonDEG_contrasts %>% dplyr::filter(contrast == "48H vs 24H")
+diffPS(DEG_input = Fs_nonDEG_contrasts_input, age_list = Fs_age, alternative = "greater")
+diffPS(DEG_input = Fs_nonDEG_contrasts_input, age_list = Fs_age, alternative = "less")
+diffPS(DEG_input = Fs_nonDEG_contrasts_input, age_list = Fs_age, alternative = "two.sided")
+```
+
+##### 1w vs 48H
+
+```{r}
+Fs_nonDEG_contrasts_input <- 
+  Fs_nonDEG_contrasts %>% dplyr::filter(contrast == "1w vs 48H")
+diffPS(DEG_input = Fs_nonDEG_contrasts_input, age_list = Fs_age, alternative = "greater")
+diffPS(DEG_input = Fs_nonDEG_contrasts_input, age_list = Fs_age, alternative = "less")
+diffPS(DEG_input = Fs_nonDEG_contrasts_input, age_list = Fs_age, alternative = "two.sided")
+```
+
+##### 3w vs 1w
+
+```{r}
+Fs_nonDEG_contrasts_input <- 
+  Fs_nonDEG_contrasts %>% dplyr::filter(contrast == "3w vs 1w")
+diffPS(DEG_input = Fs_nonDEG_contrasts_input, age_list = Fs_age, alternative = "greater")
+diffPS(DEG_input = Fs_nonDEG_contrasts_input, age_list = Fs_age, alternative = "less")
+diffPS(DEG_input = Fs_nonDEG_contrasts_input, age_list = Fs_age, alternative = "two.sided")
+```
+
+##### 4w vs 3w
+
+```{r}
+Fs_nonDEG_contrasts_input <- 
+  Fs_nonDEG_contrasts %>% dplyr::filter(contrast == "4w vs 3w")
+diffPS(DEG_input = Fs_nonDEG_contrasts_input, age_list = Fs_age, alternative = "greater")
+diffPS(DEG_input = Fs_nonDEG_contrasts_input, age_list = Fs_age, alternative = "less")
+diffPS(DEG_input = Fs_nonDEG_contrasts_input, age_list = Fs_age, alternative = "two.sided")
+```
+
+## Fucus distichus
+
+### Of all stages
+
+```{r}
+diffPS(DEG_input = Fd_LRT.1000, age_list = Fd_age, LRT.1000 = T, alternative = "greater")
+diffPS(DEG_input = Fd_LRT.1000, age_list = Fd_age, LRT.1000 = T, alternative = "less")
+diffPS(DEG_input = Fd_LRT.1000, age_list = Fd_age, LRT.1000 = T, alternative = "two.sided")
+```
+
+No significant differences in DEGs.
+
+##### E2 vs E1
+
+```{r}
+Fd_nonDEG_contrasts_input <- 
+  Fd_nonDEG_contrasts %>% dplyr::filter(contrast == "E2 vs E1")
+diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "greater")
+diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "less")
+diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "two.sided")
+```
+
+##### E3 vs E2
+
+```{r}
+Fd_nonDEG_contrasts_input <- 
+  Fd_nonDEG_contrasts %>% dplyr::filter(contrast == "E3 vs E2")
+diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "greater")
+diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "less")
+diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "two.sided")
+```
+
+##### E4 vs E3
+
+```{r}
+Fd_nonDEG_contrasts_input <- 
+  Fd_nonDEG_contrasts %>% dplyr::filter(contrast == "E4 vs E3")
+diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "greater")
+diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "less")
+diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "two.sided")
+```
+
+##### E5 vs E4
+
+```{r}
+Fd_nonDEG_contrasts_input <- 
+  Fd_nonDEG_contrasts %>% dplyr::filter(contrast == "E5 vs E4")
+diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "greater")
+diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "less")
+diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "two.sided")
+```
+
+## Summary
+
+We find that DEGs (based on LRT) do not tend to have any difference in PS. In contrast, nonDEGs tend to be older, though usually not significant between stages, except for "4w vs 3w" in _F. serratus_ and "E3 vs E2", "E4 vs E3" and "E5 vs E4" in _F. distichus_. Now, we turn to the Fisher's exact test to see whether any specific PS is differentially expressed.
+
+# PS×DEG analysis (Fisher's exact test)
+
+```{r}
+fisherPS <- function(DEG_input, age_list, padj_threshold = 0.1, alternative = "two.sided", LRT.1000 = F){
+  PS_background <- DEG_input %>% 
+    dplyr::full_join(age_list)
+  if (!LRT.1000) {
+    PS_background <- tidyr::drop_na(PS_background)
+  }
+  PS_background$padj[is.na(PS_background$padj)] <- 1
+  
+  TEST <- PS_background %>%
+    mutate(query = (padj <= padj_threshold)) %>%
+    group_by(rank, query) %>%
+    summarise(n = n())
+  RESULTS <- list()
+  for (i in unique(TEST$rank)) {
+    # subset the data for the current rank
+    sub_df <- TEST[TEST$rank == i, ]
+    # create a 2x2 contingency table
+    # extract the contingency table
+    A <- sum(sub_df$n[sub_df$query == TRUE])
+    B <- sum(sub_df$n[sub_df$query == FALSE])
+    C <- sum(TEST$n[TEST$query == TRUE]) - A
+    D <- sum(TEST$n[TEST$query == FALSE]) - B
+    cont_table <- matrix(c(A, B, C, D), nrow = 2, ncol = 2)
+    
+    # perform Fisher's exact test
+    fisher_test <- fisher.test(cont_table, alternative = alternative)
+    
+    # store the results
+    RESULTS[[i]] <- list(rank = i,
+                         odds_ratio = fisher_test$estimate,
+                         p_value = fisher_test$p.value,
+                         query_prop = A/(B+A),
+                         background_prop = C/(D+C))
+  }
+  # combine the results into a data frame
+  OUT <- do.call(rbind.data.frame, RESULTS)
+  adjusted_p_values <- p.adjust(OUT$p_value, method = "BH")
+  OUT$adjusted_p_value <- adjusted_p_values
+  return(OUT)
+}
+```
+
+## Fucus serratus
+
+### Of all stages
+
+```{r}
+fisherPS(DEG_input = Fs_LRT.1000, age_list = Fs_age, LRT.1000 = T, alternative = "greater")
+fisherPS(DEG_input = Fs_LRT.1000, age_list = Fs_age, LRT.1000 = T, alternative = "less")
+fisherPS(DEG_input = Fs_LRT.1000, age_list = Fs_age, LRT.1000 = T, alternative = "two.sided")
+```
+
+##### 48H vs 24H
+
+```{r}
+Fs_nonDEG_contrasts_input <- 
+  Fs_nonDEG_contrasts %>% dplyr::filter(contrast == "48H vs 24H")
+fisherPS(DEG_input = Fs_nonDEG_contrasts_input, age_list = Fs_age, alternative = "greater")
+fisherPS(DEG_input = Fs_nonDEG_contrasts_input, age_list = Fs_age, alternative = "less")
+fisherPS(DEG_input = Fs_nonDEG_contrasts_input, age_list = Fs_age, alternative = "two.sided")
+```
+
+##### 1w vs 48H
+
+```{r}
+Fs_nonDEG_contrasts_input <- 
+  Fs_nonDEG_contrasts %>% dplyr::filter(contrast == "1w vs 48H")
+fisherPS(DEG_input = Fs_nonDEG_contrasts_input, age_list = Fs_age, alternative = "greater")
+fisherPS(DEG_input = Fs_nonDEG_contrasts_input, age_list = Fs_age, alternative = "less")
+fisherPS(DEG_input = Fs_nonDEG_contrasts_input, age_list = Fs_age, alternative = "two.sided")
+```
+
+##### 3w vs 1w
+
+```{r}
+Fs_nonDEG_contrasts_input <- 
+  Fs_nonDEG_contrasts %>% dplyr::filter(contrast == "3w vs 1w")
+fisherPS(DEG_input = Fs_nonDEG_contrasts_input, age_list = Fs_age, alternative = "greater")
+fisherPS(DEG_input = Fs_nonDEG_contrasts_input, age_list = Fs_age, alternative = "less")
+fisherPS(DEG_input = Fs_nonDEG_contrasts_input, age_list = Fs_age, alternative = "two.sided")
+```
+
+##### 4w vs 3w
+
+```{r}
+Fs_nonDEG_contrasts_input <- 
+  Fs_nonDEG_contrasts %>% dplyr::filter(contrast == "4w vs 3w")
+fisherPS(DEG_input = Fs_nonDEG_contrasts_input, age_list = Fs_age, alternative = "greater")
+fisherPS(DEG_input = Fs_nonDEG_contrasts_input, age_list = Fs_age, alternative = "less")
+fisherPS(DEG_input = Fs_nonDEG_contrasts_input, age_list = Fs_age, alternative = "two.sided")
+```
+
+## Fucus distichus
+
+### Of all stages
+
+```{r}
+fisherPS(DEG_input = Fd_LRT.1000, age_list = Fd_age, LRT.1000 = T, alternative = "greater")
+fisherPS(DEG_input = Fd_LRT.1000, age_list = Fd_age, LRT.1000 = T, alternative = "less")
+fisherPS(DEG_input = Fd_LRT.1000, age_list = Fd_age, LRT.1000 = T, alternative = "two.sided")
+```
+
+No significant differences in DEGs.
+
+##### E2 vs E1
+
+```{r}
+Fd_nonDEG_contrasts_input <- 
+  Fd_nonDEG_contrasts %>% dplyr::filter(contrast == "E2 vs E1")
+fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "greater")
+fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "less")
+fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "two.sided")
+```
+
+##### E3 vs E2
+
+```{r}
+Fd_nonDEG_contrasts_input <- 
+  Fd_nonDEG_contrasts %>% dplyr::filter(contrast == "E3 vs E2")
+fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "greater")
+fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "less")
+fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "two.sided")
+```
+
+##### E4 vs E3
+
+```{r}
+Fd_nonDEG_contrasts_input <- 
+  Fd_nonDEG_contrasts %>% dplyr::filter(contrast == "E4 vs E3")
+fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "greater")
+fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "less")
+fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "two.sided")
+```
+
+##### E5 vs E4
+
+```{r}
+Fd_nonDEG_contrasts_input <- 
+  Fd_nonDEG_contrasts %>% dplyr::filter(contrast == "E5 vs E4")
+fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "greater")
+fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "less")
+fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "two.sided")
+```
+
+## Summary
+
+In _F. serratus_, the PS enrichment of the LRT.1000 DEGs show that none of phylostratum are significantly over- or underrepresented. For nonDEGs, PS7 is significantly underrepresented between developmental transitions. To add, between "1w vs 48H", PS2 and PS8 are over-represented; between "3w vs 1w", PS1 is over-represented; between "4w vs 3w", PS1 is also over-represented.
+
+In _F. distichus, the PS enrichment of the LRT.1000 DEGs show that none of phylostratum are significantly over- or underrepresented. To add, between "E3 vs E2", PS1 is over-represented; between "E4 vs E3", PS1 and PS2 are overrepresented; between "E5 vs E4", PS1 and PS2 are over-represented.
+
+# Are GO terms enriched in low PS?
+
+```{r}
+GO_Fs <- read_delim("data/Interproscan/Fs_ips/F_serratus_pep.filt.processed.faa.tsv", 
+                    delim = "\t", col_select = c(1,14)) %>%
+  drop_na() %>%
+  filter(GO_term != "-") %>% 
+  separate_rows(GO_term, sep = "\\|") %>% 
+  dplyr::mutate(GeneID = str_remove(GeneID, "\\.[^.]+$")) %>% 
+  arrange(GeneID) %>%
+  distinct()
+
+GO_Fd <- read_delim("data/Interproscan/Fd_ips/F_distichus_pep.filt.processed.faa.tsv", 
+                    delim = "\t", col_select = c(1,14)) %>%
+  drop_na() %>%
+  filter(GO_term != "-") %>% 
+  separate_rows(GO_term, sep = "\\|") %>% 
+  dplyr::mutate(GeneID = str_remove(GeneID, "\\.[^.]+$")) %>% 
+  arrange(GeneID) %>%
+  distinct()
+```
+
+```{r fig.height = 2.5, fig.width = 4.5}
+Fs_comp <- GO_Fs %>% full_join(Fs_age %>% select(GeneID, rank))
+Fs_comp %>% select(GeneID) %>% distinct() %>% nrow()
+Fs_comp %>% drop_na(rank) %>% select(GeneID) %>% distinct() %>% nrow()
+Fs_comp %>% drop_na(GO_term) %>% select(GeneID) %>% distinct() %>% nrow()
+
+Fs_compGO <- Fs_comp %>% mutate(GO_pres = !is.na(GO_term)) %>% 
+  select(GeneID, rank, GO_pres) %>% distinct() %>% drop_na()
+
+Fs_compGO %>% 
+  mutate(GO_pres = case_when(
+    GO_pres == F ~ "absent",
+    TRUE ~ "present"
+  )) %>%
+  group_by(rank, GO_pres) %>% summarise(count = n()) %>%
+  ggplot2::ggplot(aes(x = as.factor(rank), y = count, fill = GO_pres)) + 
+  geom_col(colour = "black") +
+  labs(title = "GO term presence per relative gene age",
+       subtitle = "Fucus serratus",
+       fill = "GO term",
+       y = "Number of genes",
+       x = "Gene age") +
+  theme_classic() +
+  scale_fill_manual(values = c("#DC0000FF", "white")) +
+  coord_flip()
+
+Fs_compGO_si <- Fs_compGO %>% filter(GO_pres == T)
+Fs_compGO_non <- Fs_compGO %>% filter(GO_pres == F)
+wilcox.test(Fs_compGO_si$rank, Fs_compGO_non$rank, alternative = "less")
+```
+
+```{r fig.height = 2.5, fig.width = 4.5}
+Fd_comp <- GO_Fd %>% full_join(Fd_age %>% select(GeneID, rank))
+Fd_comp %>% select(GeneID) %>% distinct() %>% nrow()
+Fd_comp %>% drop_na(rank) %>% select(GeneID) %>% distinct() %>% nrow()
+Fd_comp %>% drop_na(GO_term) %>% select(GeneID) %>% distinct() %>% nrow()
+
+Fd_compGO <- Fd_comp %>% mutate(GO_pres = !is.na(GO_term)) %>% 
+  select(GeneID, rank, GO_pres) %>% distinct() %>% drop_na()
+
+Fd_compGO %>% 
+  mutate(GO_pres = case_when(
+    GO_pres == F ~ "absent",
+    TRUE ~ "present"
+  )) %>%
+  group_by(rank, GO_pres) %>% summarise(count = n()) %>%
+  ggplot2::ggplot(aes(x = as.factor(rank), y = count, fill = GO_pres)) + 
+  geom_col(colour = "black") +
+  labs(title = "GO term presence per relative gene age",
+       subtitle = "Fucus distichus",
+       fill = "GO term",
+       y = "Number of genes",
+       x = "Gene age") +
+  theme_classic() +
+  scale_fill_manual(values = c("#DC0000FF", "white")) +
+  coord_flip()
+
+
+Fd_compG0_si <- Fd_compGO %>% filter(GO_pres == T)
+Fd_compG0_non <- Fd_compGO %>% filter(GO_pres == F)
+wilcox.test(Fd_compG0_si$rank, Fd_compG0_non$rank, alternative = "less")
+```
+
+## Summary
+
+Genes of older age are more likely to have GO terms, compared to younger genes. It is likely we have insufficient GO information for younger genes that are either noisier or are differentially expressed. This differences is significant.
+
+Also, I found that some genes have no rank in the phylostratigraphy but has a GO term. I attribute this to DIAMOND and InterProScan (which uses profile HMM) having different sensitivity.
+
+Get session info.
+
+```{r}
+devtools::session_info()
+```

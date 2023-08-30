@@ -1,0 +1,512 @@
+---
+title: "1.3 Transformations"
+output:
+  html_document:
+    fig_width: 6
+    fig_height: 4
+    df_print: paged
+editor_options: 
+  chunk_output_type: inline
+---
+
+# Transformations
+
+RNA-seq data transformations can affect the hourglass profile. 
+This issue has been brought to attention in [Piasecka et al., 2013 _PLOS Genetics_](https://journals.plos.org/plosgenetics/article?id=10.1371/journal.pgen.1003476) and has since been employed by various studies (e.g. [Liu & Robinson-Rechavi, 2018 _GBE_](https://academic.oup.com/gbe/article/10/9/2266/5076813)).
+
+The transformation function (`tf()`) for `myTAI` has been extended in v1.0.1.9000.
+Here, we save the transformed data.
+
+Note: `rlog` or `vst` transformations have been done in the previous section `1.2 myTAI dataset`. The rational lies therein.
+
+```{r}
+library(tidyverse)
+library(myTAI)
+#  myTAI v1.0.1.9000 2023-07-12 Github (drostlab/myTAI@46eb927)
+```
+
+```{r}
+Fd_PES <-
+  readr::read_csv(file = "data/Fd_PES.csv")
+Fd_PES_F <-
+  readr::read_csv(file = "data/Fd_PES_F.csv")
+Fd_PES_M <-
+  readr::read_csv(file = "data/Fd_PES_M.csv")
+Fs_PES <-
+  readr::read_csv(file = "data/Fs_PES.csv")
+Fs_PES_F <-
+  readr::read_csv(file = "data/Fs_PES_F.csv")
+Fs_PES_M <-
+  readr::read_csv(file = "data/Fs_PES_M.csv")
+Ec_PES_32m <-
+  readr::read_csv(file = "data/Ec_PES_32m.csv")
+Ec_PES_25f <-
+  readr::read_csv(file = "data/Ec_PES_25f.csv")
+# tissues in the matSP
+Fd_PES_matSP <-
+  readr::read_csv(file = "data/Fd_PES_matSP.csv")
+Fs_PES_F_matSP <-
+  readr::read_csv(file = "data/Fs_PES_F_matSP.csv")
+Fs_PES_M_matSP <-
+  readr::read_csv(file = "data/Fs_PES_M_matSP.csv")
+
+# denoised data
+Fd_PES.denoised <-
+  readr::read_csv(file = "data/Fd_PES_denoised.csv")
+Fd_PES_F.denoised <-
+  readr::read_csv(file = "data/Fd_PES_F_denoised.csv")
+Fd_PES_M.denoised <-
+  readr::read_csv(file = "data/Fd_PES_M_denoised.csv")
+Fs_PES.denoised <-
+  readr::read_csv(file = "data/Fs_PES_denoised.csv")
+Fs_PES_F.denoised <-
+  readr::read_csv(file = "data/Fs_PES_F_denoised.csv")
+Fs_PES_M.denoised <-
+  readr::read_csv(file = "data/Fs_PES_M_denoised.csv")
+Ec_PES_32m.denoised <-
+  readr::read_csv(file = "data/Ec_PES_32m_denoised.csv")
+Ec_PES_25f.denoised <-
+  readr::read_csv(file = "data/Ec_PES_25f_denoised.csv")
+
+Fd_PES_matSP.denoised <-
+  readr::read_csv(file = "data/Fd_PES_matSP_denoised.csv")
+Fs_PES_M_matSP.denoised <-
+  readr::read_csv(file = "data/Fs_PES_M_matSP_denoised.csv")
+Fs_PES_F_matSP.denoised <-
+  readr::read_csv(file = "data/Fs_PES_F_matSP_denoised.csv")
+```
+
+## Log transformations
+
+```{r}
+Fd_PES.log2 <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES, 
+  FUN = log2,
+  pseudocount = 1)
+Fd_PES_F.log2 <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES_F, 
+  FUN = log2,
+  pseudocount = 1)
+Fd_PES_M.log2 <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES_M, 
+  FUN = log2,
+  pseudocount = 1)
+Fs_PES.log2 <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES, 
+  FUN = log2,
+  pseudocount = 1)
+Fs_PES_F.log2 <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_F, 
+  FUN = log2,
+  pseudocount = 1)
+Fs_PES_M.log2 <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_M, 
+  FUN = log2,
+  pseudocount = 1)
+Ec_PES_32m.log2 <- 
+  myTAI::tf(
+  ExpressionSet = Ec_PES_32m, 
+  FUN = log2,
+  pseudocount = 1)
+Ec_PES_25f.log2 <- 
+  myTAI::tf(
+  ExpressionSet = Ec_PES_25f, 
+  FUN = log2,
+  pseudocount = 1)
+Fd_PES_matSP.log2 <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES_matSP, 
+  FUN = log2,
+  pseudocount = 1)
+Fs_PES_F_matSP.log2 <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_F_matSP, 
+  FUN = log2,
+  pseudocount = 1)
+Fs_PES_M_matSP.log2 <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_M_matSP, 
+  FUN = log2,
+  pseudocount = 1)
+
+# denoised data
+
+Fd_PES.log2.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES.denoised, 
+  FUN = log2,
+  pseudocount = 1)
+Fd_PES_F.log2.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES_F.denoised, 
+  FUN = log2,
+  pseudocount = 1)
+Fd_PES_M.log2.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES_M.denoised, 
+  FUN = log2,
+  pseudocount = 1)
+Fs_PES.log2.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES.denoised, 
+  FUN = log2,
+  pseudocount = 1)
+Fs_PES_F.log2.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_F.denoised, 
+  FUN = log2,
+  pseudocount = 1)
+Fs_PES_M.log2.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_M.denoised, 
+  FUN = log2,
+  pseudocount = 1)
+Ec_PES_32m.log2.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Ec_PES_32m.denoised, 
+  FUN = log2,
+  pseudocount = 1)
+Ec_PES_25f.log2.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Ec_PES_25f.denoised, 
+  FUN = log2,
+  pseudocount = 1)
+Fd_PES_matSP.log2.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES_matSP.denoised, 
+  FUN = log2,
+  pseudocount = 1)
+Fs_PES_F_matSP.log2.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_F_matSP.denoised, 
+  FUN = log2,
+  pseudocount = 1)
+Fs_PES_M_matSP.log2.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_M_matSP.denoised, 
+  FUN = log2,
+  pseudocount = 1)
+```
+
+## Square-root transformations
+
+```{r}
+Fd_PES.sqrt <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES, 
+  FUN = sqrt)
+Fd_PES_F.sqrt <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES_F, 
+  FUN = sqrt)
+Fd_PES_M.sqrt <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES_M, 
+  FUN = sqrt)
+Fs_PES.sqrt <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES, 
+  FUN = sqrt)
+Fs_PES_F.sqrt <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_F, 
+  FUN = sqrt)
+Fs_PES_M.sqrt <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_M, 
+  FUN = sqrt)
+Ec_PES_32m.sqrt <- 
+  myTAI::tf(
+  ExpressionSet = Ec_PES_32m, 
+  FUN = sqrt)
+Ec_PES_25f.sqrt <- 
+  myTAI::tf(
+  ExpressionSet = Ec_PES_25f, 
+  FUN = sqrt)
+Fd_PES_matSP.sqrt <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES_matSP, 
+  FUN = sqrt)
+Fs_PES_F_matSP.sqrt <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_F_matSP, 
+  FUN = sqrt)
+Fs_PES_M_matSP.sqrt <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_M_matSP, 
+  FUN = sqrt)
+
+# denoised data
+
+Fd_PES.sqrt.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES.denoised, 
+  FUN = sqrt)
+Fd_PES_F.sqrt.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES_F.denoised, 
+  FUN = sqrt)
+Fd_PES_M.sqrt.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES_M.denoised, 
+  FUN = sqrt)
+Fs_PES.sqrt.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES.denoised, 
+  FUN = sqrt)
+Fs_PES_F.sqrt.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_F.denoised, 
+  FUN = sqrt)
+Fs_PES_M.sqrt.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_M.denoised, 
+  FUN = sqrt)
+Ec_PES_32m.sqrt.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Ec_PES_32m.denoised, 
+  FUN = sqrt)
+Ec_PES_25f.sqrt.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Ec_PES_25f.denoised, 
+  FUN = sqrt)
+Fd_PES_matSP.sqrt.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES_matSP.denoised, 
+  FUN = sqrt)
+Fs_PES_F_matSP.sqrt.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_F_matSP.denoised, 
+  FUN = sqrt)
+Fs_PES_M_matSP.sqrt.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_M_matSP.denoised, 
+  FUN = sqrt)
+```
+
+## Rank transformations
+
+```{r}
+Fd_PES.rank <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES, 
+  FUN = function(x) apply(x, 2, base::rank))
+Fd_PES_F.rank <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES_F, 
+  FUN = function(x) apply(x, 2, base::rank))
+Fd_PES_M.rank <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES_M, 
+  FUN = function(x) apply(x, 2, base::rank))
+Fs_PES.rank <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES, 
+  FUN = function(x) apply(x, 2, base::rank))
+Fs_PES_F.rank <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_F, 
+  FUN = function(x) apply(x, 2, base::rank))
+Fs_PES_M.rank <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_M, 
+  FUN = function(x) apply(x, 2, base::rank))
+Ec_PES_32m.rank <- 
+  myTAI::tf(
+  ExpressionSet = Ec_PES_32m, 
+  FUN = function(x) apply(x, 2, base::rank))
+Ec_PES_25f.rank <- 
+  myTAI::tf(
+  ExpressionSet = Ec_PES_25f, 
+  FUN = function(x) apply(x, 2, base::rank))
+Fd_PES_matSP.rank <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES_matSP, 
+  FUN = function(x) apply(x, 2, base::rank))
+Fs_PES_F_matSP.rank <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_F_matSP, 
+  FUN = function(x) apply(x, 2, base::rank))
+Fs_PES_M_matSP.rank <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_M_matSP, 
+  FUN = function(x) apply(x, 2, base::rank))
+```
+
+## rlog transformations
+
+```{r}
+# Fd_PES.rlog <-
+#   readr::read_csv(file = "data/Fd_PES.rlog.csv")
+# Fd_PES_F.rlog <-
+#   readr::read_csv(file = "data/Fd_PES_F.rlog.csv")
+# Fd_PES_M.rlog <-
+#   readr::read_csv(file = "data/Fd_PES_M.rlog.csv")
+# Fs_PES.rlog <-
+#   readr::read_csv(file = "data/Fs_PES.rlog.csv")
+# Fs_PES_F.rlog <-
+#   readr::read_csv(file = "data/Fs_PES_F.rlog.csv")
+# Fs_PES_M.rlog <-
+#   readr::read_csv(file = "data/Fs_PES_M.rlog.csv")
+# Ec_PES_32m.rlog <-
+#   readr::read_csv(file = "data/Ec_PES_32m.rlog.csv")
+# Ec_PES_25f.rlog <-
+#   readr::read_csv(file = "data/Ec_PES_25f.rlog.csv")
+# 
+# Fd_PES_matSP.rlog <-
+#   readr::read_csv(file = "data/Fd_PES_matSP.rlog.csv")
+# Fs_PES_M_matSP.rlog <-
+#   readr::read_csv(file = "data/Fs_PES_M_matSP.rlog.csv")
+# Fs_PES_F_matSP.rlog <-
+#   readr::read_csv(file = "data/Fs_PES_F_matSP.rlog.csv")
+```
+
+# Save transformations
+
+```{r}
+Fd_PES.log2 %>%
+  readr::write_csv("data/Fd_PES.log2.csv")
+Fd_PES.rank %>%
+  readr::write_csv("data/Fd_PES.rank.csv")
+Fd_PES.sqrt %>%
+  readr::write_csv("data/Fd_PES.sqrt.csv")
+
+Fd_PES_F.log2 %>%
+  readr::write_csv("data/Fd_PES_F.log2.csv")
+Fd_PES_F.rank %>%
+  readr::write_csv("data/Fd_PES_F.rank.csv")
+Fd_PES_F.sqrt %>%
+  readr::write_csv("data/Fd_PES_F.sqrt.csv")
+
+Fd_PES_M.log2 %>%
+  readr::write_csv("data/Fd_PES_M.log2.csv")
+Fd_PES_M.rank %>%
+  readr::write_csv("data/Fd_PES_M.rank.csv")
+Fd_PES_M.sqrt %>%
+  readr::write_csv("data/Fd_PES_M.sqrt.csv")
+
+Fs_PES.log2 %>%
+  readr::write_csv("data/Fs_PES.log2.csv")
+Fs_PES.rank %>%
+  readr::write_csv("data/Fs_PES.rank.csv")
+Fs_PES.sqrt %>%
+  readr::write_csv("data/Fs_PES.sqrt.csv")
+
+Fs_PES_M.log2 %>%
+  readr::write_csv("data/Fs_PES_M.log2.csv")
+Fs_PES_M.rank %>%
+  readr::write_csv("data/Fs_PES_M.rank.csv")
+Fs_PES_M.sqrt %>%
+  readr::write_csv("data/Fs_PES_M.sqrt.csv")
+
+Fs_PES_F.log2 %>%
+  readr::write_csv("data/Fs_PES_F.log2.csv")
+Fs_PES_F.rank %>%
+  readr::write_csv("data/Fs_PES_F.rank.csv")
+Fs_PES_F.sqrt %>%
+  readr::write_csv("data/Fs_PES_F.sqrt.csv")
+
+Ec_PES_32m.log2 %>%
+  readr::write_csv("data/Ec_PES_32m.log2.csv")
+Ec_PES_32m.rank %>%
+  readr::write_csv("data/Ec_PES_32m.rank.csv")
+Ec_PES_32m.sqrt %>%
+  readr::write_csv("data/Ec_PES_32m.sqrt.csv")
+
+Ec_PES_25f.log2 %>%
+  readr::write_csv("data/Ec_PES_25f.log2.csv")
+Ec_PES_25f.rank %>%
+  readr::write_csv("data/Ec_PES_25f.rank.csv")
+Ec_PES_25f.sqrt %>%
+  readr::write_csv("data/Ec_PES_25f.sqrt.csv")
+
+Fd_PES_matSP.log2 %>%
+  readr::write_csv("data/Fd_PES_matSP.log2.csv")
+Fd_PES_matSP.rank %>%
+  readr::write_csv("data/Fd_PES_matSP.rank.csv")
+Fd_PES_matSP.sqrt %>%
+  readr::write_csv("data/Fd_PES_matSP.sqrt.csv")
+
+Fs_PES_M_matSP.log2 %>%
+  readr::write_csv("data/Fs_PES_M_matSP.log2.csv")
+Fs_PES_M_matSP.rank %>%
+  readr::write_csv("data/Fs_PES_M_matSP.rank.csv")
+Fs_PES_M_matSP.sqrt %>%
+  readr::write_csv("data/Fs_PES_M_matSP.sqrt.csv")
+
+Fs_PES_F_matSP.log2 %>%
+  readr::write_csv("data/Fs_PES_F_matSP.log2.csv")
+Fs_PES_F_matSP.rank %>%
+  readr::write_csv("data/Fs_PES_F_matSP.rank.csv")
+Fs_PES_F_matSP.sqrt %>%
+  readr::write_csv("data/Fs_PES_F_matSP.sqrt.csv")
+
+# denoised data
+
+Fd_PES.log2.denoised %>%
+  readr::write_csv("data/Fd_PES.log2_denoised.csv")
+Fd_PES.sqrt.denoised %>%
+  readr::write_csv("data/Fd_PES.sqrt_denoised.csv")
+
+Fd_PES_F.log2.denoised %>%
+  readr::write_csv("data/Fd_PES_F.log2_denoised.csv")
+Fd_PES_F.sqrt.denoised %>%
+  readr::write_csv("data/Fd_PES_F.sqrt_denoised.csv")
+
+Fd_PES_M.log2.denoised %>%
+  readr::write_csv("data/Fd_PES_M.log2_denoised.csv")
+Fd_PES_M.sqrt.denoised %>%
+  readr::write_csv("data/Fd_PES_M.sqrt_denoised.csv")
+
+Fs_PES.log2.denoised %>%
+  readr::write_csv("data/Fs_PES.log2_denoised.csv")
+Fs_PES.sqrt.denoised %>%
+  readr::write_csv("data/Fs_PES.sqrt_denoised.csv")
+
+Fs_PES_M.log2.denoised %>%
+  readr::write_csv("data/Fs_PES_M.log2_denoised.csv")
+Fs_PES_M.sqrt.denoised%>%
+  readr::write_csv("data/Fs_PES_M.sqrt_denoised.csv")
+
+Fs_PES_F.log2.denoised %>%
+  readr::write_csv("data/Fs_PES_F.log2_denoised.csv")
+Fs_PES_F.sqrt.denoised %>%
+  readr::write_csv("data/Fs_PES_F.sqrt_denoised.csv")
+
+Ec_PES_32m.log2.denoised %>%
+  readr::write_csv("data/Ec_PES_32m.log2_denoised.csv")
+Ec_PES_32m.sqrt.denoised %>%
+  readr::write_csv("data/Ec_PES_32m.sqrt_denoised.csv")
+
+Ec_PES_25f.log2.denoised %>%
+  readr::write_csv("data/Ec_PES_25f.log2_denoised.csv")
+Ec_PES_25f.sqrt.denoised %>%
+  readr::write_csv("data/Ec_PES_25f.sqrt_denoised.csv")
+
+Fd_PES_matSP.log2.denoised %>%
+  readr::write_csv("data/Fd_PES_matSP.log2_denoised.csv")
+Fd_PES_matSP.sqrt.denoised %>%
+  readr::write_csv("data/Fd_PES_matSP.sqrt_denoised.csv")
+
+Fs_PES_M_matSP.log2.denoised %>%
+  readr::write_csv("data/Fs_PES_M_matSP.log2_denoised.csv")
+Fs_PES_M_matSP.sqrt.denoised %>%
+  readr::write_csv("data/Fs_PES_M_matSP.sqrt_denoised.csv")
+
+Fs_PES_F_matSP.log2.denoised %>%
+  readr::write_csv("data/Fs_PES_F_matSP.log2_denoised.csv")
+Fs_PES_F_matSP.sqrt.denoised %>%
+  readr::write_csv("data/Fs_PES_F_matSP.sqrt_denoised.csv")
+```
+
+Get session info.
+
+```{r}
+devtools::session_info()
+```

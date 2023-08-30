@@ -1,0 +1,1542 @@
+---
+title: "1.4 Save dds object"
+output:
+  html_document:
+    fig_width: 6
+    fig_height: 4
+    df_print: paged
+editor_options: 
+  chunk_output_type: inline
+---
+
+# Generate DESeq2 object for differential expression analysis
+
+Here, we will save DESeq2 objects for comparisons within species as well as comparisons across species.
+
+```{r}
+library(tidyverse)
+library(myTAI)
+library(DESeq2)
+library(IHW)
+```
+
+# Within species comparison
+
+## Load counts
+
+```{r}
+sample_info_ec <-
+  readr::read_csv(file = "data/sample_info_ec.csv")
+sample_info_fd <-
+  readr::read_csv(file = "data/sample_info_fd.csv")
+sample_info_fs <-
+  readr::read_csv(file = "data/sample_info_fs.csv")
+
+Ec_counts <-
+  readr::read_csv("data/Ec_counts.csv")
+Fd_counts <-
+  readr::read_csv("data/Fd_counts.csv")
+Fs_counts <-
+  readr::read_csv("data/Fs_counts.csv")
+
+Ec_counts.denoised <-
+  readr::read_csv("data/Ec_counts_denoised.csv")
+Fd_counts.denoised <-
+  readr::read_csv("data/Fd_counts_denoised.csv")
+Fs_counts.denoised <-
+  readr::read_csv("data/Fs_counts_denoised.csv")
+```
+
+## Make into DESeq2 object
+
+Function to reduce the number of lines of code.
+
+```{r}
+# the count data is in tibble format as I have saved it.
+create_dds_embyro <- 
+  function(count_tibble, metatable, stage_names, rename_list){
+    # some error messages
+    if(!is_tibble(count_tibble)){return("is not tibble")}
+    if(!colnames(count_tibble)[1] == "GeneID"){return("make sure the first column is titled \"GeneID\"")}
+    # filter the metatable
+    metatable.filt <-
+      metatable %>%
+      dplyr::filter(Stage %in% stage_names) %>%
+      dplyr::arrange(base::match(Stage, stage_names))
+    # filter the counts to be loaded as a dds object
+    count.embryo <-
+      count_tibble %>%
+      dplyr::select(
+        "GeneID" | 
+          metatable.filt$LibName # this would be different for Ectocarpus
+      ) %>%
+      dplyr::rename_with(~rename_list[.x], -GeneID) %>%
+      tibble::remove_rownames() %>%
+      tibble::column_to_rownames(var="GeneID")
+    # creating a ddsObj for the embryo stages
+    simple.model <- 
+      as.formula(~Stage)
+    ddsObj.raw <- 
+      DESeqDataSetFromMatrix(
+        round(count.embryo,0),
+        colData = metatable.filt,
+        design = simple.model)
+  }
+```
+
+```{r}
+Fs_embryo_stage_names <- 
+  c("24H", "48H", "1w", "3w", "4w")
+sample_info_fs[13,2] <- 4
+sample_info_fs[14,2] <- 5
+sample_info_fs[15,2] <- 6
+rename_list <- 
+  sample_info_fs %>%
+  mutate(new_colname = paste0(Stage, "_", Sex, "_", Replicate)) %>%
+  select(LibName, new_colname) %>%
+  deframe()
+
+Fs_stage_ddsObj.raw <-
+  create_dds_embyro(
+    count_tibble = Fs_counts, 
+    metatable = sample_info_fs,
+    stage_names = Fs_embryo_stage_names,
+    rename_list = rename_list)
+
+rename_list <- 
+  select(sample_info_fd, LibName, Stage, Sex, Replicate) %>%
+  mutate(new_colname = paste0(Stage, "_", Sex, "_", Replicate)) %>%
+  select(LibName, new_colname) %>%
+  deframe()
+Fd_embryo_stage_names <- 
+  c("E1", "E2", "E3", "E4", "E5")
+
+Fd_stage_ddsObj.raw <-
+  create_dds_embyro(
+    count_tibble = Fd_counts, 
+    metatable = sample_info_fd,
+    stage_names = Fd_embryo_stage_names,
+    rename_list = rename_list)
+```
+
+```{r}
+# significantly DEG (LRT)
+Fs_ddsObj <- 
+  DESeq2::DESeq(Fs_stage_ddsObj.raw, test="LRT", reduced=~1)
+Fs_resLRT <- 
+  DESeq2::results(Fs_ddsObj)
+
+Fd_ddsObj <- 
+  DESeq2::DESeq(Fd_stage_ddsObj.raw, test="LRT", reduced=~1)
+Fd_resLRT <- 
+  DESeq2::results(Fd_ddsObj)
+
+# saving with padj filters. With LRT, log foldchange thresholds do not matter.
+# see https://hbctraining.github.io/DGE_workshop/lessons/08_DGE_LRT.html
+padj_filt = 0.001
+
+tibble::as_tibble(Fs_resLRT, rownames = "GeneID") %>% 
+  dplyr::filter(padj < padj_filt)
+tibble::as_tibble(Fd_resLRT, rownames = "GeneID") %>% 
+  dplyr::filter(padj < padj_filt)
+
+tibble::as_tibble(Fs_resLRT, rownames = "GeneID") %>% 
+  ggplot2::ggplot(aes(padj)) +
+  ggplot2::geom_histogram() +
+  ggplot2::scale_y_log10() +
+  ggplot2::labs(
+    title = "LRT",
+    subtitle = "Fucus serratus",
+    x = "padj",
+    y = "density (log-scaled)"
+  )
+
+tibble::as_tibble(Fd_resLRT, rownames = "GeneID") %>% 
+  ggplot2::ggplot(aes(padj)) +
+  ggplot2::geom_histogram() +
+  ggplot2::scale_y_log10() +
+  ggplot2::labs(
+    title = "LRT",
+    subtitle = "Fucus distichus",
+    x = "padj",
+    y = "density (log-scaled)"
+  )
+
+plot(
+  sort(-log10(Fs_resLRT$padj),decreasing = TRUE), 
+  xlab="Genes", 
+  ylab="-log10(p-value)", 
+  main = "Why select 1000 genes?", 
+  sub = "Fucus serratus")
+abline(v=1000, col="blue")
+plot(
+  sort(-log10(Fd_resLRT$padj),decreasing = TRUE), 
+  xlab="Genes", 
+  ylab="-log10(p-value)", 
+  main = "Why select 1000 genes?", 
+  sub = "Fucus distichus")
+abline(v=1000, col="blue")
+
+
+# select top 1000 DEGs instead.
+Fs_LRT.1000 <- 
+  tibble::as_tibble(Fs_resLRT, rownames = "GeneID") %>% 
+  arrange(padj) %>%
+  head(n=1000)
+# Max padj:3.828e-40
+
+Fd_LRT.1000 <- 
+  tibble::as_tibble(Fd_resLRT, rownames = "GeneID") %>% 
+  arrange(padj) %>%
+  head(n=1000)
+# Max padj:4.405e-37
+```
+
+## Save implicated Fucus genes
+
+```{r}
+Fs_LRT.1000 %>%
+  readr::write_csv("data/Fs_LRT_1000.csv")
+Fd_LRT.1000 %>%
+  readr::write_csv("data/Fd_LRT_1000.csv")
+```
+
+6,271 _F. serratus_ and 5,845 _F. distichus_ genes pass the padj filter. This is too much.
+I have filtered the top 1000 most differentially expressed genes instead by ranking the padj according to the `LRT`.
+With the `LRT`, log2FoldChange is irrelevant.
+
+Furthermore, I have to look a bit more into the `LRT`. This is because I had thought the `LRT` tests for genes that can be explained by modelling `Stage` vs NULL. However, the `log2 fold change (MLE): Stage E5 vs E1` makes me worried. However, I think it is fine when ranking with `p-values` or `padj` because that is calculated via `LRT p-value: '~ Stage' vs '~ 1'`, which is different to just applying `DESeq2::results()` on `Wald`, i.e. `Wald test p-value: Stage 4w vs 1w`.
+
+Whew.
+
+```r
+> Fs_resLRT
+log2 fold change (MLE): Stage 4w vs 1w 
+LRT p-value: '~ Stage' vs '~ 1' 
+DataFrame with 8291 rows and 6 columns
+```
+
+```r
+> DESeq2::results(Fs_ddsObj.wald)
+log2 fold change (MLE): Stage 4w vs 1w 
+Wald test p-value: Stage 4w vs 1w 
+DataFrame with 8291 rows and 6 columns
+```
+
+However, I think is fine.
+
+# dds for between stages.
+
+This uses the Wald's test.
+```{r}
+summarise_contrasts <- 
+  function(
+    ddsObj, 
+    deseq2_contrasts, 
+    lfcThreshold = 1, 
+    padj_threshold = 0.05,          
+    altHypothesis = "greaterAbs",
+    stage_names,
+    IHW = FALSE,
+    output_nsig = TRUE){
+    contrast.res <-
+      list()
+    if(!IHW){
+      for (i in 1:(length(stage_names)-1)) {
+        contrast.res[[i]] <-
+          DESeq2::results(
+            ddsObj,
+            lfcThreshold = lfcThreshold,
+            altHypothesis = altHypothesis,
+            contrast = c("Stage", stage_names[i+1], stage_names[i]))
+      }
+    }
+    else if(IHW){
+      for (i in 1:(length(stage_names)-1)) {
+        contrast.res[[i]] <-
+          DESeq2::results(
+            ddsObj,
+            lfcThreshold = lfcThreshold,
+            altHypothesis = altHypothesis,
+            filterFun = ihw,
+            contrast = c("Stage", stage_names[i+1], stage_names[i]))
+      }
+    }
+    if(!output_nsig){
+      return(contrast.res)
+    }
+    contrast.sig.count <-
+      tibble::tibble(
+        "contrast" = deseq2_contrasts, 
+        "n_sig" = 0, 
+        "lfcThreshold" = lfcThreshold,
+        "padj_threshold" = padj_threshold,
+        "altHypothesis" = altHypothesis,
+        "IHW" = IHW
+        )
+    for (i in 1:length(contrast.res)) {
+      contrast.sig.count$n_sig[i] <-
+        count(contrast.res[[i]]$padj < padj_threshold, na.rm = T)
+    }
+    return(contrast.sig.count)
+  }
+```
+
+```{r}
+Fs_ddsObj.wald <- 
+  DESeq2::DESeq(Fs_stage_ddsObj.raw, test="Wald")
+
+Fd_ddsObj.wald <- 
+  DESeq2::DESeq(Fd_stage_ddsObj.raw, test="Wald")
+```
+
+_Fucus serratus_
+```{r}
+Fs_embryo_stage_names <- 
+  c("24H", "48H", "1w", "3w", "4w")
+deseq2_contrasts <- c("24H->48H", "48H->1w", "1w->3w", "3w->4w")
+
+Fs_ddsObj.wald_LFC1 <- 
+  summarise_contrasts(
+    Fs_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 1, 
+    padj_threshold = 0.1,
+    altHypothesis = "greaterAbs",
+    stage_names = Fs_embryo_stage_names)
+Fs_ddsObj.wald_LFC2 <- 
+  summarise_contrasts(
+    Fs_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 2, 
+    padj_threshold = 0.1,
+    altHypothesis = "greaterAbs",
+    stage_names = Fs_embryo_stage_names)
+Fs_ddsObj.wald_LFC3 <- 
+  summarise_contrasts(
+    Fs_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 3, 
+    padj_threshold = 0.1,
+    altHypothesis = "greaterAbs",
+    stage_names = Fs_embryo_stage_names)
+Fs_ddsObj.wald_LFC1_IHW <- 
+  summarise_contrasts(
+    Fs_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 1, 
+    padj_threshold = 0.1,
+    altHypothesis = "greaterAbs",
+    stage_names = Fs_embryo_stage_names,
+    IHW = TRUE)
+Fs_ddsObj.wald_LFC2_IHW <- 
+  summarise_contrasts(
+    Fs_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 2, 
+    padj_threshold = 0.1,
+    altHypothesis = "greaterAbs",
+    stage_names = Fs_embryo_stage_names,
+    IHW = TRUE)
+Fs_ddsObj.wald_LFC3_IHW <- 
+  summarise_contrasts(
+    Fs_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 3, 
+    padj_threshold = 0.1,
+    altHypothesis = "greaterAbs",
+    stage_names = Fs_embryo_stage_names,
+    IHW = TRUE)
+
+Fs_ddsObj.wald_padj0.1 <- 
+  base::rbind(Fs_ddsObj.wald_LFC1, 
+              Fs_ddsObj.wald_LFC2, 
+              Fs_ddsObj.wald_LFC3,
+              Fs_ddsObj.wald_LFC1_IHW,
+              Fs_ddsObj.wald_LFC2_IHW,
+              Fs_ddsObj.wald_LFC3_IHW)
+
+Fs_ddsObj.wald_LFC1 <- 
+  summarise_contrasts(
+    Fs_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 1, 
+    padj_threshold = 0.05,
+    altHypothesis = "greaterAbs",
+    stage_names = Fs_embryo_stage_names)
+Fs_ddsObj.wald_LFC2 <- 
+  summarise_contrasts(
+    Fs_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 2, 
+    padj_threshold = 0.05,
+    altHypothesis = "greaterAbs",
+    stage_names = Fs_embryo_stage_names)
+Fs_ddsObj.wald_LFC3 <- 
+  summarise_contrasts(
+    Fs_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 3, 
+    padj_threshold = 0.05,
+    altHypothesis = "greaterAbs",
+    stage_names = Fs_embryo_stage_names)
+Fs_ddsObj.wald_LFC1_IHW <- 
+  summarise_contrasts(
+    Fs_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 1, 
+    padj_threshold = 0.05,
+    altHypothesis = "greaterAbs",
+    stage_names = Fs_embryo_stage_names,
+    IHW = TRUE)
+Fs_ddsObj.wald_LFC2_IHW <- 
+  summarise_contrasts(
+    Fs_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 2, 
+    padj_threshold = 0.05,
+    altHypothesis = "greaterAbs",
+    stage_names = Fs_embryo_stage_names,
+    IHW = TRUE)
+Fs_ddsObj.wald_LFC3_IHW <- 
+  summarise_contrasts(
+    Fs_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 3, 
+    padj_threshold = 0.05,
+    altHypothesis = "greaterAbs",
+    stage_names = Fs_embryo_stage_names,
+    IHW = TRUE)
+
+Fs_ddsObj.wald_padj0.05 <- 
+  base::rbind(Fs_ddsObj.wald_LFC1, 
+              Fs_ddsObj.wald_LFC2, 
+              Fs_ddsObj.wald_LFC3,
+              Fs_ddsObj.wald_LFC1_IHW,
+              Fs_ddsObj.wald_LFC2_IHW,
+              Fs_ddsObj.wald_LFC3_IHW)
+
+# significantly nonDEG
+Fs_ddsObj.wald_LFC1_less <- 
+  summarise_contrasts(
+    Fs_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 1, 
+    padj_threshold = 0.1,
+    altHypothesis = "lessAbs",
+    stage_names = Fs_embryo_stage_names)
+Fs_ddsObj.wald_LFC2_less <- 
+  summarise_contrasts(
+    Fs_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 2, 
+    padj_threshold = 0.1,
+    altHypothesis = "lessAbs",
+    stage_names = Fs_embryo_stage_names)
+Fs_ddsObj.wald_LFC3_less <- 
+  summarise_contrasts(
+    Fs_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 3, 
+    padj_threshold = 0.1,
+    altHypothesis = "lessAbs",
+    stage_names = Fs_embryo_stage_names)
+
+Fs_ddsObj.wald_less_padj0.1 <- 
+  base::rbind(Fs_ddsObj.wald_LFC1_less, 
+              Fs_ddsObj.wald_LFC2_less, 
+              Fs_ddsObj.wald_LFC3_less)
+
+Fs_ddsObj.wald_LFC1_less <- 
+  summarise_contrasts(
+    Fs_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 1, 
+    padj_threshold = 0.05,
+    altHypothesis = "lessAbs",
+    stage_names = Fs_embryo_stage_names)
+Fs_ddsObj.wald_LFC2_less <- 
+  summarise_contrasts(
+    Fs_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 2, 
+    padj_threshold = 0.05,
+    altHypothesis = "lessAbs",
+    stage_names = Fs_embryo_stage_names)
+Fs_ddsObj.wald_LFC3_less <- 
+  summarise_contrasts(
+    Fs_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 3, 
+    padj_threshold = 0.05,
+    altHypothesis = "lessAbs",
+    stage_names = Fs_embryo_stage_names)
+
+Fs_ddsObj.wald_less_padj0.05 <- 
+  base::rbind(Fs_ddsObj.wald_LFC1_less, 
+              Fs_ddsObj.wald_LFC2_less, 
+              Fs_ddsObj.wald_LFC3_less)
+```
+
+_Fucus distichus_
+```{r}
+Fd_embryo_stage_names <- 
+  c("E1", "E2", "E3", "E4", "E5")
+
+deseq2_contrasts <- c("E1->E2", "E2->E3", "E3->E4", "E4->E5")
+
+Fd_ddsObj.wald_LFC1 <- 
+  summarise_contrasts(
+    Fd_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 1, 
+    padj_threshold = 0.1,
+    altHypothesis = "greaterAbs",
+    stage_names = Fd_embryo_stage_names)
+Fd_ddsObj.wald_LFC2 <- 
+  summarise_contrasts(
+    Fd_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 2, 
+    padj_threshold = 0.1,
+    altHypothesis = "greaterAbs",
+    stage_names = Fd_embryo_stage_names)
+Fd_ddsObj.wald_LFC3 <- 
+  summarise_contrasts(
+    Fd_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 3, 
+    padj_threshold = 0.1,
+    altHypothesis = "greaterAbs",
+    stage_names = Fd_embryo_stage_names)
+Fd_ddsObj.wald_LFC1_IHW <- 
+  summarise_contrasts(
+    Fd_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 1, 
+    padj_threshold = 0.1,
+    altHypothesis = "greaterAbs",
+    stage_names = Fd_embryo_stage_names,
+    IHW = TRUE)
+Fd_ddsObj.wald_LFC2_IHW <- 
+  summarise_contrasts(
+    Fd_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 2, 
+    padj_threshold = 0.1,
+    altHypothesis = "greaterAbs",
+    stage_names = Fd_embryo_stage_names,
+    IHW = TRUE)
+Fd_ddsObj.wald_LFC3_IHW <- 
+  summarise_contrasts(
+    Fd_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 3, 
+    padj_threshold = 0.1,
+    altHypothesis = "greaterAbs",
+    stage_names = Fd_embryo_stage_names,
+    IHW = TRUE)
+
+Fd_ddsObj.wald_padj0.1 <- 
+  base::rbind(Fd_ddsObj.wald_LFC1, 
+              Fd_ddsObj.wald_LFC2, 
+              Fd_ddsObj.wald_LFC3,
+              Fd_ddsObj.wald_LFC1_IHW,
+              Fd_ddsObj.wald_LFC2_IHW,
+              Fd_ddsObj.wald_LFC3_IHW)
+
+Fd_ddsObj.wald_LFC1 <- 
+  summarise_contrasts(
+    Fd_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 1, 
+    padj_threshold = 0.05,
+    altHypothesis = "greaterAbs",
+    stage_names = Fd_embryo_stage_names)
+Fd_ddsObj.wald_LFC2 <- 
+  summarise_contrasts(
+    Fd_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 2, 
+    padj_threshold = 0.05,
+    altHypothesis = "greaterAbs",
+    stage_names = Fd_embryo_stage_names)
+Fd_ddsObj.wald_LFC3 <- 
+  summarise_contrasts(
+    Fd_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 3, 
+    padj_threshold = 0.05,
+    altHypothesis = "greaterAbs",
+    stage_names = Fd_embryo_stage_names)
+Fd_ddsObj.wald_LFC1_IHW <- 
+  summarise_contrasts(
+    Fd_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 1, 
+    padj_threshold = 0.05,
+    altHypothesis = "greaterAbs",
+    stage_names = Fd_embryo_stage_names,
+    IHW = TRUE)
+Fd_ddsObj.wald_LFC2_IHW <- 
+  summarise_contrasts(
+    Fd_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 2, 
+    padj_threshold = 0.05,
+    altHypothesis = "greaterAbs",
+    stage_names = Fd_embryo_stage_names,
+    IHW = TRUE)
+Fd_ddsObj.wald_LFC3_IHW <- 
+  summarise_contrasts(
+    Fd_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 3, 
+    padj_threshold = 0.05,
+    altHypothesis = "greaterAbs",
+    stage_names = Fd_embryo_stage_names,
+    IHW = TRUE)
+
+Fd_ddsObj.wald_padj0.05 <- 
+  base::rbind(Fd_ddsObj.wald_LFC1, 
+              Fd_ddsObj.wald_LFC2, 
+              Fd_ddsObj.wald_LFC3,
+              Fd_ddsObj.wald_LFC1_IHW,
+              Fd_ddsObj.wald_LFC2_IHW,
+              Fd_ddsObj.wald_LFC3_IHW)
+
+# significantly nonDEG
+Fd_ddsObj.wald_LFC1_less <- 
+  summarise_contrasts(
+    Fd_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 1, 
+    padj_threshold = 0.1,
+    altHypothesis = "lessAbs",
+    stage_names = Fd_embryo_stage_names)
+Fd_ddsObj.wald_LFC2_less <- 
+  summarise_contrasts(
+    Fd_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 2, 
+    padj_threshold = 0.1,
+    altHypothesis = "lessAbs",
+    stage_names = Fd_embryo_stage_names)
+Fd_ddsObj.wald_LFC3_less <- 
+  summarise_contrasts(
+    Fd_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 3, 
+    padj_threshold = 0.1,
+    altHypothesis = "lessAbs",
+    stage_names = Fd_embryo_stage_names)
+
+Fd_ddsObj.wald_less_padj0.1 <- 
+  base::rbind(Fd_ddsObj.wald_LFC1_less, 
+              Fd_ddsObj.wald_LFC2_less, 
+              Fd_ddsObj.wald_LFC3_less)
+
+Fd_ddsObj.wald_LFC1_less <- 
+  summarise_contrasts(
+    Fd_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 1, 
+    padj_threshold = 0.05,
+    altHypothesis = "lessAbs",
+    stage_names = Fd_embryo_stage_names)
+Fd_ddsObj.wald_LFC2_less <- 
+  summarise_contrasts(
+    Fd_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 2, 
+    padj_threshold = 0.05,
+    altHypothesis = "lessAbs",
+    stage_names = Fd_embryo_stage_names)
+Fd_ddsObj.wald_LFC3_less <- 
+  summarise_contrasts(
+    Fd_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 3, 
+    padj_threshold = 0.05,
+    altHypothesis = "lessAbs",
+    stage_names = Fd_embryo_stage_names)
+
+Fd_ddsObj.wald_less_padj0.05 <- 
+  base::rbind(Fd_ddsObj.wald_LFC1_less, 
+              Fd_ddsObj.wald_LFC2_less, 
+              Fd_ddsObj.wald_LFC3_less)
+```
+
+```{r}
+# combine everything together
+Fs_ddsObj.wald_all <-
+  base::rbind(Fs_ddsObj.wald_padj0.1,
+              Fs_ddsObj.wald_padj0.05,
+              Fs_ddsObj.wald_less_padj0.1,
+              Fs_ddsObj.wald_less_padj0.05)
+
+Fs_ddsObj.wald_all$contrast <- 
+  base::factor(Fs_ddsObj.wald_all$contrast, levels = unique(Fs_ddsObj.wald_all$contrast))
+
+Fd_ddsObj.wald_all <-
+  base::rbind(Fd_ddsObj.wald_padj0.1,
+              Fd_ddsObj.wald_padj0.05,
+              Fd_ddsObj.wald_less_padj0.1,
+              Fd_ddsObj.wald_less_padj0.05)
+
+Fd_ddsObj.wald_all$contrast <- 
+  base::factor(Fd_ddsObj.wald_all$contrast, levels = unique(Fd_ddsObj.wald_all$contrast))
+```
+
+## Plot between-stage significant genes
+
+The difference between performing IHW or not is almost the same.
+
+```{r, fig.height = 6, fig.width = 4}
+Fs_ddsObj.wald_all %>%
+  dplyr::filter(altHypothesis == "greaterAbs" & IHW == FALSE) %>%
+  ggplot2::ggplot(
+    aes(
+      x = contrast, 
+      y = n_sig, 
+      colour = as.factor(lfcThreshold), 
+      group = as.factor(lfcThreshold)
+      )
+    ) +
+  ggplot2::geom_line(linewidth = 2, alpha = 0.5) +
+  ggplot2::geom_point(size = 3, alpha = 0.5) +
+  ggplot2::facet_grid(rows = ggplot2::vars(padj_threshold), labeller = labeller(padj_threshold = label_both)) +
+  ggplot2::scale_y_log10() +
+  # ggplot2::annotation_logticks(sides = "l") +
+  ggplot2::scale_x_discrete(guide = guide_axis(angle = 30)) +
+  ggplot2::labs(
+    y = "Number of genes (log-scaled)",
+    x = "Developmental transition",
+    title = "Fucus serratus",
+    subtitle = "DEG (padj = BH)"
+  ) +
+  ggplot2::theme_bw() +
+  ggplot2::theme(legend.position="bottom") +
+  ggplot2::guides(colour=guide_legend(title="logFoldChange threshold")) +
+  ggsci::scale_color_npg()
+
+Fs_ddsObj.wald_all %>%
+  dplyr::filter(altHypothesis == "greaterAbs" & IHW == TRUE) %>%
+  ggplot2::ggplot(
+    aes(
+      x = contrast, 
+      y = n_sig, 
+      colour = as.factor(lfcThreshold), 
+      group = as.factor(lfcThreshold)
+      )
+    ) +
+  ggplot2::geom_line(linewidth = 2, alpha = 0.5) +
+  ggplot2::geom_point(size = 3, alpha = 0.5) +
+  ggplot2::facet_grid(rows = ggplot2::vars(padj_threshold), labeller = labeller(padj_threshold = label_both)) +
+  ggplot2::scale_y_log10() +
+  # ggplot2::annotation_logticks(sides = "l") +
+  ggplot2::scale_x_discrete(guide = guide_axis(angle = 30)) +
+  ggplot2::labs(
+    y = "Number of genes (log-scaled)",
+    x = "Developmental transition",
+    title = "Fucus serratus",
+    subtitle = "DEG (padj = ihw)"
+  ) +
+  ggplot2::theme_bw() +
+  ggplot2::theme(legend.position="bottom") +
+  ggplot2::guides(colour=guide_legend(title="logFoldChange threshold")) +
+  ggsci::scale_color_npg()
+
+Fs_ddsObj.wald_all %>%
+  dplyr::filter(altHypothesis == "lessAbs") %>%
+  ggplot2::ggplot(
+    aes(
+      x = contrast, 
+      y = n_sig, 
+      colour = as.factor(lfcThreshold), 
+      group = as.factor(lfcThreshold)
+      )
+    ) +
+  ggplot2::geom_line(linewidth = 2, alpha = 0.5) +
+  ggplot2::geom_point(size = 3, alpha = 0.5) +
+  ggplot2::facet_grid(rows = ggplot2::vars(padj_threshold), labeller = labeller(padj_threshold = label_both)) +
+  ggplot2::scale_y_log10(limits = c(1, 10000)) +
+  # ggplot2::annotation_logticks(sides = "l") +
+  ggplot2::scale_x_discrete(guide = guide_axis(angle = 30)) +
+  ggplot2::labs(
+    y = "Number of genes (log-scaled)",
+    x = "Developmental transition",
+    title = "Fucus serratus",
+    subtitle = "nonDEG (padj = BH)"
+  ) +
+  ggplot2::theme_bw() +
+  ggplot2::theme(legend.position="bottom") +
+  ggplot2::guides(colour=guide_legend(title="logFoldChange threshold")) +
+  ggsci::scale_color_npg()
+
+Fs_ddsObj.wald_all %>%
+  dplyr::filter(altHypothesis == "lessAbs") %>%
+  ggplot2::ggplot(
+    aes(
+      x = contrast, 
+      y = n_sig, 
+      colour = as.factor(lfcThreshold), 
+      group = as.factor(lfcThreshold)
+      )
+    ) +
+  ggplot2::geom_line(linewidth = 2, alpha = 0.5) +
+  ggplot2::geom_point(size = 3, alpha = 0.5) +
+  ggplot2::facet_grid(rows = ggplot2::vars(padj_threshold), labeller = labeller(padj_threshold = label_both)) +
+  ggplot2::scale_x_discrete(guide = guide_axis(angle = 30)) +
+  ggplot2::ylim(0, 10000) +
+  ggplot2::labs(
+    y = "Number of genes",
+    x = "Developmental transition",
+    title = "Fucus serratus",
+    subtitle = "nonDEG (padj = BH)"
+  ) +
+  ggplot2::theme_bw() +
+  ggplot2::theme(legend.position="bottom") +
+  ggplot2::guides(colour=guide_legend(title="logFoldChange threshold")) +
+  ggsci::scale_color_npg()
+  
+```
+
+
+```{r, fig.height = 6, fig.width = 4}
+Fd_ddsObj.wald_all %>%
+  dplyr::filter(altHypothesis == "greaterAbs" & IHW == FALSE) %>%
+  ggplot2::ggplot(
+    aes(
+      x = contrast, 
+      y = n_sig, 
+      colour = as.factor(lfcThreshold), 
+      group = as.factor(lfcThreshold)
+      )
+    ) +
+  ggplot2::geom_line(linewidth = 2, alpha = 0.5) +
+  ggplot2::geom_point(size = 3, alpha = 0.5) +
+  ggplot2::facet_grid(rows = ggplot2::vars(padj_threshold), labeller = labeller(padj_threshold = label_both)) +
+  ggplot2::scale_y_log10() +
+  # ggplot2::annotation_logticks(sides = "l") +
+  ggplot2::scale_x_discrete(guide = guide_axis(angle = 30)) +
+  ggplot2::labs(
+    y = "Number of genes (log-scaled)",
+    x = "Developmental transition",
+    title = "Fucus distichus",
+    subtitle = "DEG (padj = BH)"
+  ) +
+  ggplot2::theme_bw() +
+  ggplot2::theme(legend.position="bottom") +
+  ggplot2::guides(colour=guide_legend(title="logFoldChange threshold")) +
+  ggsci::scale_color_npg()
+
+Fd_ddsObj.wald_all %>%
+  dplyr::filter(altHypothesis == "greaterAbs" & IHW == TRUE) %>%
+  ggplot2::ggplot(
+    aes(
+      x = contrast, 
+      y = n_sig, 
+      colour = as.factor(lfcThreshold), 
+      group = as.factor(lfcThreshold)
+      )
+    ) +
+  ggplot2::geom_line(linewidth = 2, alpha = 0.5) +
+  ggplot2::geom_point(size = 3, alpha = 0.5) +
+  ggplot2::facet_grid(rows = ggplot2::vars(padj_threshold), labeller = labeller(padj_threshold = label_both)) +
+  ggplot2::scale_y_log10() +
+  # ggplot2::annotation_logticks(sides = "l") +
+  ggplot2::scale_x_discrete(guide = guide_axis(angle = 30)) +
+  ggplot2::labs(
+    y = "Number of genes (log-scaled)",
+    x = "Developmental transition",
+    title = "Fucus distichus",
+    subtitle = "DEG (padj = ihw)"
+  ) +
+  ggplot2::theme_bw() +
+  ggplot2::theme(legend.position="bottom") +
+  ggplot2::guides(colour=guide_legend(title="logFoldChange threshold")) +
+  ggsci::scale_color_npg()
+
+Fd_ddsObj.wald_all %>%
+  dplyr::filter(altHypothesis == "lessAbs") %>%
+  ggplot2::ggplot(
+    aes(
+      x = contrast, 
+      y = n_sig, 
+      colour = as.factor(lfcThreshold), 
+      group = as.factor(lfcThreshold)
+      )
+    ) +
+  ggplot2::geom_line(linewidth = 2, alpha = 0.5) +
+  ggplot2::geom_point(size = 3, alpha = 0.5) +
+  ggplot2::facet_grid(rows = ggplot2::vars(padj_threshold), labeller = labeller(padj_threshold = label_both)) +
+  ggplot2::scale_y_log10(limits = c(1, 10000)) +
+  # ggplot2::annotation_logticks(sides = "l") +
+  ggplot2::scale_x_discrete(guide = guide_axis(angle = 30)) +
+  ggplot2::labs(
+    y = "Number of genes (log-scaled)",
+    x = "Developmental transition",
+    title = "Fucus distichus",
+    subtitle = "nonDEG (padj = BH)"
+  ) +
+  ggplot2::theme_bw() +
+  ggplot2::theme(legend.position="bottom") +
+  ggplot2::guides(colour=guide_legend(title="logFoldChange threshold")) +
+  ggsci::scale_color_npg()
+
+Fd_ddsObj.wald_all %>%
+  dplyr::filter(altHypothesis == "lessAbs") %>%
+  ggplot2::ggplot(
+    aes(
+      x = contrast, 
+      y = n_sig, 
+      colour = as.factor(lfcThreshold), 
+      group = as.factor(lfcThreshold)
+      )
+    ) +
+  ggplot2::geom_line(linewidth = 2, alpha = 0.5) +
+  ggplot2::geom_point(size = 3, alpha = 0.5) +
+  ggplot2::facet_grid(rows = ggplot2::vars(padj_threshold), labeller = labeller(padj_threshold = label_both)) +
+  ggplot2::scale_x_discrete(guide = guide_axis(angle = 30)) +
+  ggplot2::ylim(0, 10000) +
+  ggplot2::labs(
+    y = "Number of genes",
+    x = "Developmental transition",
+    title = "Fucus distichus",
+    subtitle = "nonDEG (padj = BH)"
+  ) +
+  ggplot2::theme_bw() +
+  ggplot2::theme(legend.position="bottom") +
+  ggplot2::guides(colour=guide_legend(title="logFoldChange threshold")) +
+  ggsci::scale_color_npg()
+```
+
+# denoised dataset (Wald test)
+
+```{r}
+# Fs_embryo_stage_names <- 
+#   c("24H", "48H", "1w", "3w", "4w")
+# sample_info_fs[13,2] <- 4
+# sample_info_fs[14,2] <- 5
+# sample_info_fs[15,2] <- 6
+rename_list <- 
+  sample_info_fs %>%
+  mutate(new_colname = paste0(Stage, "_", Sex, "_", Replicate)) %>%
+  select(LibName, new_colname) %>%
+  deframe()
+
+Fs_stage_ddsObj.denoised.raw <-
+  create_dds_embyro(
+    count_tibble = Fs_counts.denoised, 
+    metatable = sample_info_fs,
+    stage_names = Fs_embryo_stage_names,
+    rename_list = rename_list)
+
+rename_list <- 
+  select(sample_info_fd, LibName, Stage, Sex, Replicate) %>%
+  mutate(new_colname = paste0(Stage, "_", Sex, "_", Replicate)) %>%
+  select(LibName, new_colname) %>%
+  deframe()
+# Fd_embryo_stage_names <- 
+#   c("E1", "E2", "E3", "E4", "E5")
+
+Fd_stage_ddsObj.denoised.raw <-
+  create_dds_embyro(
+    count_tibble = Fd_counts.denoised, 
+    metatable = sample_info_fd,
+    stage_names = Fd_embryo_stage_names,
+    rename_list = rename_list)
+```
+
+```{r}
+Fs_ddsObj.denoised.wald <- 
+  DESeq2::DESeq(Fs_stage_ddsObj.denoised.raw, test="Wald")
+
+Fd_ddsObj.denoised.wald <- 
+  DESeq2::DESeq(Fd_stage_ddsObj.denoised.raw, test="Wald")
+```
+
+
+There is no need to use `IHW` because of the warning `Only 1 bin; IHW reduces to Benjamini Hochberg (uniform weights)`.
+
+_Fucus serratus_
+```{r}
+Fs_embryo_stage_names <- 
+  c("24H", "48H", "1w", "3w", "4w")
+deseq2_contrasts <- c("24H->48H", "48H->1w", "1w->3w", "3w->4w")
+
+Fs_ddsObj.denoised.wald_LFC1 <- 
+  summarise_contrasts(
+    Fs_ddsObj.denoised.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 1, 
+    padj_threshold = 0.1,
+    altHypothesis = "greaterAbs",
+    stage_names = Fs_embryo_stage_names)
+Fs_ddsObj.denoised.wald_LFC2 <- 
+  summarise_contrasts(
+    Fs_ddsObj.denoised.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 2, 
+    padj_threshold = 0.1,
+    altHypothesis = "greaterAbs",
+    stage_names = Fs_embryo_stage_names)
+Fs_ddsObj.denoised.wald_LFC3 <- 
+  summarise_contrasts(
+    Fs_ddsObj.denoised.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 3, 
+    padj_threshold = 0.1,
+    altHypothesis = "greaterAbs",
+    stage_names = Fs_embryo_stage_names)
+
+Fs_ddsObj.denoised.wald_padj0.1 <- 
+  base::rbind(Fs_ddsObj.denoised.wald_LFC1, 
+              Fs_ddsObj.denoised.wald_LFC2, 
+              Fs_ddsObj.denoised.wald_LFC3)
+
+Fs_ddsObj.denoised.wald_LFC1 <- 
+  summarise_contrasts(
+    Fs_ddsObj.denoised.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 1, 
+    padj_threshold = 0.05,
+    altHypothesis = "greaterAbs",
+    stage_names = Fs_embryo_stage_names)
+Fs_ddsObj.denoised.wald_LFC2 <- 
+  summarise_contrasts(
+    Fs_ddsObj.denoised.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 2, 
+    padj_threshold = 0.05,
+    altHypothesis = "greaterAbs",
+    stage_names = Fs_embryo_stage_names)
+Fs_ddsObj.denoised.wald_LFC3 <- 
+  summarise_contrasts(
+    Fs_ddsObj.denoised.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 3, 
+    padj_threshold = 0.05,
+    altHypothesis = "greaterAbs",
+    stage_names = Fs_embryo_stage_names)
+
+Fs_ddsObj.denoised.wald_padj0.05 <- 
+  base::rbind(Fs_ddsObj.denoised.wald_LFC1, 
+              Fs_ddsObj.denoised.wald_LFC2, 
+              Fs_ddsObj.denoised.wald_LFC3)
+
+# significantly nonDEG
+Fs_ddsObj.denoised.wald_LFC1_less <- 
+  summarise_contrasts(
+    Fs_ddsObj.denoised.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 1, 
+    padj_threshold = 0.1,
+    altHypothesis = "lessAbs",
+    stage_names = Fs_embryo_stage_names)
+Fs_ddsObj.denoised.wald_LFC2_less <- 
+  summarise_contrasts(
+    Fs_ddsObj.denoised.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 2, 
+    padj_threshold = 0.1,
+    altHypothesis = "lessAbs",
+    stage_names = Fs_embryo_stage_names)
+Fs_ddsObj.denoised.wald_LFC3_less <- 
+  summarise_contrasts(
+    Fs_ddsObj.denoised.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 3, 
+    padj_threshold = 0.1,
+    altHypothesis = "lessAbs",
+    stage_names = Fs_embryo_stage_names)
+
+Fs_ddsObj.denoised.wald_less_padj0.1 <- 
+  base::rbind(Fs_ddsObj.denoised.wald_LFC1_less, 
+              Fs_ddsObj.denoised.wald_LFC2_less, 
+              Fs_ddsObj.denoised.wald_LFC3_less)
+
+Fs_ddsObj.denoised.wald_LFC1_less <- 
+  summarise_contrasts(
+    Fs_ddsObj.denoised.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 1, 
+    padj_threshold = 0.05,
+    altHypothesis = "lessAbs",
+    stage_names = Fs_embryo_stage_names)
+Fs_ddsObj.denoised.wald_LFC2_less <- 
+  summarise_contrasts(
+    Fs_ddsObj.denoised.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 2, 
+    padj_threshold = 0.05,
+    altHypothesis = "lessAbs",
+    stage_names = Fs_embryo_stage_names)
+Fs_ddsObj.denoised.wald_LFC3_less <- 
+  summarise_contrasts(
+    Fs_ddsObj.denoised.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 3, 
+    padj_threshold = 0.05,
+    altHypothesis = "lessAbs",
+    stage_names = Fs_embryo_stage_names)
+
+Fs_ddsObj.denoised.wald_less_padj0.05 <- 
+  base::rbind(Fs_ddsObj.denoised.wald_LFC1_less, 
+              Fs_ddsObj.denoised.wald_LFC2_less, 
+              Fs_ddsObj.denoised.wald_LFC3_less)
+```
+
+_Fucus distichus_
+```{r}
+Fd_embryo_stage_names <- 
+  c("E1", "E2", "E3", "E4", "E5")
+
+deseq2_contrasts <- c("E1->E2", "E2->E3", "E3->E4", "E4->E5")
+
+Fd_ddsObj.denoised.wald_LFC1 <- 
+  summarise_contrasts(
+    Fd_ddsObj.denoised.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 1, 
+    padj_threshold = 0.1,
+    altHypothesis = "greaterAbs",
+    stage_names = Fd_embryo_stage_names)
+Fd_ddsObj.denoised.wald_LFC2 <- 
+  summarise_contrasts(
+    Fd_ddsObj.denoised.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 2, 
+    padj_threshold = 0.1,
+    altHypothesis = "greaterAbs",
+    stage_names = Fd_embryo_stage_names)
+Fd_ddsObj.denoised.wald_LFC3 <- 
+  summarise_contrasts(
+    Fd_ddsObj.denoised.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 3, 
+    padj_threshold = 0.1,
+    altHypothesis = "greaterAbs",
+    stage_names = Fd_embryo_stage_names)
+
+Fd_ddsObj.denoised.wald_padj0.1 <- 
+  base::rbind(Fd_ddsObj.denoised.wald_LFC1, 
+              Fd_ddsObj.denoised.wald_LFC2, 
+              Fd_ddsObj.denoised.wald_LFC3)
+
+Fd_ddsObj.denoised.wald_LFC1 <- 
+  summarise_contrasts(
+    Fd_ddsObj.denoised.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 1, 
+    padj_threshold = 0.05,
+    altHypothesis = "greaterAbs",
+    stage_names = Fd_embryo_stage_names)
+Fd_ddsObj.denoised.wald_LFC2 <- 
+  summarise_contrasts(
+    Fd_ddsObj.denoised.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 2, 
+    padj_threshold = 0.05,
+    altHypothesis = "greaterAbs",
+    stage_names = Fd_embryo_stage_names)
+Fd_ddsObj.denoised.wald_LFC3 <- 
+  summarise_contrasts(
+    Fd_ddsObj.denoised.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 3, 
+    padj_threshold = 0.05,
+    altHypothesis = "greaterAbs",
+    stage_names = Fd_embryo_stage_names)
+
+Fd_ddsObj.denoised.wald_padj0.05 <- 
+  base::rbind(Fd_ddsObj.denoised.wald_LFC1, 
+              Fd_ddsObj.denoised.wald_LFC2, 
+              Fd_ddsObj.denoised.wald_LFC3)
+
+# significantly nonDEG
+Fd_ddsObj.denoised.wald_LFC1_less <- 
+  summarise_contrasts(
+    Fd_ddsObj.denoised.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 1, 
+    padj_threshold = 0.1,
+    altHypothesis = "lessAbs",
+    stage_names = Fd_embryo_stage_names)
+Fd_ddsObj.denoised.wald_LFC2_less <- 
+  summarise_contrasts(
+    Fd_ddsObj.denoised.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 2, 
+    padj_threshold = 0.1,
+    altHypothesis = "lessAbs",
+    stage_names = Fd_embryo_stage_names)
+Fd_ddsObj.denoised.wald_LFC3_less <- 
+  summarise_contrasts(
+    Fd_ddsObj.denoised.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 3, 
+    padj_threshold = 0.1,
+    altHypothesis = "lessAbs",
+    stage_names = Fd_embryo_stage_names)
+
+Fd_ddsObj.denoised.wald_less_padj0.1 <- 
+  base::rbind(Fd_ddsObj.denoised.wald_LFC1_less, 
+              Fd_ddsObj.denoised.wald_LFC2_less, 
+              Fd_ddsObj.denoised.wald_LFC3_less)
+
+Fd_ddsObj.denoised.wald_LFC1_less <- 
+  summarise_contrasts(
+    Fd_ddsObj.denoised.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 1, 
+    padj_threshold = 0.05,
+    altHypothesis = "lessAbs",
+    stage_names = Fd_embryo_stage_names)
+Fd_ddsObj.denoised.wald_LFC2_less <- 
+  summarise_contrasts(
+    Fd_ddsObj.denoised.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 2, 
+    padj_threshold = 0.05,
+    altHypothesis = "lessAbs",
+    stage_names = Fd_embryo_stage_names)
+Fd_ddsObj.denoised.wald_LFC3_less <- 
+  summarise_contrasts(
+    Fd_ddsObj.denoised.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 3, 
+    padj_threshold = 0.05,
+    altHypothesis = "lessAbs",
+    stage_names = Fd_embryo_stage_names)
+
+Fd_ddsObj.denoised.wald_less_padj0.05 <- 
+  base::rbind(Fd_ddsObj.denoised.wald_LFC1_less, 
+              Fd_ddsObj.denoised.wald_LFC2_less, 
+              Fd_ddsObj.denoised.wald_LFC3_less)
+```
+
+```{r}
+# combine everything together
+Fs_ddsObj.denoised.wald_all <-
+  base::rbind(Fs_ddsObj.denoised.wald_padj0.1,
+              Fs_ddsObj.denoised.wald_padj0.05,
+              Fs_ddsObj.denoised.wald_less_padj0.1,
+              Fs_ddsObj.denoised.wald_less_padj0.05)
+
+Fs_ddsObj.denoised.wald_all$contrast <- 
+  base::factor(Fs_ddsObj.denoised.wald_all$contrast, levels = unique(Fs_ddsObj.denoised.wald_all$contrast))
+
+Fd_ddsObj.denoised.wald_all <-
+  base::rbind(Fd_ddsObj.denoised.wald_padj0.1,
+              Fd_ddsObj.denoised.wald_padj0.05,
+              Fd_ddsObj.denoised.wald_less_padj0.1,
+              Fd_ddsObj.denoised.wald_less_padj0.05)
+
+Fd_ddsObj.denoised.wald_all$contrast <- 
+  base::factor(Fd_ddsObj.denoised.wald_all$contrast, levels = unique(Fd_ddsObj.denoised.wald_all$contrast))
+```
+
+## Plot between-stage significant genes
+
+The difference between performing IHW or not is almost the same.
+
+```{r, fig.height = 6, fig.width = 4}
+Fs_ddsObj.denoised.wald_all %>%
+  dplyr::filter(altHypothesis == "greaterAbs" & IHW == FALSE) %>%
+  ggplot2::ggplot(
+    aes(
+      x = contrast, 
+      y = n_sig, 
+      colour = as.factor(lfcThreshold), 
+      group = as.factor(lfcThreshold)
+      )
+    ) +
+  ggplot2::geom_line(linewidth = 2, alpha = 0.5) +
+  ggplot2::geom_point(size = 3, alpha = 0.5) +
+  ggplot2::facet_grid(rows = ggplot2::vars(padj_threshold), labeller = labeller(padj_threshold = label_both)) +
+  ggplot2::scale_y_log10() +
+  # ggplot2::annotation_logticks(sides = "l") +
+  ggplot2::scale_x_discrete(guide = guide_axis(angle = 30)) +
+  ggplot2::labs(
+    y = "Number of genes (log-scaled)",
+    x = "Developmental transition",
+    title = "Fucus serratus [denoised]",
+    subtitle = "DEG (padj = BH)"
+  ) +
+  ggplot2::theme_bw() +
+  ggplot2::theme(legend.position="bottom") +
+  ggplot2::guides(colour=guide_legend(title="logFoldChange threshold")) +
+  ggsci::scale_color_npg()
+
+Fs_ddsObj.denoised.wald_all %>%
+  dplyr::filter(altHypothesis == "lessAbs") %>%
+  ggplot2::ggplot(
+    aes(
+      x = contrast, 
+      y = n_sig, 
+      colour = as.factor(lfcThreshold), 
+      group = as.factor(lfcThreshold)
+      )
+    ) +
+  ggplot2::geom_line(linewidth = 2, alpha = 0.5) +
+  ggplot2::geom_point(size = 3, alpha = 0.5) +
+  ggplot2::facet_grid(rows = ggplot2::vars(padj_threshold), labeller = labeller(padj_threshold = label_both)) +
+  ggplot2::scale_y_log10(limits = c(1, 10000)) +
+  # ggplot2::annotation_logticks(sides = "l") +
+  ggplot2::scale_x_discrete(guide = guide_axis(angle = 30)) +
+  ggplot2::labs(
+    y = "Number of genes (log-scaled)",
+    x = "Developmental transition",
+    title = "Fucus serratus [denoised]",
+    subtitle = "nonDEG (padj = BH)"
+  ) +
+  ggplot2::theme_bw() +
+  ggplot2::theme(legend.position="bottom") +
+  ggplot2::guides(colour=guide_legend(title="logFoldChange threshold")) +
+  ggsci::scale_color_npg()
+
+Fs_ddsObj.denoised.wald_all %>%
+  dplyr::filter(altHypothesis == "lessAbs") %>%
+  ggplot2::ggplot(
+    aes(
+      x = contrast, 
+      y = n_sig, 
+      colour = as.factor(lfcThreshold), 
+      group = as.factor(lfcThreshold)
+      )
+    ) +
+  ggplot2::geom_line(linewidth = 2, alpha = 0.5) +
+  ggplot2::geom_point(size = 3, alpha = 0.5) +
+  ggplot2::facet_grid(rows = ggplot2::vars(padj_threshold), labeller = labeller(padj_threshold = label_both)) +
+  ggplot2::scale_x_discrete(guide = guide_axis(angle = 30)) +
+  ggplot2::ylim(0, 10000) +
+  ggplot2::labs(
+    y = "Number of genes",
+    x = "Developmental transition",
+    title = "Fucus serratus [denoised]",
+    subtitle = "nonDEG (padj = BH)"
+  ) +
+  ggplot2::theme_bw() +
+  ggplot2::theme(legend.position="bottom") +
+  ggplot2::guides(colour=guide_legend(title="logFoldChange threshold")) +
+  ggsci::scale_color_npg()
+  
+```
+
+
+```{r, fig.height = 6, fig.width = 4}
+Fd_ddsObj.denoised.wald_all %>%
+  dplyr::filter(altHypothesis == "greaterAbs" & IHW == FALSE) %>%
+  ggplot2::ggplot(
+    aes(
+      x = contrast, 
+      y = n_sig, 
+      colour = as.factor(lfcThreshold), 
+      group = as.factor(lfcThreshold)
+      )
+    ) +
+  ggplot2::geom_line(linewidth = 2, alpha = 0.5) +
+  ggplot2::geom_point(size = 3, alpha = 0.5) +
+  ggplot2::facet_grid(rows = ggplot2::vars(padj_threshold), labeller = labeller(padj_threshold = label_both)) +
+  ggplot2::scale_y_log10() +
+  # ggplot2::annotation_logticks(sides = "l") +
+  ggplot2::scale_x_discrete(guide = guide_axis(angle = 30)) +
+  ggplot2::labs(
+    y = "Number of genes (log-scaled)",
+    x = "Developmental transition",
+    title = "Fucus distichus [denoised]",
+    subtitle = "DEG (padj = BH)"
+  ) +
+  ggplot2::theme_bw() +
+  ggplot2::theme(legend.position="bottom") +
+  ggplot2::guides(colour=guide_legend(title="logFoldChange threshold")) +
+  ggsci::scale_color_npg()
+
+Fd_ddsObj.denoised.wald_all %>%
+  dplyr::filter(altHypothesis == "lessAbs") %>%
+  ggplot2::ggplot(
+    aes(
+      x = contrast, 
+      y = n_sig, 
+      colour = as.factor(lfcThreshold), 
+      group = as.factor(lfcThreshold)
+      )
+    ) +
+  ggplot2::geom_line(linewidth = 2, alpha = 0.5) +
+  ggplot2::geom_point(size = 3, alpha = 0.5) +
+  ggplot2::facet_grid(rows = ggplot2::vars(padj_threshold), labeller = labeller(padj_threshold = label_both)) +
+  ggplot2::scale_y_log10(limits = c(1, 10000)) +
+  # ggplot2::annotation_logticks(sides = "l") +
+  ggplot2::scale_x_discrete(guide = guide_axis(angle = 30)) +
+  ggplot2::labs(
+    y = "Number of genes (log-scaled)",
+    x = "Developmental transition",
+    title = "Fucus distichus [denoised]",
+    subtitle = "nonDEG (padj = BH)"
+  ) +
+  ggplot2::theme_bw() +
+  ggplot2::theme(legend.position="bottom") +
+  ggplot2::guides(colour=guide_legend(title="logFoldChange threshold")) +
+  ggsci::scale_color_npg()
+
+Fd_ddsObj.denoised.wald_all %>%
+  dplyr::filter(altHypothesis == "lessAbs") %>%
+  ggplot2::ggplot(
+    aes(
+      x = contrast, 
+      y = n_sig, 
+      colour = as.factor(lfcThreshold), 
+      group = as.factor(lfcThreshold)
+      )
+    ) +
+  ggplot2::geom_line(linewidth = 2, alpha = 0.5) +
+  ggplot2::geom_point(size = 3, alpha = 0.5) +
+  ggplot2::facet_grid(rows = ggplot2::vars(padj_threshold), labeller = labeller(padj_threshold = label_both)) +
+  ggplot2::scale_x_discrete(guide = guide_axis(angle = 30)) +
+  ggplot2::ylim(0, 10000) +
+  ggplot2::labs(
+    y = "Number of genes",
+    x = "Developmental transition",
+    title = "Fucus distichus [denoised]",
+    subtitle = "nonDEG (padj = BH)"
+  ) +
+  ggplot2::theme_bw() +
+  ggplot2::theme(legend.position="bottom") +
+  ggplot2::guides(colour=guide_legend(title="logFoldChange threshold")) +
+  ggsci::scale_color_npg()
+```
+
+## Save DEGs
+
+The count isn't very interesting. So using the same function I made `summarise_contrasts()` with `output_nsig = FALSE`. All the data is based on the following thresholds `lfcThreshold = 1` and `padj_threshold`
+
+```{r}
+deseq2_contrasts <- c("24H->48H", "48H->1w", "1w->3w", "3w->4w")
+Fs_ddsObj.wald_DEGlist <- 
+  summarise_contrasts(
+    Fs_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 1, 
+    padj_threshold = 0.05,
+    altHypothesis = "greaterAbs",
+    stage_names = Fs_embryo_stage_names,
+    output_nsig = FALSE)
+Fs_ddsObj.wald_nonDEGlist <- 
+  summarise_contrasts(
+    Fs_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 1, 
+    padj_threshold = 0.05,
+    altHypothesis = "lessAbs",
+    stage_names = Fs_embryo_stage_names,
+    output_nsig = FALSE)
+
+deseq2_contrasts <- c("E1->E2", "E2->E3", "E3->E4", "E4->E5")
+Fd_ddsObj.wald_DEGlist <- 
+  summarise_contrasts(
+    Fd_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 1, 
+    padj_threshold = 0.05,
+    altHypothesis = "greaterAbs",
+    stage_names = Fd_embryo_stage_names,
+    output_nsig = FALSE)
+Fd_ddsObj.wald_nonDEGlist <- 
+  summarise_contrasts(
+    Fd_ddsObj.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 1, 
+    padj_threshold = 0.05,
+    altHypothesis = "lessAbs",
+    stage_names = Fd_embryo_stage_names,
+    output_nsig = FALSE)
+
+deseq2_contrasts <- c("24H->48H", "48H->1w", "1w->3w", "3w->4w")
+Fs_ddsObj.denoised.wald_DEGlist <- 
+  summarise_contrasts(
+    Fs_ddsObj.denoised.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 1, 
+    padj_threshold = 0.05,
+    altHypothesis = "greaterAbs",
+    stage_names = Fs_embryo_stage_names,
+    output_nsig = FALSE)
+Fs_ddsObj.denoised.wald_nonDEGlist <- 
+  summarise_contrasts(
+    Fs_ddsObj.denoised.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 1, 
+    padj_threshold = 0.05,
+    altHypothesis = "lessAbs",
+    stage_names = Fs_embryo_stage_names,
+    output_nsig = FALSE)
+
+deseq2_contrasts <- c("E1->E2", "E2->E3", "E3->E4", "E4->E5")
+Fd_ddsObj.denoised.wald_DEGlist <- 
+  summarise_contrasts(
+    Fd_ddsObj.denoised.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 1, 
+    padj_threshold = 0.05,
+    altHypothesis = "greaterAbs",
+    stage_names = Fd_embryo_stage_names,
+    output_nsig = FALSE)
+Fd_ddsObj.denoised.wald_nonDEGlist <- 
+  summarise_contrasts(
+    Fd_ddsObj.denoised.wald, 
+    deseq2_contrasts, 
+    lfcThreshold = 1, 
+    padj_threshold = 0.05,
+    altHypothesis = "lessAbs",
+    stage_names = Fd_embryo_stage_names,
+    output_nsig = FALSE)
+```
+
+```{r}
+
+Fs_ddsObj.wald_DEGlist %>%
+  base::saveRDS("data/Fs_wald_DEG_list.rds")
+Fd_ddsObj.wald_DEGlist %>%
+  base::saveRDS("data/Fd_wald_DEG_list.rds")
+
+Fs_ddsObj.wald_nonDEGlist %>%
+  base::saveRDS("data/Fs_wald_nonDEG_list.rds")
+Fd_ddsObj.wald_nonDEGlist %>%
+  base::saveRDS("data/Fd_wald_nonDEG_list.rds")
+
+Fs_ddsObj.denoised.wald_DEGlist %>%
+  base::saveRDS("data/Fs_denoised_wald_DEG_list.rds")
+Fd_ddsObj.denoised.wald_DEGlist %>%
+  base::saveRDS("data/Fd_denoised_wald_DEG_list.rds")
+
+Fs_ddsObj.denoised.wald_nonDEGlist %>%
+  base::saveRDS("data/Fs_denoised_wald_nonDEG_list.rds")
+Fd_ddsObj.denoised.wald_nonDEGlist %>%
+  base::saveRDS("data/Fd_denoised_wald_nonDEG_list.rds")
+
+# # to load data
+# Fs_ddsObj.wald_DEGlist <-
+#   base::readRDS("data/Fs_wald_DEG_list.rds")
+# rbind(
+#   Fs_ddsObj.wald_DEGlist[[1]] %>%
+#     tibble::as_tibble(rownames = "GeneID") %>%
+#     dplyr::mutate(contrast = "48H vs 24H"),
+#   Fs_ddsObj.wald_DEGlist[[2]] %>%
+#     tibble::as_tibble(rownames = "GeneID") %>%
+#     dplyr::mutate(contrast = "1w vs 48H"),
+#   Fs_ddsObj.wald_DEGlist[[3]] %>%
+#     tibble::as_tibble(rownames = "GeneID") %>%
+#     dplyr::mutate(contrast = "3w vs 1w"),
+#   Fs_ddsObj.wald_DEGlist[[4]] %>%
+#     tibble::as_tibble(rownames = "GeneID") %>%
+#     dplyr::mutate(contrast = "4w vs 3w"),
+#   )
+```
+
+Get session info.
+
+```{r}
+devtools::session_info()
+```
