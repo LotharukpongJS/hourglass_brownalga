@@ -1,0 +1,844 @@
+---
+title: "2.4 TAI contribution profile of unicellular stages"
+output:
+  html_document:
+    fig_width: 5
+    fig_height: 3
+    df_print: paged
+  pdf_document: default
+editor_options:
+  chunk_output_type: inline
+---
+
+# Unicellular enrichment profiles
+
+After a question in the TAC about whether the same genes drive the TAI, I decided to use pMatrix and check which genes drive the high (young) TAI in the gametes.
+
+```{r}
+library(tidyverse)
+library(myTAI)
+library(see)
+```
+
+## Load PES
+
+Non-transformed
+
+```{r}
+Ec_PES_32m <-
+  readr::read_csv(file = "data/Ec_PES_32m.csv")
+Ec_PES_25f <-
+  readr::read_csv(file = "data/Ec_PES_25f.csv")
+```
+
+sqrt-tranformed
+
+```{r}
+Ec_PES_32m.sqrt <-
+  readr::read_csv(file = "data/Ec_PES_32m.sqrt.csv")
+Ec_PES_25f.sqrt <-
+  readr::read_csv(file = "data/Ec_PES_25f.sqrt.csv")
+```
+
+log2-tranformed
+
+```{r}
+Ec_PES_32m.log2 <-
+  readr::read_csv(file = "data/Ec_PES_32m.log2.csv")
+Ec_PES_25f.log2 <-
+  readr::read_csv(file = "data/Ec_PES_25f.log2.csv")
+```
+
+rank-tranformed
+
+```{r}
+Ec_PES_32m.rank <-
+  readr::read_csv(file = "data/Ec_PES_32m.rank.csv")
+Ec_PES_25f.rank <-
+  readr::read_csv(file = "data/Ec_PES_25f.rank.csv")
+```
+
+rlog-tranformed
+
+```{r}
+Ec_PES_32m.rlog <-
+  readr::read_csv(file = "data/Ec_PES_32m.rlog.csv")
+Ec_PES_25f.rlog <-
+  readr::read_csv(file = "data/Ec_PES_25f.rlog.csv")
+```
+
+## Select unicellular stages
+
+```{r}
+unicellular_pMat <- function(PES, unicell_names = c("meiospore", "gamete", "mitospore"), dropzero = F, ordered_stages, top_genes = F, n_genes = 100, stage_select = "gamete"){
+        
+        if(!is.data.frame(PES))
+                stop("PES is not a dataframe")
+        
+        stage_select <- rlang::sym(stage_select)
+        
+        PES_filt <- PES %>% 
+                dplyr::select(1, 2, all_of(unicell_names))
+        
+        if(dropzero){
+                PES_filt <- PES_filt %>%
+                        dplyr::filter(rowSums(!select(., all_of(unicell_names))) == 0)
+        }
+        
+                
+        PES_filt <- PES_filt %>%
+                myTAI::pMatrix() %>%
+                tibble::as_tibble(rownames = "GeneID") 
+        
+        # in case one wants to select the top N genes.
+        if(top_genes){
+                PES_filt <- PES_filt %>%
+                        dplyr::slice_max({{stage_select}}, n = n_genes)
+        }
+        
+        PES_filt <- PES_filt %>%
+                tidyr::pivot_longer(!GeneID, names_to = "Stage", values_to = "pTAI")
+        
+        # make factor
+        PES_filt$Stage <- base::factor(PES_filt$Stage, ordered_stages)
+        return(PES_filt)
+}
+```
+
+## Plot pMatrix
+
+```{r}
+unicellular_pMat_plot <- function(PES, 
+                                  unicell_names = c("meiospore", "gamete", "mitospore"), 
+                                  n_genes = 100,
+                                  stage_select = "gamete",
+                                  transformation = "log2",
+                                  alpha = 0,
+                                  dropzero = F,
+                                  ordered_stages) {
+        top_pTAI <- PES %>% 
+                unicellular_pMat(dropzero = dropzero, ordered_stages = ordered_stages, top_genes = TRUE, stage_select = stage_select, n_genes = n_genes)
+        
+        PES_filt <- unicellular_pMat(PES = PES, unicell_names = unicell_names, ordered_stages = ordered_stages)
+        # Rest of your function logic
+        # ...
+        
+        # transformation
+        f <- match.fun(transformation)
+        
+        
+        plot_re <- PES_filt %>%
+                ggplot2::ggplot(aes(y = f(pTAI + alpha), x = Stage, fill = Stage)) +
+                see::geom_violinhalf(trim = TRUE, width=1.2, alpha = 0.8) + 
+                ggplot2::scale_fill_manual(values = c("#3C5488FF", "white", "white")) +
+                ggplot2::geom_line(
+                        data = top_pTAI, 
+                        aes(y = f(pTAI + alpha), x = Stage, group = GeneID),
+                        alpha = 0.2,
+                        colour = "#3C5488FF") +
+                ggplot2::geom_point(
+                        data = top_pTAI, 
+                        aes(y = f(pTAI + alpha), x = Stage, group = GeneID),
+                        alpha = 0.3,
+                        size = 0.7,
+                        colour = "#3C5488FF") +
+                ggplot2::ylab(paste0(transformation, "(pTAI)")) +
+                
+                ggplot2::theme_classic() +
+                ggplot2::theme(legend.position="none") +
+                ggplot2::coord_flip()
+  
+  return(plot_re)
+}
+
+unicellular_pMat_plot_all <- function(PES, 
+                                  unicell_names = c("meiospore", "gamete", "mitospore"), 
+                                  n_genes = 100,
+                                  transformation = "log2",
+                                  alpha = 0,
+                                  dropzero = F,
+                                  ordered_stages) {
+        top_pTAI_1 <- PES %>% 
+                unicellular_pMat(dropzero = dropzero, ordered_stages = ordered_stages, top_genes = TRUE, stage_select = unicell_names[[1]], n_genes = n_genes)
+        top_pTAI_2 <- PES %>% 
+                unicellular_pMat(dropzero = dropzero, ordered_stages = ordered_stages, top_genes = TRUE, stage_select = unicell_names[[2]], n_genes = n_genes)
+        top_pTAI_3 <- PES %>% 
+                unicellular_pMat(dropzero = dropzero, ordered_stages = ordered_stages, top_genes = TRUE, stage_select = unicell_names[[3]], n_genes = n_genes)
+        
+        top_pTAI_all <- top_pTAI_1 %>%
+                inner_join(top_pTAI_2) %>%
+                inner_join(top_pTAI_3)
+        
+        PES_filt <- unicellular_pMat(PES = PES, unicell_names = unicell_names, ordered_stages = ordered_stages)
+        # Rest of your function logic
+        # ...
+        
+        # transformation
+        f <- match.fun(transformation)
+        
+        
+        plot_re <- PES_filt %>%
+                ggplot2::ggplot(aes(y = f(pTAI + alpha), x = Stage, fill = Stage)) +
+                see::geom_violinhalf(trim = TRUE, width=1.2, alpha = 0.5) + 
+                ggplot2::scale_fill_manual(values = c("#3C5488FF", "#E64B35FF", "#00A087FF")) +
+                ggplot2::geom_line(
+                        data = top_pTAI_1, 
+                        aes(y = f(pTAI + alpha), x = Stage, group = GeneID),
+                        alpha = 0.1,
+                        size = 0.3,
+                        colour = "#3C5488FF") +
+                ggplot2::geom_point(
+                        data = top_pTAI_1, 
+                        aes(y = f(pTAI + alpha), x = Stage, group = GeneID),
+                        alpha = 0.1,
+                        size = 0.7,
+                        colour = "#3C5488FF") +
+                ggplot2::geom_line(
+                        data = top_pTAI_2, 
+                        aes(y = f(pTAI + alpha), x = Stage, group = GeneID),
+                        alpha = 0.1,
+                        size = 0.3,
+                        colour = "#E64B35FF") +
+                ggplot2::geom_point(
+                        data = top_pTAI_3, 
+                        aes(y = f(pTAI + alpha), x = Stage, group = GeneID),
+                        alpha = 0.1,
+                        size = 0.7,
+                        colour = "#E64B35FF") +
+                ggplot2::geom_line(
+                        data = top_pTAI_3, 
+                        aes(y = f(pTAI + alpha), x = Stage, group = GeneID),
+                        alpha = 0.1,
+                        size = 0.3,
+                        colour = "#00A087FF") +
+                ggplot2::geom_point(
+                        data = top_pTAI_3, 
+                        aes(y = f(pTAI + alpha), x = Stage, group = GeneID),
+                        alpha = 0.1,
+                        size = 0.7,
+                        colour = "#00A087FF") +
+                ggplot2::geom_line(
+                        data = top_pTAI_all, 
+                        aes(y = f(pTAI + alpha), x = Stage, group = GeneID),
+                        alpha = 0.5,
+                        colour = "black") +
+                ggplot2::ylab(paste0(transformation, "(pTAI)")) +
+                
+                ggplot2::theme_classic() +
+                ggplot2::theme(legend.position="none") +
+                ggplot2::coord_flip()
+  
+  return(plot_re)
+}
+```
+
+# pMatrix calculations
+
+## Before removing 0s
+
+```{r}
+ordered_stages <- c("gamete", "meiospore", "mitospore")
+
+unicellular_pMat_plot(Ec_PES_32m, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec32m",
+                     subtitle = "raw(TPM)")
+
+unicellular_pMat_plot(Ec_PES_25f, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec25f",
+                     subtitle = "raw(TPM)")
+
+unicellular_pMat_plot(Ec_PES_32m.sqrt, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec32m",
+                     subtitle = "sqrt(TPM)")
+
+unicellular_pMat_plot(Ec_PES_25f.sqrt, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec25f",
+                     subtitle = "sqrt(TPM)")
+
+unicellular_pMat_plot(Ec_PES_32m.log2, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec32m",
+                     subtitle = "log2(TPM+1)")
+
+unicellular_pMat_plot(Ec_PES_25f.log2, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec25f",
+                     subtitle = "log2(TPM+1)")
+
+unicellular_pMat_plot(Ec_PES_32m.rank, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec32m",
+                     subtitle = "rank(TPM)")
+
+unicellular_pMat_plot(Ec_PES_25f.rank, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec25f",
+                     subtitle = "rank(TPM)")
+
+unicellular_pMat_plot(Ec_PES_32m.rlog, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec32m",
+                     subtitle = "rlog(TPM)")
+
+unicellular_pMat_plot(Ec_PES_25f.rlog, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec25f",
+                     subtitle = "rlog(TPM)")
+```
+
+```{r}
+unicellular_pMat_plot_all(Ec_PES_32m, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec32m",
+                     subtitle = "raw(TPM)")
+
+unicellular_pMat_plot_all(Ec_PES_25f, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec25f",
+                     subtitle = "raw(TPM)")
+
+unicellular_pMat_plot_all(Ec_PES_32m.sqrt, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec32m",
+                     subtitle = "sqrt(TPM)")
+
+unicellular_pMat_plot_all(Ec_PES_25f.sqrt, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec25f",
+                     subtitle = "sqrt(TPM)")
+
+unicellular_pMat_plot_all(Ec_PES_32m.log2, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec32m",
+                     subtitle = "log2(TPM+1)")
+
+unicellular_pMat_plot_all(Ec_PES_25f.log2, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec25f",
+                     subtitle = "log2(TPM+1)")
+
+unicellular_pMat_plot_all(Ec_PES_32m.rank, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec32m",
+                     subtitle = "rank(TPM)")
+
+unicellular_pMat_plot_all(Ec_PES_25f.rank, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec25f",
+                     subtitle = "rank(TPM)")
+
+unicellular_pMat_plot_all(Ec_PES_32m.rlog, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec32m",
+                     subtitle = "rlog(TPM)")
+
+unicellular_pMat_plot_all(Ec_PES_25f.rlog, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec25f",
+                     subtitle = "rlog(TPM)")
+```
+
+## After removing 0s
+
+```{r}
+unicellular_pMat_plot(Ec_PES_32m, dropzero = TRUE, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec32m",
+                     subtitle = "raw(TPM)")
+
+unicellular_pMat_plot(Ec_PES_25f, dropzero = TRUE, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec25f",
+                     subtitle = "raw(TPM)")
+
+unicellular_pMat_plot(Ec_PES_32m.sqrt, dropzero = TRUE, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec32m",
+                     subtitle = "sqrt(TPM)")
+
+unicellular_pMat_plot(Ec_PES_25f.sqrt, 
+                      dropzero = TRUE, 
+                      ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec25f",
+                     subtitle = "sqrt(TPM)")
+
+unicellular_pMat_plot(Ec_PES_32m.log2, dropzero = TRUE, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec32m",
+                     subtitle = "log2(TPM+1)")
+
+unicellular_pMat_plot(Ec_PES_25f.log2, dropzero = TRUE, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec25f",
+                     subtitle = "log2(TPM+1)")
+
+unicellular_pMat_plot(Ec_PES_32m.rank, dropzero = TRUE, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec32m",
+                     subtitle = "rank(TPM)")
+
+unicellular_pMat_plot(Ec_PES_25f.rank, dropzero = TRUE, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec25f",
+                     subtitle = "rank(TPM)")
+
+unicellular_pMat_plot(Ec_PES_32m.rlog, dropzero = TRUE, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec32m",
+                     subtitle = "rlog(TPM)")
+
+unicellular_pMat_plot(Ec_PES_25f.rlog, dropzero = TRUE, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec25f",
+                     subtitle = "rlog(TPM)")
+```
+
+# Not using gametes
+
+## Before removing 0s
+
+```{r}
+unicellular_pMat_plot(Ec_PES_25f.sqrt,stage_select = "mitospore", ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec25f",
+                     subtitle = "sqrt(TPM)") +
+        ggplot2::scale_fill_manual(values = c("white", "white", "#3C5488FF"))
+unicellular_pMat_plot(Ec_PES_32m.sqrt,stage_select = "mitospore", ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec32m",
+                     subtitle = "sqrt(TPM)") +
+        ggplot2::scale_fill_manual(values = c("white", "white", "#3C5488FF"))
+
+unicellular_pMat_plot(Ec_PES_25f.sqrt,stage_select = "meiospore", ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec25f",
+                     subtitle = "sqrt(TPM)") +
+        ggplot2::scale_fill_manual(values = c("white", "#3C5488FF", "white"))
+
+unicellular_pMat_plot(Ec_PES_32m.sqrt,stage_select = "meiospore", ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec32m",
+                     subtitle = "sqrt(TPM)") +
+        ggplot2::scale_fill_manual(values = c("white", "#3C5488FF", "white"))
+```
+
+
+## After removing 0s
+
+```{r}
+unicellular_pMat_plot(Ec_PES_25f.sqrt,stage_select = "mitospore", dropzero = TRUE, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec25f",
+                     subtitle = "sqrt(TPM)") +
+        ggplot2::scale_fill_manual(values = c("white", "white", "#3C5488FF"))
+unicellular_pMat_plot(Ec_PES_32m.sqrt,stage_select = "mitospore", dropzero = TRUE, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec32m",
+                     subtitle = "sqrt(TPM)") +
+        ggplot2::scale_fill_manual(values = c("white", "white", "#3C5488FF"))
+
+unicellular_pMat_plot(Ec_PES_25f.sqrt,stage_select = "meiospore", dropzero = TRUE, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec25f",
+                     subtitle = "sqrt(TPM)") +
+        ggplot2::scale_fill_manual(values = c("white", "#3C5488FF", "white"))
+
+unicellular_pMat_plot(Ec_PES_32m.sqrt,stage_select = "meiospore", dropzero = TRUE, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec32m",
+                     subtitle = "sqrt(TPM)") +
+        ggplot2::scale_fill_manual(values = c("white", "#3C5488FF", "white"))
+```
+
+
+# Multicellular enrichment profiles
+
+```{r}
+multicellular_pMat_plot <- function(PES, 
+                                  multicell_names = c("immGA", "matGA", "oldGA", "earlyPSP", "immPSP", "matPSP"), 
+                                  n_genes = 100,
+                                  stage_select = "immGA",
+                                  transformation = "log2",
+                                  alpha = 0,
+                                  dropzero = F,
+                                  ordered_stages) {
+        top_pTAI <- PES %>% 
+                unicellular_pMat(dropzero = dropzero, unicell_names = multicell_names, ordered_stages = ordered_stages, top_genes = TRUE, stage_select = stage_select, n_genes = n_genes)
+        
+        PES_filt <- unicellular_pMat(PES = PES, unicell_names = multicell_names, ordered_stages = ordered_stages)
+        
+        # transformation
+        f <- match.fun(transformation)
+        
+        plot_re <- PES_filt %>%
+                ggplot2::ggplot(aes(y = f(pTAI + alpha), x = Stage, fill = Stage)) +
+                see::geom_violinhalf(trim = TRUE, width=1.2, alpha = 0.8) + 
+                ggplot2::geom_line(
+                        data = top_pTAI, 
+                        aes(y = f(pTAI + alpha), x = Stage, group = GeneID),
+                        alpha = 0.2,
+                        colour = "#3C5488FF") +
+                ggplot2::geom_point(
+                        data = top_pTAI, 
+                        aes(y = f(pTAI + alpha), x = Stage, group = GeneID),
+                        alpha = 0.3,
+                        size = 0.7,
+                        colour = "#3C5488FF") +
+                ggplot2::ylab(paste0(transformation, "(pTAI)")) +
+                
+                ggplot2::theme_classic() +
+                ggplot2::theme(legend.position="none") +
+                ggplot2::coord_flip()
+  
+  return(plot_re)
+}
+```
+
+## Before removing 0s
+
+
+```{r fig.height = 5, fig.width = 5}
+ordered_stages = c("immGA", "matGA", "oldGA", "earlyPSP", "immPSP", "matPSP")
+
+multicellular_pMat_plot(Ec_PES_32m.sqrt, stage_select = "immGA", ordered_stages = ordered_stages) + 
+        ggplot2::scale_fill_manual(values = c("#3C5488FF", "white", "white", "white", "white", "white", "white", "white", "white")) +
+        ggplot2::labs(title = "Ec32m",
+                     subtitle = "sqrt(TPM)")
+
+multicellular_pMat_plot(Ec_PES_25f.sqrt, stage_select = "immGA", ordered_stages = ordered_stages) + 
+        ggplot2::scale_fill_manual(values = c("#3C5488FF", "white", "white", "white", "white", "white", "white", "white", "white")) +
+        ggplot2::labs(title = "Ec25f",
+                     subtitle = "sqrt(TPM)")
+
+multicellular_pMat_plot(Ec_PES_32m, stage_select = "immGA", ordered_stages = ordered_stages) + 
+        ggplot2::scale_fill_manual(values = c("#3C5488FF", "white", "white", "white", "white", "white", "white", "white", "white")) +
+        ggplot2::labs(title = "Ec32m",
+                     subtitle = "raw(TPM)")
+
+multicellular_pMat_plot(Ec_PES_25f, stage_select = "immGA", ordered_stages = ordered_stages) + 
+        ggplot2::scale_fill_manual(values = c("#3C5488FF", "white", "white", "white", "white", "white", "white", "white", "white")) +
+        ggplot2::labs(title = "Ec25f",
+                     subtitle = "raw(TPM)")
+
+multicellular_pMat_plot(Ec_PES_32m.rank, stage_select = "immGA", multicell_names = ordered_stages, ordered_stages = ordered_stages) + 
+        ggplot2::scale_fill_manual(values = c("#3C5488FF", "white", "white", "white", "white", "white", "white", "white", "white")) +
+        ggplot2::labs(title = "Ec32m",
+                     subtitle = "rank(TPM)")
+
+multicellular_pMat_plot(Ec_PES_25f.rank, stage_select = "immGA", multicell_names = ordered_stages, ordered_stages = ordered_stages) + 
+        ggplot2::scale_fill_manual(values = c("#3C5488FF", "white", "white", "white", "white", "white", "white", "white", "white")) +
+        ggplot2::labs(title = "Ec25f",
+                     subtitle = "rank(TPM)")
+
+multicellular_pMat_plot(Ec_PES_32m.log2, stage_select = "immGA", ordered_stages = ordered_stages) + 
+        ggplot2::scale_fill_manual(values = c("#3C5488FF", "white", "white", "white", "white", "white", "white", "white", "white")) +
+        ggplot2::labs(title = "Ec32m",
+                     subtitle = "log2(TPM+1)")
+
+multicellular_pMat_plot(Ec_PES_25f.log2, stage_select = "immGA", ordered_stages = ordered_stages) + 
+        ggplot2::scale_fill_manual(values = c("#3C5488FF", "white", "white", "white", "white", "white", "white", "white", "white")) +
+        ggplot2::labs(title = "Ec25f",
+                     subtitle = "log2(TPM+1)")
+
+multicellular_pMat_plot(Ec_PES_32m.rlog, stage_select = "immGA", ordered_stages = ordered_stages) + 
+        ggplot2::scale_fill_manual(values = c("#3C5488FF", "white", "white", "white", "white", "white", "white", "white", "white")) +
+        ggplot2::labs(title = "Ec32m",
+                     subtitle = "rlog(TPM)")
+
+multicellular_pMat_plot(Ec_PES_25f.rlog, stage_select = "immGA", ordered_stages = ordered_stages) + 
+        ggplot2::scale_fill_manual(values = c("#3C5488FF", "white", "white", "white", "white", "white", "white", "white", "white")) +
+        ggplot2::labs(title = "Ec25f",
+                     subtitle = "rlog(TPM)")
+```
+
+## After removing 0s
+
+```{r fig.height = 5, fig.width = 5}
+ordered_stages = c("immGA", "matGA", "oldGA", "earlyPSP", "immPSP", "matPSP")
+
+multicellular_pMat_plot(Ec_PES_32m.sqrt, stage_select = "immGA", ordered_stages = ordered_stages, dropzero = TRUE) + 
+        ggplot2::scale_fill_manual(values = c("#3C5488FF", "white", "white", "white", "white", "white", "white", "white", "white")) +
+        ggplot2::labs(title = "Ec32m",
+                     subtitle = "sqrt(TPM)")
+
+multicellular_pMat_plot(Ec_PES_25f.sqrt, stage_select = "immGA", ordered_stages = ordered_stages, dropzero = TRUE) + 
+        ggplot2::scale_fill_manual(values = c("#3C5488FF", "white", "white", "white", "white", "white", "white", "white", "white")) +
+        ggplot2::labs(title = "Ec25f",
+                     subtitle = "sqrt(TPM)")
+```
+
+What about with gametes??
+
+## Before removing 0s
+
+```{r fig.height = 5, fig.width = 5}
+ordered_stages = c("gamete", "immGA", "matGA", "oldGA", "earlyPSP", "immPSP", "matPSP")
+
+multicellular_pMat_plot(Ec_PES_32m.sqrt, stage_select = "gamete", multicell_names = ordered_stages, ordered_stages = ordered_stages) + 
+        ggplot2::scale_fill_manual(values = c("#3C5488FF", "white", "white", "white", "white", "white", "white", "white", "white")) +
+        ggplot2::labs(title = "Ec32m",
+                     subtitle = "sqrt(TPM)")
+
+multicellular_pMat_plot(Ec_PES_25f.sqrt, stage_select = "gamete", multicell_names = ordered_stages, ordered_stages = ordered_stages) + 
+        ggplot2::scale_fill_manual(values = c("#3C5488FF", "white", "white", "white", "white", "white", "white", "white", "white")) +
+        ggplot2::labs(title = "Ec25f",
+                     subtitle = "sqrt(TPM)")
+
+multicellular_pMat_plot(Ec_PES_32m, stage_select = "gamete", multicell_names = ordered_stages, ordered_stages = ordered_stages) + 
+        ggplot2::scale_fill_manual(values = c("#3C5488FF", "white", "white", "white", "white", "white", "white", "white", "white")) +
+        ggplot2::labs(title = "Ec32m",
+                     subtitle = "raw(TPM)")
+
+multicellular_pMat_plot(Ec_PES_25f, stage_select = "gamete", multicell_names = ordered_stages, ordered_stages = ordered_stages) + 
+        ggplot2::scale_fill_manual(values = c("#3C5488FF", "white", "white", "white", "white", "white", "white", "white", "white")) +
+        ggplot2::labs(title = "Ec25f",
+                     subtitle = "raw(TPM)")
+
+multicellular_pMat_plot(Ec_PES_32m.rank, stage_select = "gamete", multicell_names = ordered_stages, ordered_stages = ordered_stages) + 
+        ggplot2::scale_fill_manual(values = c("#3C5488FF", "white", "white", "white", "white", "white", "white", "white", "white")) +
+        ggplot2::labs(title = "Ec32m",
+                     subtitle = "rank(TPM)")
+
+multicellular_pMat_plot(Ec_PES_25f.rank, stage_select = "gamete", multicell_names = ordered_stages, ordered_stages = ordered_stages) + 
+        ggplot2::scale_fill_manual(values = c("#3C5488FF", "white", "white", "white", "white", "white", "white", "white", "white")) +
+        ggplot2::labs(title = "Ec25f",
+                     subtitle = "rank(TPM)")
+
+multicellular_pMat_plot(Ec_PES_32m.log2, stage_select = "gamete", multicell_names = ordered_stages, ordered_stages = ordered_stages) + 
+        ggplot2::scale_fill_manual(values = c("#3C5488FF", "white", "white", "white", "white", "white", "white", "white", "white")) +
+        ggplot2::labs(title = "Ec32m",
+                     subtitle = "log2(TPM+1)")
+
+multicellular_pMat_plot(Ec_PES_25f.log2, stage_select = "gamete", multicell_names = ordered_stages, ordered_stages = ordered_stages) + 
+        ggplot2::scale_fill_manual(values = c("#3C5488FF", "white", "white", "white", "white", "white", "white", "white", "white")) +
+        ggplot2::labs(title = "Ec25f",
+                     subtitle = "log2(TPM+1)")
+
+multicellular_pMat_plot(Ec_PES_32m.rlog, stage_select = "gamete", multicell_names = ordered_stages, ordered_stages = ordered_stages) + 
+        ggplot2::scale_fill_manual(values = c("#3C5488FF", "white", "white", "white", "white", "white", "white", "white", "white")) +
+        ggplot2::labs(title = "Ec32m",
+                     subtitle = "rlog(TPM)")
+
+multicellular_pMat_plot(Ec_PES_25f.rlog, stage_select = "gamete", multicell_names = ordered_stages, ordered_stages = ordered_stages) + 
+        ggplot2::scale_fill_manual(values = c("#3C5488FF", "white", "white", "white", "white", "white", "white", "white", "white")) +
+        ggplot2::labs(title = "Ec25f",
+                     subtitle = "rlog(TPM)")
+```
+
+## After removing 0s
+
+```{r fig.height = 5, fig.width = 5}
+ordered_stages = c("gamete", "immGA", "matGA", "oldGA", "earlyPSP", "immPSP", "matPSP")
+
+multicellular_pMat_plot(Ec_PES_32m.sqrt, stage_select = "gamete", multicell_names = ordered_stages, ordered_stages = ordered_stages, dropzero = TRUE) + 
+        ggplot2::scale_fill_manual(values = c("#3C5488FF", "white", "white", "white", "white", "white", "white", "white", "white")) +
+        ggplot2::labs(title = "Ec32m",
+                     subtitle = "sqrt(TPM)")
+
+multicellular_pMat_plot(Ec_PES_25f.sqrt, stage_select = "gamete", multicell_names = ordered_stages, ordered_stages = ordered_stages, dropzero = TRUE) + 
+        ggplot2::scale_fill_manual(values = c("#3C5488FF", "white", "white", "white", "white", "white", "white", "white", "white")) +
+        ggplot2::labs(title = "Ec25f",
+                     subtitle = "sqrt(TPM)")
+```
+
+## How many top genes are shared?
+
+```{r}
+intersection_genes <- function(PES, n_genes = 100, ordered_stages, raw_out = FALSE){
+
+        if(!is.data.frame(PES))
+                stop("PES is not a dataframe")
+        
+        PES_filt <- unicellular_pMat(PES = PES, unicell_names = ordered_stages, ordered_stages = ordered_stages)
+        
+        stage_filter <- NULL
+        top_pMat <- tibble::tibble()
+        for (i in 1:length(ordered_stages)) {
+                stage_filter <- ordered_stages[[i]]
+                
+                filtered_pMatrix <- PES_filt %>%
+                        dplyr::filter(Stage == stage_filter) %>% 
+                        dplyr::slice_max(pTAI, n = n_genes)
+                top_pMat <- rbind(top_pMat, filtered_pMatrix)
+        }
+        
+        if(raw_out){
+                return(top_pMat)
+        }
+        
+        top_pMat_out <- top_pMat %>% 
+                dplyr::count(GeneID) %>% 
+                dplyr::filter(n == length(ordered_stages))
+        
+        # top_pMat_out <- top_pMat_out %>% nrow()
+        
+        return(top_pMat_out)
+}
+```
+
+```{r}
+ordered_stages <- c("gamete", "meiospore", "mitospore")
+
+intersection_genes(Ec_PES_32m, ordered_stages = ordered_stages) %>% nrow()
+intersection_genes(Ec_PES_25f, ordered_stages = ordered_stages) %>% nrow()
+intersection_genes(Ec_PES_32m.sqrt, ordered_stages = ordered_stages) %>% nrow()
+intersection_genes(Ec_PES_25f.sqrt, ordered_stages = ordered_stages) %>% nrow()
+intersection_genes(Ec_PES_32m.log2, ordered_stages = ordered_stages) %>% nrow()
+intersection_genes(Ec_PES_25f.log2, ordered_stages = ordered_stages) %>% nrow()
+intersection_genes(Ec_PES_32m.rank, ordered_stages = ordered_stages) %>% nrow()
+intersection_genes(Ec_PES_25f.rank, ordered_stages = ordered_stages) %>% nrow()
+intersection_genes(Ec_PES_32m.rlog, ordered_stages = ordered_stages) %>% nrow()
+intersection_genes(Ec_PES_25f.rlog, ordered_stages = ordered_stages) %>% nrow()
+
+ordered_stages <- c("immGA", "matGA", "oldGA")
+
+intersection_genes(Ec_PES_32m.sqrt, ordered_stages = ordered_stages) %>% nrow()
+intersection_genes(Ec_PES_25f.sqrt, ordered_stages = ordered_stages) %>% nrow()
+
+ordered_stages <- c("earlyPSP", "immPSP", "matPSP")
+
+intersection_genes(Ec_PES_32m.sqrt, ordered_stages = ordered_stages) %>% nrow()
+intersection_genes(Ec_PES_25f.sqrt, ordered_stages = ordered_stages) %>% nrow()
+```
+
+```{r}
+ordered_stages <- c("gamete", "immGA")
+
+intersection_genes(Ec_PES_32m.sqrt, ordered_stages = ordered_stages) %>% nrow()
+intersection_genes(Ec_PES_25f.sqrt, ordered_stages = ordered_stages) %>% nrow()
+
+ordered_stages <- c("gamete", "immPSP")
+
+intersection_genes(Ec_PES_32m.sqrt, ordered_stages = ordered_stages) %>% nrow()
+intersection_genes(Ec_PES_25f.sqrt, ordered_stages = ordered_stages) %>% nrow()
+
+ordered_stages <- c("immPSP", "immGA")
+
+intersection_genes(Ec_PES_32m.sqrt, ordered_stages = ordered_stages) %>% nrow()
+intersection_genes(Ec_PES_25f.sqrt, ordered_stages = ordered_stages) %>% nrow()
+
+ordered_stages <- c("meiospore", "immPSP")
+
+intersection_genes(Ec_PES_32m.sqrt, ordered_stages = ordered_stages) %>% nrow()
+intersection_genes(Ec_PES_25f.sqrt, ordered_stages = ordered_stages) %>% nrow()
+
+ordered_stages <- c("gamete", "meiospore")
+
+intersection_genes(Ec_PES_32m.sqrt, ordered_stages = ordered_stages) %>% nrow()
+intersection_genes(Ec_PES_25f.sqrt, ordered_stages = ordered_stages) %>% nrow()
+
+ordered_stages <- c("mitospore", "immPSP")
+
+intersection_genes(Ec_PES_32m.sqrt, ordered_stages = ordered_stages) %>% nrow()
+intersection_genes(Ec_PES_25f.sqrt, ordered_stages = ordered_stages) %>% nrow()
+
+ordered_stages <- c("gamete", "mitospore")
+
+intersection_genes(Ec_PES_32m.sqrt, ordered_stages = ordered_stages) %>% nrow()
+intersection_genes(Ec_PES_25f.sqrt, ordered_stages = ordered_stages) %>% nrow()
+
+ordered_stages <- c("meiospore", "mitospore")
+
+intersection_genes(Ec_PES_32m.sqrt, ordered_stages = ordered_stages) %>% nrow()
+intersection_genes(Ec_PES_25f.sqrt, ordered_stages = ordered_stages) %>% nrow()
+```
+
+```{r}
+ordered_stages <- c("gamete", "meiospore", "mitospore")
+
+intersection_genes(Ec_PES_32m, ordered_stages = ordered_stages) %>% select(1) %>% write_csv("data/pTAI/Ec_PES_32m_unicell.csv")
+intersection_genes(Ec_PES_25f, ordered_stages = ordered_stages) %>% select(1) %>% write_csv("data/pTAI/Ec_PES_25f_unicell.csv")
+intersection_genes(Ec_PES_32m.sqrt, ordered_stages = ordered_stages) %>% select(1) %>% write_csv("data/pTAI/Ec_PES_32m.sqrt_unicell.csv")
+intersection_genes(Ec_PES_25f.sqrt, ordered_stages = ordered_stages) %>% select(1) %>% write_csv("data/pTAI/Ec_PES_25f.sqrt_unicell.csv")
+intersection_genes(Ec_PES_32m.log2, ordered_stages = ordered_stages) %>% select(1) %>% write_csv("data/pTAI/Ec_PES_32m.log2_unicell.csv")
+intersection_genes(Ec_PES_25f.log2, ordered_stages = ordered_stages) %>% select(1) %>% write_csv("data/pTAI/Ec_PES_25f.log2_unicell.csv")
+intersection_genes(Ec_PES_32m.rank, ordered_stages = ordered_stages) %>% select(1) %>% write_csv("data/pTAI/Ec_PES_32m.rank_unicell.csv")
+intersection_genes(Ec_PES_25f.rank, ordered_stages = ordered_stages) %>% select(1) %>% write_csv("data/pTAI/Ec_PES_25f.rank_unicell.csv")
+intersection_genes(Ec_PES_32m.rlog, ordered_stages = ordered_stages) %>% select(1) %>% write_csv("data/pTAI/Ec_PES_32m.rlog_unicell.csv")
+intersection_genes(Ec_PES_25f.rlog, ordered_stages = ordered_stages) %>% select(1) %>% write_csv("data/pTAI/Ec_PES_25f.rlog_unicell.csv")
+```
+
+# Further analysis using denoised data.
+
+## Load PES (denoised)
+
+Non-transformed
+
+```{r}
+Ec_PES_32m_denoised <-
+  readr::read_csv(file = "data/Ec_PES_32m_denoised.csv")
+Ec_PES_25f_denoised <-
+  readr::read_csv(file = "data/Ec_PES_25f_denoised.csv")
+```
+
+sqrt-tranformed
+
+```{r}
+Ec_PES_32m.sqrt_denoised <-
+  readr::read_csv(file = "data/Ec_PES_32m.sqrt_denoised.csv")
+Ec_PES_25f.sqrt_denoised <-
+  readr::read_csv(file = "data/Ec_PES_25f.sqrt_denoised.csv")
+```
+
+log2-tranformed
+
+```{r}
+Ec_PES_32m.log2_denoised <-
+  readr::read_csv(file = "data/Ec_PES_32m.log2_denoised.csv")
+Ec_PES_25f.log2_denoised <-
+  readr::read_csv(file = "data/Ec_PES_25f.log2_denoised.csv")
+```
+
+```{r}
+ordered_stages <- c("gamete", "meiospore", "mitospore")
+
+unicellular_pMat_plot(Ec_PES_32m_denoised, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec32m denoised",
+                     subtitle = "raw(TPM)")
+
+unicellular_pMat_plot(Ec_PES_25f_denoised, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec25f denoised",
+                     subtitle = "raw(TPM)")
+
+unicellular_pMat_plot(Ec_PES_32m.sqrt_denoised, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec32m denoised",
+                     subtitle = "sqrt(TPM)")
+
+unicellular_pMat_plot(Ec_PES_25f.sqrt_denoised, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec25f denoised",
+                     subtitle = "sqrt(TPM)")
+
+unicellular_pMat_plot(Ec_PES_32m.log2_denoised, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec32m denoised",
+                     subtitle = "log2(TPM+1)")
+
+unicellular_pMat_plot(Ec_PES_25f.log2_denoised, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec25f denoised",
+                     subtitle = "log2(TPM+1)")
+
+```
+
+```{r}
+unicellular_pMat_plot_all(Ec_PES_32m, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec32m",
+                     subtitle = "raw(TPM)")
+
+unicellular_pMat_plot_all(Ec_PES_32m_denoised, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec32m denoised",
+                     subtitle = "raw(TPM)")
+
+unicellular_pMat_plot_all(Ec_PES_25f_denoised, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec25f denoised",
+                     subtitle = "raw(TPM)")
+
+unicellular_pMat_plot_all(Ec_PES_32m.sqrt_denoised, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec32m denoised",
+                     subtitle = "sqrt(TPM)")
+
+unicellular_pMat_plot_all(Ec_PES_25f.sqrt_denoised, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec25f denoised",
+                     subtitle = "sqrt(TPM)")
+
+unicellular_pMat_plot_all(Ec_PES_32m.log2_denoised, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec32m denoised",
+                     subtitle = "log2(TPM+1)")
+
+unicellular_pMat_plot_all(Ec_PES_25f.log2_denoised, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec25f denoised",
+                     subtitle = "log2(TPM+1)")
+```
+
+
+## Intersection genes
+
+```{r}
+ordered_stages <- c("gamete", "meiospore", "mitospore")
+
+intersection_genes(Ec_PES_32m_denoised, ordered_stages = ordered_stages) %>% nrow()
+intersection_genes(Ec_PES_25f_denoised, ordered_stages = ordered_stages) %>% nrow()
+intersection_genes(Ec_PES_32m.sqrt_denoised, ordered_stages = ordered_stages) %>% nrow()
+intersection_genes(Ec_PES_25f.sqrt_denoised, ordered_stages = ordered_stages) %>% nrow()
+intersection_genes(Ec_PES_32m.log2_denoised, ordered_stages = ordered_stages) %>% nrow()
+intersection_genes(Ec_PES_25f.log2_denoised, ordered_stages = ordered_stages) %>% nrow()
+
+intersection_genes(Ec_PES_32m_denoised, ordered_stages = ordered_stages) %>% select(1) %>% write_csv("data/pTAI/Ec_PES_32m_denoised_unicell.csv")
+intersection_genes(Ec_PES_25f_denoised, ordered_stages = ordered_stages) %>% select(1) %>% write_csv("data/pTAI/Ec_PES_25f_denoised_unicell.csv")
+intersection_genes(Ec_PES_32m.sqrt_denoised, ordered_stages = ordered_stages) %>% select(1) %>% write_csv("data/pTAI/Ec_PES_32m.sqrt_denoised_unicell.csv")
+intersection_genes(Ec_PES_25f.sqrt_denoised, ordered_stages = ordered_stages) %>% select(1) %>% write_csv("data/pTAI/Ec_PES_25f.sqrt_denoised_unicell.csv")
+intersection_genes(Ec_PES_32m.log2_denoised, ordered_stages = ordered_stages) %>% select(1) %>% write_csv("data/pTAI/Ec_PES_32m.log2_denoised_unicell.csv")
+intersection_genes(Ec_PES_25f.log2_denoised, ordered_stages = ordered_stages) %>% select(1) %>% write_csv("data/pTAI/Ec_PES_25f.log2_denoised_unicell.csv")
+```
+We are left with a similar amount of genes.
+
+Get session info.
+
+```{r}
+devtools::session_info()
+```

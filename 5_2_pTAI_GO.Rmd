@@ -1,0 +1,697 @@
+---
+title: "5.2 Enriched pTAI GO analysis"
+output:
+  html_document:
+    fig_width: 6
+    fig_height: 4
+    df_print: paged
+  pdf_document: default
+editor_options:
+  chunk_output_type: inline
+---
+
+# Gene Ontology (GO) enrichment
+
+## Top 100 TAI genes
+
+Based on the top 100 contributors to TAI, we can assess whether certain GO categories are enriched. We use `Fisher’s exact` test statistics with the `parent-child algorithm` as implemented in `TopGO`. [Note, the enrichment analysis per se was not possible but the GO terms on each gene was analysed]
+
+```{r}
+# library(ggfortify)
+library(tximport)
+library(myTAI)
+# library(topGO)
+library(tidyverse)
+```
+
+## Load data
+
+### Load intersections
+
+```{r}
+Ec_PES_32m_unicell <- readr::read_csv("data/pTAI/Ec_PES_32m_unicell.csv")
+Ec_PES_25f_unicell <- readr::read_csv("data/pTAI/Ec_PES_25f_unicell.csv")
+Ec_PES_32m.sqrt_unicell <- readr::read_csv("data/pTAI/Ec_PES_32m.sqrt_unicell.csv")
+Ec_PES_25f.sqrt_unicell <- readr::read_csv("data/pTAI/Ec_PES_25f.sqrt_unicell.csv")
+Ec_PES_32m.log2_unicell <- readr::read_csv("data/pTAI/Ec_PES_32m.log2_unicell.csv")
+Ec_PES_25f.log2_unicell <- readr::read_csv("data/pTAI/Ec_PES_25f.log2_unicell.csv")
+Ec_PES_32m.rank_unicell <- readr::read_csv("data/pTAI/Ec_PES_32m.rank_unicell.csv")
+Ec_PES_25f.rank_unicell <- readr::read_csv("data/pTAI/Ec_PES_25f.rank_unicell.csv")
+Ec_PES_32m.rlog_unicell <- readr::read_csv("data/pTAI/Ec_PES_32m.rlog_unicell.csv")
+Ec_PES_25f.rlog_unicell <- readr::read_csv("data/pTAI/Ec_PES_25f.rlog_unicell.csv")
+
+# Ec_PES_32m_denoised_unicell <- readr::read_csv("data/pTAI/Ec_PES_32m_denoised_unicell.csv")
+# Ec_PES_25f_denoised_unicell <- readr::read_csv("data/pTAI/Ec_PES_25f_denoised_unicell.csv")
+# Ec_PES_32m.sqrt_denoised_unicell <- readr::read_csv("data/pTAI/Ec_PES_32m.sqrt_denoised_unicell.csv")
+# Ec_PES_25f.sqrt_denoised_unicell <- readr::read_csv("data/pTAI/Ec_PES_25f.sqrt_denoised_unicell.csv")
+# Ec_PES_32m.log2_denoised_unicell <- readr::read_csv("data/pTAI/Ec_PES_32m.log2_denoised_unicell.csv")
+# Ec_PES_25f.log2_denoised_unicell <- readr::read_csv("data/pTAI/Ec_PES_25f.log2_denoised_unicell.csv")
+```
+
+### Load PES
+
+```{r}
+# Non-transformed
+Ec_PES_32m <-
+  readr::read_csv(file = "data/Ec_PES_32m.csv")
+Ec_PES_25f <-
+  readr::read_csv(file = "data/Ec_PES_25f.csv")
+
+# sqrt-tranformed
+Ec_PES_32m.sqrt <-
+  readr::read_csv(file = "data/Ec_PES_32m.sqrt.csv")
+Ec_PES_25f.sqrt <-
+  readr::read_csv(file = "data/Ec_PES_25f.sqrt.csv")
+
+# log2-tranformed
+Ec_PES_32m.log2 <-
+  readr::read_csv(file = "data/Ec_PES_32m.log2.csv")
+Ec_PES_25f.log2 <-
+  readr::read_csv(file = "data/Ec_PES_25f.log2.csv")
+
+# rank-tranformed
+Ec_PES_32m.rank <-
+  readr::read_csv(file = "data/Ec_PES_32m.rank.csv")
+Ec_PES_25f.rank <-
+  readr::read_csv(file = "data/Ec_PES_25f.rank.csv")
+
+# rlog-tranformed
+Ec_PES_32m.rlog <-
+  readr::read_csv(file = "data/Ec_PES_32m.rlog.csv")
+Ec_PES_25f.rlog <-
+  readr::read_csv(file = "data/Ec_PES_25f.rlog.csv")
+```
+
+```{r}
+# Fs_LRT.1000 <-
+#   readr::read_csv("data/Fs_LRT_1000.csv")
+# Fd_LRT.1000 <-
+#   readr::read_csv("data/Fd_LRT_1000.csv")
+```
+
+```{r}
+# similar to unicellular_pMat() from 2_4_unicell_pTAI.Rmd
+process_pMat <- function(PES, dropzero = F, ordered_stages, top_genes = F, n_genes = 100, stage_select = "gamete"){
+        
+        if(!is.data.frame(PES))
+                stop("PES is not a dataframe")
+        
+        stage_select <- rlang::sym(stage_select)
+        
+        PES_filt <- PES
+        
+        PES_filt <- PES_filt %>%
+                myTAI::pMatrix() %>%
+                tibble::as_tibble(rownames = "GeneID") 
+        
+        # in case one wants to select the top N genes.
+        if(top_genes){
+                PES_filt <- PES_filt %>%
+                        dplyr::slice_max({{stage_select}}, n = n_genes)
+        }
+        
+        PES_filt <- PES_filt %>%
+                tidyr::pivot_longer(!GeneID, names_to = "Stage", values_to = "pTAI")
+        
+        # make factor
+        PES_filt$Stage <- base::factor(PES_filt$Stage, ordered_stages)
+        return(PES_filt)
+}
+```
+
+### Load interproscan data
+
+```{r}
+GO_Ec <- read_delim("data/Interproscan/Ec_ips/Ectocarpus-sp7.filt.processed.faa.tsv", 
+                    delim = "\t", col_select = c(1,14)) %>%
+        drop_na() %>%
+        filter(GO_term != "-") %>% 
+        separate_rows(GO_term, sep = "\\|") %>% 
+        # dplyr::mutate(GeneID = str_remove(GeneID, "\\.[^.]+$")) %>%
+        arrange(GeneID) %>%
+        distinct()
+
+IPR_Ec <- read_delim("data/Interproscan/Ec_ips/Ectocarpus-sp7.filt.processed.faa.tsv", 
+                    delim = "\t") %>%
+        dplyr::select(GeneID, Analysis, Signature_description, GO_term) %>%
+        # dplyr::mutate(GeneID = str_remove(GeneID, "\\.[^.]+$")) %>%
+        arrange(GeneID) %>%
+        distinct()
+```
+
+```R
+length(unique(GO_Ec$GO_term))
+length(unique(GO_Ec$GeneID))
+```
+
+There are 18,289 GO terms (whereof 2070 are unique) attached to 9881 genes (including isoforms) in _Ectocarpus_.
+
+# GO×Top100pTAI analysis
+
+## Ectocarpus
+
+### raw TPM
+
+```{r}
+GO_Ec %>% dplyr::filter(GeneID %in% Ec_PES_32m_unicell$GeneID)
+Ec_PES_32m %>% dplyr::filter(GeneID %in% Ec_PES_32m_unicell$GeneID) %>% dplyr::select(Phylostratum, GeneID)
+IPR_Ec %>% dplyr::filter(GeneID %in% Ec_PES_32m_unicell$GeneID)
+
+GO_Ec %>% dplyr::filter(GeneID %in% Ec_PES_25f_unicell$GeneID)
+Ec_PES_25f %>% dplyr::filter(GeneID %in% Ec_PES_25f_unicell$GeneID) %>% dplyr::select(Phylostratum, GeneID)
+IPR_Ec %>% dplyr::filter(GeneID %in% Ec_PES_25f_unicell$GeneID)
+```
+
+Male:
+- GO:0009765 (photosynthesis, light harvesting)
+- GO:0016020 (membrane)
+- GO:0046872 (metal ion binding)
+- GO:0071203 (WASH complex)
+- GO:0016813 (hydrolase activity, acting on carbon-nitrogen (but not peptide) bonds, in linear amidines)
+
+Female:
+- GO:0046872 (metal ion binding)
+- GO:0071203 (WASH complex)
+- GO:0016813 (hydrolase activity, acting on carbon-nitrogen (but not peptide) bonds, in linear amidines)
+
+The same terms appear between females and males.
+
+### sqrt-transform
+
+```{r}
+GO_Ec %>% dplyr::filter(GeneID %in% Ec_PES_32m.sqrt_unicell$GeneID)
+Ec_PES_32m %>% dplyr::filter(GeneID %in% Ec_PES_32m.sqrt_unicell$GeneID) %>% dplyr::select(Phylostratum, GeneID)
+IPR_Ec %>% dplyr::filter(GeneID %in% Ec_PES_32m.sqrt_unicell$GeneID)
+
+GO_Ec %>% dplyr::filter(GeneID %in% Ec_PES_25f.sqrt_unicell$GeneID)
+Ec_PES_25f %>% dplyr::filter(GeneID %in% Ec_PES_25f.sqrt_unicell$GeneID) %>% dplyr::select(Phylostratum, GeneID)
+IPR_Ec %>% dplyr::filter(GeneID %in% Ec_PES_25f.sqrt_unicell$GeneID)
+```
+
+metal ion binding (GO:0046872)
+
+### log2-transform
+
+```{r}
+GO_Ec %>% dplyr::filter(GeneID %in% Ec_PES_32m.log2_unicell$GeneID)
+Ec_PES_32m %>% dplyr::filter(GeneID %in% Ec_PES_32m.log2_unicell$GeneID) %>% dplyr::select(Phylostratum, GeneID)
+IPR_Ec %>% dplyr::filter(GeneID %in% Ec_PES_32m.log2_unicell$GeneID)
+
+GO_Ec %>% dplyr::filter(GeneID %in% Ec_PES_25f.log2_unicell$GeneID)
+Ec_PES_25f %>% dplyr::filter(GeneID %in% Ec_PES_25f.log2_unicell$GeneID) %>% dplyr::select(Phylostratum, GeneID)
+IPR_Ec %>% dplyr::filter(GeneID %in% Ec_PES_25f.log2_unicell$GeneID)
+```
+
+metal ion binding (GO:0046872)
+
+### rank-transform
+
+```{r}
+GO_Ec %>% dplyr::filter(GeneID %in% Ec_PES_32m.rank_unicell$GeneID)
+Ec_PES_32m %>% dplyr::filter(GeneID %in% Ec_PES_32m.rank_unicell$GeneID) %>% dplyr::select(Phylostratum, GeneID)
+IPR_Ec %>% dplyr::filter(GeneID %in% Ec_PES_32m.rank_unicell$GeneID)
+
+GO_Ec %>% dplyr::filter(GeneID %in% Ec_PES_25f.rank_unicell$GeneID)
+Ec_PES_25f %>% dplyr::filter(GeneID %in% Ec_PES_25f.rank_unicell$GeneID) %>% dplyr::select(Phylostratum, GeneID)
+IPR_Ec %>% dplyr::filter(GeneID %in% Ec_PES_25f.rank_unicell$GeneID)
+```
+
+With the rank transform, we are screening essentially the most recent PS only.
+
+### rlog-transform
+
+```{r}
+GO_Ec %>% dplyr::filter(GeneID %in% Ec_PES_32m.rlog_unicell$GeneID)
+Ec_PES_32m %>% dplyr::filter(GeneID %in% Ec_PES_32m.rlog_unicell$GeneID) %>% dplyr::select(Phylostratum, GeneID)
+IPR_Ec %>% dplyr::filter(GeneID %in% Ec_PES_32m.rlog_unicell$GeneID)
+
+GO_Ec %>% dplyr::filter(GeneID %in% Ec_PES_25f.rlog_unicell$GeneID)
+Ec_PES_25f %>% dplyr::filter(GeneID %in% Ec_PES_25f.rlog_unicell$GeneID) %>% dplyr::select(Phylostratum, GeneID)
+IPR_Ec %>% dplyr::filter(GeneID %in% Ec_PES_25f.rlog_unicell$GeneID)
+```
+
+metal ion binding (GO:0046872)
+
+## What is the proportion of genes without GO terms?
+
+### raw TPM
+
+```{r}
+# raw males
+
+pTAI100 <- Ec_PES_32m_unicell %>%
+        dplyr::mutate(pTAI100 = 1)
+
+GO_fisher_input <- Ec_PES_32m %>%
+        dplyr::select(GeneID) %>%
+        dplyr::left_join(GO_Ec, by = join_by(GeneID)) %>%
+        dplyr::mutate(GO_present = case_when(
+                !is.na(GO_term) ~ "GO_present",
+                TRUE ~ "GO_notpresent"
+                )) %>%
+        dplyr::left_join(pTAI100, by = join_by(GeneID)) %>%
+        dplyr::mutate(pTAI100 = case_when(
+                pTAI100 == 1 ~ "top TAI contributors",
+                TRUE ~ "not top TAI contributors"
+                )) %>%
+        dplyr::select(-GO_term) %>%
+        dplyr::distinct()
+
+chisq.test(GO_fisher_input$pTAI100, GO_fisher_input$GO_present)
+fisher.test(GO_fisher_input$pTAI100, GO_fisher_input$GO_present, alternative = "less")
+
+# raw females
+
+pTAI100 <- Ec_PES_25f_unicell %>%
+        dplyr::mutate(pTAI100 = 1)
+
+GO_fisher_input <- Ec_PES_25f %>%
+        dplyr::select(GeneID) %>%
+        dplyr::left_join(GO_Ec, by = join_by(GeneID)) %>%
+        dplyr::mutate(GO_present = case_when(
+                !is.na(GO_term) ~ "GO_present",
+                TRUE ~ "GO_notpresent"
+                )) %>%
+        dplyr::left_join(pTAI100, by = join_by(GeneID)) %>%
+        dplyr::mutate(pTAI100 = case_when(
+                pTAI100 == 1 ~ "top TAI contributors",
+                TRUE ~ "not top TAI contributors"
+                )) %>%
+        dplyr::select(-GO_term) %>%
+        dplyr::distinct()
+
+chisq.test(GO_fisher_input$pTAI100, GO_fisher_input$GO_present)
+fisher.test(GO_fisher_input$pTAI100, GO_fisher_input$GO_present, alternative = "less")
+```
+
+### sqrt TPM
+```{r}
+# sqrt males
+pTAI100 <- Ec_PES_32m.sqrt_unicell %>%
+        dplyr::mutate(pTAI100 = 1)
+
+GO_fisher_input <- Ec_PES_32m.sqrt %>%
+        dplyr::select(GeneID) %>%
+        dplyr::left_join(GO_Ec, by = join_by(GeneID)) %>%
+        dplyr::mutate(GO_present = case_when(
+                !is.na(GO_term) ~ "GO_present",
+                TRUE ~ "GO_notpresent"
+                )) %>%
+        dplyr::left_join(pTAI100, by = join_by(GeneID)) %>%
+        dplyr::mutate(pTAI100 = case_when(
+                pTAI100 == 1 ~ "top TAI contributors",
+                TRUE ~ "not top TAI contributors"
+                )) %>%
+        dplyr::select(-GO_term) %>%
+        dplyr::distinct()
+fisher.test(GO_fisher_input$pTAI100, GO_fisher_input$GO_present, alternative = "less")
+
+# sqrt females
+pTAI100 <- Ec_PES_25f.sqrt_unicell %>%
+        dplyr::mutate(pTAI100 = 1)
+
+GO_fisher_input <- Ec_PES_25f.sqrt %>%
+        dplyr::select(GeneID) %>%
+        dplyr::left_join(GO_Ec, by = join_by(GeneID)) %>%
+        dplyr::mutate(GO_present = case_when(
+                !is.na(GO_term) ~ "GO_present",
+                TRUE ~ "GO_notpresent"
+                )) %>%
+        dplyr::left_join(pTAI100, by = join_by(GeneID)) %>%
+        dplyr::mutate(pTAI100 = case_when(
+                pTAI100 == 1 ~ "top TAI contributors",
+                TRUE ~ "not top TAI contributors"
+                )) %>%
+        dplyr::select(-GO_term) %>%
+        dplyr::distinct()
+fisher.test(GO_fisher_input$pTAI100, GO_fisher_input$GO_present, alternative = "less")
+```
+
+There is significant enrichment for genes **without** GO annotations.
+
+We now plot the results.
+
+### raw TPM
+
+```{r fig.height = 3, fig.width = 3}
+# raw males
+
+pTAI100 <- Ec_PES_32m_unicell %>%
+        dplyr::mutate(pTAI100 = 1)
+
+GO_plot_input <- Ec_PES_32m %>%
+        dplyr::select(GeneID) %>%
+        dplyr::left_join(GO_Ec, by = join_by(GeneID)) %>%
+        dplyr::mutate(GO_present = case_when(
+                !is.na(GO_term) ~ "present",
+                TRUE ~ "absent"
+                )) %>%
+        dplyr::left_join(pTAI100, by = join_by(GeneID)) %>%
+        dplyr::mutate(pTAI100 = case_when(
+                pTAI100 == 1 ~ T,
+                TRUE ~ F
+                )) %>%
+        dplyr::select(-GO_term) %>%
+        dplyr::distinct()
+
+GO_plot_input %>% 
+        dplyr::group_by(pTAI100, GO_present) %>%
+        dplyr::summarise(count = n()) %>%
+        dplyr::group_by(pTAI100) %>%
+        dplyr::mutate(perc = count/sum(count)) %>%
+        ggplot2::ggplot(aes(x = pTAI100, y = perc*100, fill = GO_present)) +
+        ggplot2::geom_col(colour = "black", width = 0.4) +
+        ggplot2::scale_fill_manual(values = c("#E64B35FF", "white")) +
+        ggplot2::theme_classic() +
+        ggplot2::labs(title = "GO term presence",
+                      subtitle = "Ectocarpus male raw TPM",
+                      fill = "GO term",
+                      x = "Top TAI contributors?",
+                      y = "Percentage (%)")
+
+# raw females
+
+pTAI100 <- Ec_PES_25f_unicell %>%
+        dplyr::mutate(pTAI100 = 1)
+
+GO_plot_input <- Ec_PES_25f %>%
+        dplyr::select(GeneID) %>%
+        dplyr::left_join(GO_Ec, by = join_by(GeneID)) %>%
+        dplyr::mutate(GO_present = case_when(
+                !is.na(GO_term) ~ "present",
+                TRUE ~ "absent"
+                )) %>%
+        dplyr::left_join(pTAI100, by = join_by(GeneID)) %>%
+        dplyr::mutate(pTAI100 = case_when(
+                pTAI100 == 1 ~ T,
+                TRUE ~ F
+                )) %>%
+        dplyr::select(-GO_term) %>%
+        dplyr::distinct()
+
+GO_plot_input %>% 
+        dplyr::group_by(pTAI100, GO_present) %>%
+        dplyr::summarise(count = n()) %>%
+        dplyr::group_by(pTAI100) %>%
+        dplyr::mutate(perc = count/sum(count)) %>%
+        ggplot2::ggplot(aes(x = pTAI100, y = perc*100, fill = GO_present)) +
+        ggplot2::geom_col(colour = "black", width = 0.4) +
+        ggplot2::scale_fill_manual(values = c("#E64B35FF", "white")) +
+        ggplot2::theme_classic() +
+        ggplot2::labs(title = "GO term presence",
+                      subtitle = "Ectocarpus female raw TPM",
+                      fill = "GO term",
+                      x = "Top TAI contributors?",
+                      y = "Percentage (%)")
+```
+
+
+### sqrt TPM
+
+```{r fig.height = 3, fig.width = 3}
+# sqrt males
+
+pTAI100 <- Ec_PES_32m.sqrt_unicell %>%
+        dplyr::mutate(pTAI100 = 1)
+
+GO_plot_input <- Ec_PES_32m.sqrt %>%
+        dplyr::select(GeneID) %>%
+        dplyr::left_join(GO_Ec, by = join_by(GeneID)) %>%
+        dplyr::mutate(GO_present = case_when(
+                !is.na(GO_term) ~ "present",
+                TRUE ~ "absent"
+                )) %>%
+        dplyr::left_join(pTAI100, by = join_by(GeneID)) %>%
+        dplyr::mutate(pTAI100 = case_when(
+                pTAI100 == 1 ~ T,
+                TRUE ~ F
+                )) %>%
+        dplyr::select(-GO_term) %>%
+        dplyr::distinct()
+
+GO_plot_input %>% 
+        dplyr::group_by(pTAI100, GO_present) %>%
+        dplyr::summarise(count = n()) %>%
+        dplyr::group_by(pTAI100) %>%
+        dplyr::mutate(perc = count/sum(count)) %>%
+        ggplot2::ggplot(aes(x = pTAI100, y = perc*100, fill = GO_present)) +
+        ggplot2::geom_col(colour = "black", width = 0.4) +
+        ggplot2::scale_fill_manual(values = c("#E64B35FF", "white")) +
+        ggplot2::theme_classic() +
+        ggplot2::labs(title = "GO term presence",
+                      subtitle = "Ectocarpus male sqrt TPM",
+                      fill = "GO term",
+                      x = "Top TAI contributors?",
+                      y = "Percentage (%)")
+
+# sqrt females
+
+pTAI100 <- Ec_PES_25f.sqrt_unicell %>%
+        dplyr::mutate(pTAI100 = 1)
+
+GO_plot_input <- Ec_PES_25f.sqrt %>%
+        dplyr::select(GeneID) %>%
+        dplyr::left_join(GO_Ec, by = join_by(GeneID)) %>%
+        dplyr::mutate(GO_present = case_when(
+                !is.na(GO_term) ~ "present",
+                TRUE ~ "absent"
+                )) %>%
+        dplyr::left_join(pTAI100, by = join_by(GeneID)) %>%
+        dplyr::mutate(pTAI100 = case_when(
+                pTAI100 == 1 ~ T,
+                TRUE ~ F
+                )) %>%
+        dplyr::select(-GO_term) %>%
+        dplyr::distinct()
+
+GO_plot_input %>% 
+        dplyr::group_by(pTAI100, GO_present) %>%
+        dplyr::summarise(count = n()) %>%
+        dplyr::group_by(pTAI100) %>%
+        dplyr::mutate(perc = count/sum(count)) %>%
+        ggplot2::ggplot(aes(x = pTAI100, y = perc*100, fill = GO_present)) +
+        ggplot2::geom_col(colour = "black", width = 0.4) +
+        ggplot2::scale_fill_manual(values = c("#E64B35FF", "white")) +
+        ggplot2::theme_classic() +
+        ggplot2::labs(title = "GO term presence",
+                      subtitle = "Ectocarpus female sqrt TPM",
+                      fill = "GO term",
+                      x = "Top TAI contributors?",
+                      y = "Percentage (%)")
+```
+
+## What is the proportion of genes without interproscan results?
+
+### sqrt TPM
+
+```{r fig.height = 3, fig.width = 3}
+# sqrt males
+
+pTAI100 <- Ec_PES_32m.sqrt_unicell %>%
+        dplyr::mutate(pTAI100 = 1)
+
+IPR_plot_input <- Ec_PES_32m.sqrt %>%
+        dplyr::select(GeneID) %>%
+        dplyr::left_join(IPR_Ec, by = join_by(GeneID)) %>%
+        dplyr::mutate(IPR_present = case_when(
+                !is.na(Analysis) ~ "present",
+                TRUE ~ "absent"
+                )) %>%
+        dplyr::left_join(pTAI100, by = join_by(GeneID)) %>%
+        dplyr::mutate(pTAI100 = case_when(
+                pTAI100 == 1 ~ T,
+                TRUE ~ F
+                )) %>%
+        dplyr::select(-c(GO_term, Analysis, Signature_description)) %>%
+        dplyr::distinct()
+
+IPR_plot_input %>% 
+        dplyr::group_by(pTAI100, IPR_present) %>%
+        dplyr::summarise(count = n()) %>%
+        dplyr::group_by(pTAI100) %>%
+        dplyr::mutate(perc = count/sum(count)) %>%
+        ggplot2::ggplot(aes(x = pTAI100, y = perc*100, fill = IPR_present)) +
+        ggplot2::geom_col(colour = "black", width = 0.4) +
+        ggplot2::scale_fill_manual(values = c("#E64B35FF", "white")) +
+        ggplot2::theme_classic() +
+        ggplot2::labs(title = "Interproscan presence",
+                      subtitle = "Ectocarpus male sqrt TPM",
+                      fill = "IPS term",
+                      x = "Top TAI contributors?",
+                      y = "Percentage (%)")
+
+# sqrt females
+
+pTAI100 <- Ec_PES_25f.sqrt_unicell %>%
+        dplyr::mutate(pTAI100 = 1)
+
+IPR_plot_input <- Ec_PES_25f.sqrt %>%
+        dplyr::select(GeneID) %>%
+        dplyr::left_join(IPR_Ec, by = join_by(GeneID)) %>%
+        dplyr::mutate(IPR_present = case_when(
+                !is.na(Analysis) ~ "present",
+                TRUE ~ "absent"
+                )) %>%
+        dplyr::left_join(pTAI100, by = join_by(GeneID)) %>%
+        dplyr::mutate(pTAI100 = case_when(
+                pTAI100 == 1 ~ T,
+                TRUE ~ F
+                )) %>%
+        dplyr::select(-c(GO_term, Analysis, Signature_description)) %>%
+        dplyr::distinct()
+
+IPR_plot_input %>% 
+        dplyr::group_by(pTAI100, IPR_present) %>%
+        dplyr::summarise(count = n()) %>%
+        dplyr::group_by(pTAI100) %>%
+        dplyr::mutate(perc = count/sum(count)) %>%
+        ggplot2::ggplot(aes(x = pTAI100, y = perc*100, fill = IPR_present)) +
+        ggplot2::geom_col(colour = "black", width = 0.4) +
+        ggplot2::scale_fill_manual(values = c("#E64B35FF", "white")) +
+        ggplot2::theme_classic() +
+        ggplot2::labs(title = "Interproscan presence",
+                      subtitle = "Ectocarpus female sqrt TPM",
+                      fill = "IPS term",
+                      x = "Top TAI contributors?",
+                      y = "Percentage (%)")
+```
+
+## What is the proportion of genes with `consensus disorder prediction`?
+
+```{r}
+POI <- c("consensus disorder prediction") # property of interest
+
+IPR_Ec_disorder <- IPR_Ec[IPR_Ec$Signature_description %in% POI, ] %>%
+        dplyr::select(GeneID) %>%
+        dplyr::distinct() %>%
+        dplyr::mutate(POI = 1)
+```
+
+### raw TPM
+
+```{r}
+# raw males
+
+pTAI100 <- Ec_PES_32m_unicell %>%
+        dplyr::mutate(pTAI100 = 1)
+
+POI_fisher_input <- Ec_PES_32m %>%
+        dplyr::select(GeneID) %>%
+        dplyr::left_join(IPR_Ec_disorder, by = join_by(GeneID)) %>%
+        dplyr::mutate(POI_present = case_when(
+                !is.na(POI) ~ "POI_present",
+                TRUE ~ "POI_notpresent"
+                )) %>%
+        dplyr::left_join(pTAI100, by = join_by(GeneID)) %>%
+        dplyr::mutate(pTAI100 = case_when(
+                pTAI100 == 1 ~ "top TAI contributors",
+                TRUE ~ "not top TAI contributors"
+                ))
+
+fisher.test(POI_fisher_input$pTAI100, POI_fisher_input$POI_present, alternative = "greater")
+chisq.test(POI_fisher_input$pTAI100, POI_fisher_input$POI_present)
+table(POI_fisher_input$pTAI100, POI_fisher_input$POI_present)
+
+# raw females
+
+pTAI100 <- Ec_PES_25f_unicell %>%
+        dplyr::mutate(pTAI100 = 1)
+
+POI_fisher_input <- Ec_PES_25f %>%
+        dplyr::select(GeneID) %>%
+        dplyr::left_join(IPR_Ec_disorder, by = join_by(GeneID)) %>%
+        dplyr::mutate(POI_present = case_when(
+                !is.na(POI) ~ "POI_present",
+                TRUE ~ "POI_notpresent"
+                )) %>%
+        dplyr::left_join(pTAI100, by = join_by(GeneID)) %>%
+        dplyr::mutate(pTAI100 = case_when(
+                pTAI100 == 1 ~ "top TAI contributors",
+                TRUE ~ "not top TAI contributors"
+                ))
+
+fisher.test(POI_fisher_input$pTAI100, POI_fisher_input$POI_present, alternative = "greater")
+chisq.test(POI_fisher_input$pTAI100, POI_fisher_input$POI_present)
+table(POI_fisher_input$pTAI100, POI_fisher_input$POI_present)
+```
+
+### sqrt TPM
+```{r}
+# sqrt males
+
+pTAI100 <- Ec_PES_32m.sqrt_unicell %>%
+        dplyr::mutate(pTAI100 = 1)
+
+POI_fisher_input <- Ec_PES_32m.sqrt %>%
+        dplyr::select(GeneID) %>%
+        dplyr::left_join(IPR_Ec_disorder, by = join_by(GeneID)) %>%
+        dplyr::mutate(POI_present = case_when(
+                !is.na(POI) ~ "POI_present",
+                TRUE ~ "POI_notpresent"
+                )) %>%
+        dplyr::left_join(pTAI100, by = join_by(GeneID)) %>%
+        dplyr::mutate(pTAI100 = case_when(
+                pTAI100 == 1 ~ "top TAI contributors",
+                TRUE ~ "not top TAI contributors"
+                ))
+
+fisher.test(POI_fisher_input$pTAI100, POI_fisher_input$POI_present, alternative = "greater")
+chisq.test(POI_fisher_input$pTAI100, POI_fisher_input$POI_present)
+table(POI_fisher_input$pTAI100, POI_fisher_input$POI_present)
+
+# sqrt females
+
+pTAI100 <- Ec_PES_25f.sqrt_unicell %>%
+        dplyr::mutate(pTAI100 = 1)
+
+POI_fisher_input <- Ec_PES_25f.sqrt %>%
+        dplyr::select(GeneID) %>%
+        dplyr::left_join(IPR_Ec_disorder, by = join_by(GeneID)) %>%
+        dplyr::mutate(POI_present = case_when(
+                !is.na(POI) ~ "POI_present",
+                TRUE ~ "POI_notpresent"
+                )) %>%
+        dplyr::left_join(pTAI100, by = join_by(GeneID)) %>%
+        dplyr::mutate(pTAI100 = case_when(
+                pTAI100 == 1 ~ "top TAI contributors",
+                TRUE ~ "not top TAI contributors"
+                ))
+
+fisher.test(POI_fisher_input$pTAI100, POI_fisher_input$POI_present, alternative = "greater")
+chisq.test(POI_fisher_input$pTAI100, POI_fisher_input$POI_present)
+table(POI_fisher_input$pTAI100, POI_fisher_input$POI_present)
+```
+
+The genes with `consensus disorder prediction` are not significantly enriched.
+
+## Summary
+
+Here we analysed the GO terms of the top contributors to the TAI in unicellular stages (taking the top 100 contributors that are shared between gametes, meiospores and mitospores). Across all RNA-seq data transformations the GO term "metal ion binding (GO:0046872)" can be found. With the raw TPM, however, much more terms can be found:
+
+```
+Male:
+GO:0009765 (photosynthesis, light harvesting)
+GO:0016020 (membrane)
+GO:0046872 (metal ion binding)
+GO:0071203 (WASH complex)
+GO:0016813 (hydrolase activity, acting on carbon-nitrogen (but not peptide) bonds, in linear amidines)
+
+Female:
+GO:0046872 (metal ion binding)
+GO:0071203 (WASH complex)
+GO:0016813 (hydrolase activity, acting on carbon-nitrogen (but not peptide) bonds, in linear amidines)
+```
+
+It is interesting to see that membrane-related GOs are represented, particularly because some studies suggest transmembrane proteins to have evolved _de novo_ multiple times. Moreover, many genes driving the TAI have no annotations and this is signficant (i.e. significantly enriched for genes without GO annotations). Those that do have annotations are overwhelmingly detected as `consensus disorder prediction`, though this prediction is not enriched compared to the background. Between males and females, it is reassuring that the pTAI genes are so similar.
+
+The "Mollusc metallothionein signature" is interesting because that is the reason why "metal ion binding" comes up. Is this a contamination? A blast search reveals no other hits in the NR except in _Ectocarpus_ and _Fucus vesiculosus_. There is no domain like this in the _Ectocarpus_ genome aside from this gene so this is interesting.
+
+From this analysis, it appears to me that the raw TPM or sqrt is probably best for the analysis because the expression values matter more than the PS in determining the TAI. Thus, older PS can be seen as shared contributors, as opposed to the extreme case of the rank transformation.
+
+I initially planned to do a GO enrichment analysis but with most genes being novel genes without homologues, it was probably difficult to match domains etc. with known homologues.
+
+Get session info.
+
+```{r}
+devtools::session_info()
+```

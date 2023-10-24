@@ -910,6 +910,243 @@ Fd_PES_tS_res %>%
   ggplot2::theme_classic()
 ```
 
+## TAI _Fucus_ embryonic stages only
+
+```{r fig.height = 2.5, fig.width = 4.5}
+#Fs
+Fs_TAI %>% 
+  dplyr::filter(Stage %in% c("24H", "48H", "1w", "3w", "4w") & Sex == "Mixed") %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    size = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus serratus",
+       subtitle = "TPM")
+
+Fs_TAI.sqrt %>% 
+  dplyr::filter(Stage %in% c("24H", "48H", "1w", "3w", "4w") & Sex == "Mixed") %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    size = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus serratus",
+       subtitle = "sqrt(TPM)")
+
+Fs_TAI.log2 %>% 
+  dplyr::filter(Stage %in% c("24H", "48H", "1w", "3w", "4w") & Sex == "Mixed") %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    size = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus serratus",
+       subtitle = "log2(TPM+\u03b1)")
+
+Fs_TAI.rank %>% 
+  dplyr::filter(Stage %in% c("24H", "48H", "1w", "3w", "4w") & Sex == "Mixed") %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    size = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus serratus",
+       subtitle = "rank(TPM)")
+
+Fs_TAI.rlog %>% 
+  dplyr::filter(Stage %in% c("24H", "48H", "1w", "3w", "4w") & Sex == "Mixed") %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    size = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus serratus",
+       subtitle = "rlog(TPM)")
+
+# Fd
+Fd_TAI %>% 
+  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5") & Sex == "Mixed") %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    size = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus distichus",
+       subtitle = "TPM")
+
+Fd_TAI.sqrt %>% 
+  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5") & Sex == "Mixed") %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    size = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus distichus",
+       subtitle = "sqrt(TPM)")
+
+Fd_TAI.log2 %>% 
+  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5") & Sex == "Mixed") %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    size = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus distichus",
+       subtitle = "log2(TPM+\u03b1)")
+
+Fd_TAI.rank %>% 
+  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5") & Sex == "Mixed") %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    size = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus distichus",
+       subtitle = "rank(TPM)")
+
+Fd_TAI.rlog %>% 
+  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5") & Sex == "Mixed") %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    size = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus distichus",
+       subtitle = "rlog(TPM)")
+```
+
+
 Get session info.
 
 ```{r}

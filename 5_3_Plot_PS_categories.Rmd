@@ -1,0 +1,217 @@
+---
+title: "5.3 Tracing PS categories"
+output:
+  html_document:
+    fig_width: 4.5
+    fig_height: 3
+    df_print: paged
+editor_options: 
+  chunk_output_type: inline
+---
+
+# Expression profile of gene age categories
+
+If we group certain PS', do we see an interesting pattern of when these genes are more expressed? PS' are grouped as follows
+
+- Ancient: PS1 to 2 (cell. org to eukaryotes)
+- Early: PS3 to 6 (SAR to PX clade, i.e. early eukaryotic evolution)
+- Phaeophyceae: PS7 (Phaeophyceae, i.e. origin of the brown algal lineage)
+- Recent: PS8 to 11 (ALE clade to Ectocarpus)
+
+```{r}
+library(tidyverse)
+library(myTAI)
+library(see)
+```
+
+## Load data
+
+### Load PES
+
+```{r}
+# Non-transformed
+Ec_PES_32m <-
+  readr::read_csv(file = "data/Ec_PES_32m.csv")
+Ec_PES_25f <-
+  readr::read_csv(file = "data/Ec_PES_25f.csv")
+
+# sqrt-tranformed
+Ec_PES_32m.sqrt <-
+  readr::read_csv(file = "data/Ec_PES_32m.sqrt.csv")
+Ec_PES_25f.sqrt <-
+  readr::read_csv(file = "data/Ec_PES_25f.sqrt.csv")
+
+# log2-tranformed
+Ec_PES_32m.log2 <-
+  readr::read_csv(file = "data/Ec_PES_32m.log2.csv")
+Ec_PES_25f.log2 <-
+  readr::read_csv(file = "data/Ec_PES_25f.log2.csv")
+
+# rank-tranformed
+Ec_PES_32m.rank <-
+  readr::read_csv(file = "data/Ec_PES_32m.rank.csv")
+Ec_PES_25f.rank <-
+  readr::read_csv(file = "data/Ec_PES_25f.rank.csv")
+
+# rlog-tranformed
+Ec_PES_32m.rlog <-
+  readr::read_csv(file = "data/Ec_PES_32m.rlog.csv")
+Ec_PES_25f.rlog <-
+  readr::read_csv(file = "data/Ec_PES_25f.rlog.csv")
+```
+
+# Plot results
+
+```{r}
+group_PS <- function(PES,  Groups = list(Ancient = c(1:2),
+                                         Early = c(3:6), 
+                                         Phaeophyceae = 7, 
+                                         Recent = c(8:11))){
+        if(!myTAI::is.ExpressionSet(PES)) stop("PES is not an ExpressionSet")
+        if(length(Groups) != 4) stop("Rewrite the function or have just four groups")
+        PES_new <- PES %>%
+                mutate(Groups = case_when(
+                        Phylostratum %in% Groups[[1]] ~ names(Groups[1]),
+                        Phylostratum %in% Groups[[2]] ~ names(Groups[2]),
+                        Phylostratum %in% Groups[[3]] ~ names(Groups[3]),
+                        Phylostratum %in% Groups[[4]] ~ names(Groups[4]),
+                        TRUE ~ NA_character_
+                        ))
+        return(PES_new)
+}
+```
+
+```{r}
+plot_PGroups <- function(grouped_PES, ordered_stages){
+        # pivot the dataframe longer for ggplot2
+        grouped_PES_filt <- grouped_PES %>% 
+                dplyr::select(-Phylostratum) %>% 
+                tidyr::pivot_longer(!c(GeneID, Groups), names_to = "Stage", values_to = "Abundance")
+        
+        # make stages factors
+        grouped_PES_filt$Stage <- base::factor(grouped_PES_filt$Stage, ordered_stages)
+        
+        # plot results
+        grouped_PES_filt_plot <- grouped_PES_filt %>%
+                ggplot2::ggplot(aes(x = Stage, y = Abundance, colour = Groups)) +
+                ggplot2::geom_line(alpha = 0.05, aes(group = GeneID)) +
+                ggplot2::facet_grid(~Groups) +
+                # ggplot2::geom_boxplot(colour = "black") +
+                see::geom_violinhalf(colour = "black", width = 1.2) +
+                # ggplot2::stat_summary(fun = "median", colour = "black") +
+                # ggplot2::stat_summary(fun.data = "mean_cl_boot", colour = "black", width = .4) +
+                ggsci::scale_colour_npg() +
+                # ggplot2::scale_x_discrete(guide = ggplot2::guide_axis(n.dodge=2)) +
+                ggplot2::theme_classic() +
+                ggplot2::theme(legend.position = "none",
+                               axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+        
+        return(grouped_PES_filt_plot)
+}
+```
+
+```{r}
+ordered_stages = c("meiospore", "immGA", "matGA", "oldGA", "gamete", "earlyPSP","immPSP", "matPSP", "mitospore")
+
+# log2(x+1)
+Ec_PES_32m.log2 %>% 
+        dplyr::select(1,2,ends_with("GA")) %>% group_PS() %>% 
+        plot_PGroups(ordered_stages) + ggplot2::labs(title = "Ec32m [GA]", y = "log2(TPM+1)")
+Ec_PES_32m.log2 %>% 
+        dplyr::select(1,2,ends_with("PSP")) %>% group_PS() %>% 
+        plot_PGroups(ordered_stages) + ggplot2::labs(title = "Ec32m [pSP]", y = "log2(TPM+1)")
+Ec_PES_32m.log2 %>% 
+        dplyr::select(1,2, contains("spore"), contains("gamete")) %>% group_PS() %>% 
+        plot_PGroups(ordered_stages) + ggplot2::labs(title = "Ec32m [unicell]", y = "log2(TPM+1)")
+
+Ec_PES_25f.log2 %>%
+        dplyr::select(1,2,ends_with("GA")) %>% group_PS() %>%
+        plot_PGroups(ordered_stages) + ggplot2::labs(title = "Ec25f [GA]", y = "log2(TPM+1)")
+Ec_PES_25f.log2 %>%
+        dplyr::select(1,2,ends_with("PSP")) %>% group_PS() %>%
+        plot_PGroups(ordered_stages) + ggplot2::labs(title = "Ec25f [pSP]", y = "log2(TPM+1)")
+Ec_PES_25f.log2 %>%
+        dplyr::select(1,2, contains("spore"), contains("gamete")) %>% group_PS() %>%
+        plot_PGroups(ordered_stages) + ggplot2::labs(title = "Ec25f [unicell]", y = "log2(TPM+1)")
+
+# rlog
+Ec_PES_32m.rlog %>%
+        dplyr::select(1,2,ends_with("GA")) %>% group_PS() %>%
+        plot_PGroups(ordered_stages) + ggplot2::labs(title = "Ec32m [GA]", y = "rlog(TPM)")
+Ec_PES_32m.rlog %>%
+        dplyr::select(1,2,ends_with("PSP")) %>% group_PS() %>%
+        plot_PGroups(ordered_stages) + ggplot2::labs(title = "Ec32m [pSP]", y = "rlog(TPM)")
+Ec_PES_32m.rlog %>%
+        dplyr::select(1,2, contains("spore"), contains("gamete")) %>% group_PS() %>%
+        plot_PGroups(ordered_stages) + ggplot2::labs(title = "Ec32m [unicell]", y = "rlog(TPM)")
+
+Ec_PES_25f.rlog %>%
+        dplyr::select(1,2,ends_with("GA")) %>% group_PS() %>%
+        plot_PGroups(ordered_stages) + ggplot2::labs(title = "Ec25f [GA]", y = "rlog(TPM)")
+Ec_PES_25f.rlog %>%
+        dplyr::select(1,2,ends_with("PSP")) %>% group_PS() %>%
+        plot_PGroups(ordered_stages) + ggplot2::labs(title = "Ec25f [pSP]", y = "rlog(TPM)")
+Ec_PES_25f.rlog %>%
+        dplyr::select(1,2, contains("spore"), contains("gamete")) %>%  group_PS() %>%
+        plot_PGroups(ordered_stages) + ggplot2::labs(title = "Ec25f [unicell]", y = "rlog(TPM)")
+```
+
+## Summary
+
+The results are simply not that interesting. Genes from all PS act the same way and have the same underlying distribution, except the most recent PS' (8 to 11), which has more lowly expressed genes.
+
+
+# Further analysis using denoised data.
+
+## Load PES (denoised)
+
+```{r}
+# # Non-transformed
+# Ec_PES_32m_denoised <-
+#   readr::read_csv(file = "data/Ec_PES_32m_denoised.csv")
+# Ec_PES_25f_denoised <-
+#   readr::read_csv(file = "data/Ec_PES_25f_denoised.csv")
+# 
+# # sqrt-tranformed
+# Ec_PES_32m.sqrt_denoised <-
+#   readr::read_csv(file = "data/Ec_PES_32m.sqrt_denoised.csv")
+# Ec_PES_25f.sqrt_denoised <-
+#   readr::read_csv(file = "data/Ec_PES_25f.sqrt_denoised.csv")
+
+# log2-tranformed
+Ec_PES_32m.log2_denoised <-
+  readr::read_csv(file = "data/Ec_PES_32m.log2_denoised.csv")
+Ec_PES_25f.log2_denoised <-
+  readr::read_csv(file = "data/Ec_PES_25f.log2_denoised.csv")
+```
+
+```{r}
+ordered_stages = c("meiospore", "immGA", "matGA", "oldGA", "gamete", "earlyPSP","immPSP", "matPSP", "mitospore")
+
+# log2(x+1)
+Ec_PES_32m.log2_denoised %>% 
+        dplyr::select(1,2,ends_with("GA")) %>% group_PS() %>% 
+        plot_PGroups(ordered_stages) + ggplot2::labs(title = "Ec32m [GA] denoised", y = "log2(TPM+1)")
+Ec_PES_32m.log2_denoised %>% 
+        dplyr::select(1,2,ends_with("PSP")) %>% group_PS() %>% 
+        plot_PGroups(ordered_stages) + ggplot2::labs(title = "Ec32m [pSP] denoised", y = "log2(TPM+1)")
+Ec_PES_32m.log2_denoised %>% 
+        dplyr::select(1,2, contains("spore"), contains("gamete")) %>% group_PS() %>% 
+        plot_PGroups(ordered_stages) + ggplot2::labs(title = "Ec32m [unicell] denoised", y = "log2(TPM+1)")
+
+Ec_PES_25f.log2_denoised %>%
+        dplyr::select(1,2,ends_with("GA")) %>% group_PS() %>%
+        plot_PGroups(ordered_stages) + ggplot2::labs(title = "Ec25f [GA] denoised", y = "log2(TPM+1)")
+Ec_PES_25f.log2_denoised %>%
+        dplyr::select(1,2,ends_with("PSP")) %>% group_PS() %>%
+        plot_PGroups(ordered_stages) + ggplot2::labs(title = "Ec25f [pSP] denoised", y = "log2(TPM+1)")
+Ec_PES_25f.log2_denoised %>%
+        dplyr::select(1,2, contains("spore"), contains("gamete")) %>% group_PS() %>%
+        plot_PGroups(ordered_stages) + ggplot2::labs(title = "Ec25f [unicell] denoised", y = "log2(TPM+1)")
+```
+
+Get session info.
+
+```{r}
+devtools::session_info()
+```

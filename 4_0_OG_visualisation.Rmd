@@ -704,6 +704,8 @@ tmp2 %>% group_by(Fs, Fd) %>% summarise(median_corr = median(value)) %>%
        fill = "median(distance)")
 ```
 
+
+
 ## Compared to Ectocarpus?
 
 Here we use JSD metric.
@@ -1173,6 +1175,480 @@ tmp2 %>% dplyr::filter(!stringr::str_detect(Ec, 'spore|gamete')) %>% group_by(Fd
 Essentially, the difference between _Fucus_ species and _Ectocarpus_ is minimised during the stage of the lowest TAI.
 
 Wesentlich wird der Unterschied zwischen _Fucus_-Arten und _Ectocarpus_ während der Phasen niedriges TAIs verringert.
+
+# Males and female _Ectocarpus_ compared
+
+## rlog transform
+
+
+```{r}
+Ec_PES_32m.rlog <-
+        readr::read_csv(file = "data/Ec_PES_32m.rlog.csv") %>%
+        dplyr::select(-1)
+
+# Rename the columns with the prefix "M_"
+new_colnames <- c("GeneID", paste0("M_", colnames(Ec_PES_32m.rlog)[-1]))
+colnames(Ec_PES_32m.rlog) <- new_colnames
+
+
+Ec_PES_25f.rlog <-
+        readr::read_csv(file = "data/Ec_PES_25f.rlog.csv") %>%
+        dplyr::select(-1)
+
+# Rename the columns with the prefix "F_"
+new_colnames <- c("GeneID", paste0("F_", colnames(Ec_PES_25f.rlog)[-1]))
+colnames(Ec_PES_25f.rlog) <- new_colnames
+
+Ec.rlog <- inner_join(Ec_PES_32m.rlog, Ec_PES_25f.rlog) %>%
+        tibble::column_to_rownames(var = "GeneID")
+
+ncol_Female <- grep( "F_" , colnames( Ec.rlog ) )
+ncol_Male <- grep( "M_" , colnames( Ec.rlog ) )
+
+```
+
+#### Pearson correlation
+
+```{r fig.height = 1.5, fig.width = 5}
+M = cor(x = Ec.rlog[,ncol_Female],
+        y = Ec.rlog[,ncol_Male],
+        method = "pearson")
+
+M_melt <- reshape2::melt(M) %>%
+        dplyr::group_by(Var1, Var2) %>% 
+        dplyr::summarise(median_corr = median(value)) %>%
+        dplyr::filter(stringr::str_remove(Var2, "M_") == stringr::str_remove(Var1, "F_"))
+
+M_melt_processed <- M_melt %>% mutate(Stage = stringr::str_remove(Var2, "M_"))
+M_melt_processed$Stage <- factor(M_melt_processed$Stage, levels = unique(M_melt_processed$Stage))
+
+ggplot2::ggplot(M_melt_processed, aes(x = Stage, y = 1, fill = median_corr, label = round(median_corr,2))) +
+        ggplot2::geom_tile() +
+        ggplot2::geom_text() +
+        ggplot2::theme_minimal() +
+        ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+                       legend.position = "",
+                       axis.text.y=element_blank()) +
+        ggplot2::scale_fill_gradient(low = "white", high = "#DC0000FF") +
+        ggplot2::labs(
+                x = "Ectocarpus stages",
+                y = "Pearson",
+                fill = "Correlation")
+```
+
+#### Spearman correlation
+
+```{r fig.height = 1.5, fig.width = 5}
+M = cor(x = Ec.rlog[,ncol_Female],
+        y = Ec.rlog[,ncol_Male],
+        method = "spearman")
+
+M_melt <- reshape2::melt(M) %>%
+        dplyr::group_by(Var1, Var2) %>% 
+        dplyr::summarise(median_corr = median(value)) %>%
+        dplyr::filter(stringr::str_remove(Var2, "M_") == stringr::str_remove(Var1, "F_"))
+
+M_melt_processed <- M_melt %>% mutate(Stage = stringr::str_remove(Var2, "M_"))
+M_melt_processed$Stage <- factor(M_melt_processed$Stage, levels = unique(M_melt_processed$Stage))
+
+ggplot2::ggplot(M_melt_processed, aes(x = Stage, y = 1, fill = median_corr, label = round(median_corr,2))) +
+        ggplot2::geom_tile() +
+        ggplot2::geom_text() +
+        ggplot2::theme_minimal() +
+        ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+                       legend.position = "",
+                       axis.text.y=element_blank()) +
+        ggplot2::scale_fill_gradient(low = "white", high = "#DC0000FF") +
+        ggplot2::labs(
+                x = "Ectocarpus stages",
+                y = "Spearman",
+                fill = "Correlation")
+```
+
+#### JSD metric
+
+Traditional Jensen-Shannon divergence (JSD) ranges between [0, 1]. Due to rlog transform creating less than 0 counts, I had to remove rows with at least one column with less than 0 counts since the normalisation step wouldn't work. This allows us to analyse 7159 genes instead of 11571 genes.
+
+```{r}
+library(matrixStats)
+
+Ec.rlog_filt <- Ec.rlog[matrixStats::rowMins(as.matrix(Ec.rlog)) > 0, ]
+mat_normalized <- apply(Ec.rlog_filt, 2, function(x) x/sum(x)) %>% as.data.frame()
+DM <- philentropy::distance(t(mat_normalized), use.row.names = TRUE, method = "jensen-shannon")
+DM2 <- sqrt(DM)
+```
+
+```{r fig.height = 1.5, fig.width = 5}
+M_melt <- reshape2::melt(DM2) %>%
+        dplyr::group_by(Var1, Var2) %>% 
+        dplyr::summarise(median_corr = median(value)) %>%
+        dplyr::filter(stringr::str_remove(Var2, "M_") == stringr::str_remove(Var1, "F_"))
+
+M_melt_processed <- M_melt %>% mutate(Stage = stringr::str_remove(Var2, "M_"))
+M_melt_processed$Stage <- factor(M_melt_processed$Stage, levels = unique(M_melt_processed$Stage))
+
+ggplot2::ggplot(M_melt_processed, aes(x = Stage, y = 1, fill = median_corr, label = round(median_corr,3))) +
+        ggplot2::geom_tile() +
+        ggplot2::geom_text() +
+        ggplot2::theme_minimal() +
+        ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+                       legend.position = "",
+                       axis.text.y=element_blank()) +
+        ggplot2::scale_fill_gradient(low = "white", high = "#3C5488FF") +
+        ggplot2::labs(
+                x = "Ectocarpus stages",
+                y = "JSD")
+```
+
+#### Manhattan
+
+```{r}
+DM <- philentropy::distance(t(Ec.rlog), use.row.names = TRUE, method = "manhattan")
+```
+
+```{r fig.height = 1.5, fig.width = 5}
+M_melt <- reshape2::melt(DM) %>%
+        dplyr::group_by(Var1, Var2) %>% 
+        dplyr::summarise(median_corr = median(value)) %>%
+        dplyr::filter(stringr::str_remove(Var2, "M_") == stringr::str_remove(Var1, "F_"))
+
+M_melt_processed <- M_melt %>% mutate(Stage = stringr::str_remove(Var2, "M_"))
+M_melt_processed$Stage <- factor(M_melt_processed$Stage, levels = unique(M_melt_processed$Stage))
+
+ggplot2::ggplot(M_melt_processed, aes(x = Stage, y = 1, fill = median_corr, label = round(median_corr,0))) +
+        ggplot2::geom_tile() +
+        ggplot2::geom_text() +
+        ggplot2::theme_minimal() +
+        ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+                       legend.position = "",
+                       axis.text.y=element_blank()) +
+        ggplot2::scale_fill_gradient(low = "white", high = "#3C5488FF") +
+        ggplot2::labs(
+                x = "Ectocarpus stages",
+                y = "Manhattan")
+```
+
+## log2(x+1) transform
+
+
+```{r}
+sample_info_ec_proc <-
+        sample_info_ec %>%
+        dplyr::relocate(LibName) %>% dplyr::filter(!Sex == "H") %>%
+        dplyr::mutate(LibLab = str_c(Sex, "_", Stage))
+
+Ec_abundance <-
+        readr::read_csv(file = "data/Ec_abundance.csv") %>%
+        dplyr::select(1, sample_info_ec_proc$SampleName) %>%
+        tibble::column_to_rownames(var = "GeneID")
+
+merged_TPM.filt <-
+  as.matrix(Ec_abundance)
+```
+
+```{r}
+log2_TPM <- log2(merged_TPM.filt + 1)
+
+log2_TPM_renamed <- log2_TPM
+base::colnames(log2_TPM_renamed) <- sample_info_ec_proc$LibLab
+```
+
+```{r}
+ncol_Female <- grep( "F_" , colnames( log2_TPM_renamed ) )
+ncol_Male <- grep( "M_" , colnames( log2_TPM_renamed ) )
+```
+
+#### Pearson correlation
+
+```{r fig.height = 1.5, fig.width = 5}
+M = cor(x = log2_TPM_renamed[,ncol_Female],
+        y = log2_TPM_renamed[,ncol_Male],
+        method = "pearson")
+
+M_melt <- reshape2::melt(M) %>%
+        dplyr::group_by(Var1, Var2) %>% 
+        dplyr::summarise(median_corr = median(value)) %>%
+        dplyr::filter(stringr::str_remove(Var2, "M_") == stringr::str_remove(Var1, "F_"))
+
+M_melt_processed <- M_melt %>% mutate(Stage = stringr::str_remove(Var2, "M_"))
+M_melt_processed$Stage <- factor(M_melt_processed$Stage, levels = unique(M_melt_processed$Stage))
+
+ggplot2::ggplot(M_melt_processed, aes(x = Stage, y = 1, fill = median_corr, label = round(median_corr,2))) +
+        ggplot2::geom_tile() +
+        ggplot2::geom_text() +
+        ggplot2::theme_minimal() +
+        ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+                       legend.position = "",
+                       axis.text.y=element_blank()) +
+        ggplot2::scale_fill_gradient(low = "white", high = "#DC0000FF") +
+        ggplot2::labs(
+                x = "Ectocarpus stages",
+                y = "Pearson")
+```
+
+
+#### Spearman correlation
+
+```{r fig.height = 1.5, fig.width = 5}
+M = cor(x = log2_TPM_renamed[,ncol_Female],
+        y = log2_TPM_renamed[,ncol_Male],
+        method = "spearman")
+
+M_melt <- reshape2::melt(M) %>%
+        dplyr::group_by(Var1, Var2) %>% 
+        dplyr::summarise(median_corr = median(value)) %>%
+        dplyr::filter(stringr::str_remove(Var2, "M_") == stringr::str_remove(Var1, "F_"))
+
+M_melt_processed <- M_melt %>% mutate(Stage = stringr::str_remove(Var2, "M_"))
+M_melt_processed$Stage <- factor(M_melt_processed$Stage, levels = unique(M_melt_processed$Stage))
+
+ggplot2::ggplot(M_melt_processed, aes(x = Stage, y = 1, fill = median_corr, label = round(median_corr,2))) +
+        ggplot2::geom_tile() +
+        ggplot2::geom_text() +
+        ggplot2::theme_minimal() +
+        ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+                       legend.position = "",
+                       axis.text.y=element_blank()) +
+        ggplot2::scale_fill_gradient(low = "white", high = "#DC0000FF") +
+        ggplot2::labs(
+                x = "Ectocarpus stages",
+                y = "Spearman")
+```
+
+
+#### JSD metric
+
+```{r}
+mat_normalized <- apply(log2_TPM_renamed, 2, function(x) x/sum(x)) %>% as.data.frame()
+DM <- philentropy::distance(t(mat_normalized), use.row.names = TRUE, method = "jensen-shannon")
+DM2 <- sqrt(DM)
+```
+
+```{r fig.height = 1.5, fig.width = 5}
+M_melt <- reshape2::melt(DM2) %>%
+        dplyr::group_by(Var1, Var2) %>% 
+        dplyr::summarise(median_corr = median(value)) %>%
+        dplyr::filter(stringr::str_remove(Var2, "M_") == stringr::str_remove(Var1, "F_"))
+
+M_melt_processed <- M_melt %>% mutate(Stage = stringr::str_remove(Var2, "M_"))
+M_melt_processed$Stage <- factor(M_melt_processed$Stage, levels = unique(M_melt_processed$Stage))
+
+ggplot2::ggplot(M_melt_processed, aes(x = Stage, y = 1, fill = median_corr, label = round(median_corr,3))) +
+        ggplot2::geom_tile() +
+        ggplot2::geom_text() +
+        ggplot2::theme_minimal() +
+        ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+                       legend.position = "",
+                       axis.text.y=element_blank()) +
+        ggplot2::scale_fill_gradient(low = "white", high = "#3C5488FF") +
+        ggplot2::labs(
+                x = "Ectocarpus stages",
+                y = "JSD")
+```
+
+#### Manhattan distance
+
+```{r}
+DM <- philentropy::distance(t(log2_TPM_renamed), use.row.names = TRUE, method = "manhattan")
+```
+
+```{r fig.height = 1.5, fig.width = 5}
+M_melt <- reshape2::melt(DM) %>%
+        dplyr::group_by(Var1, Var2) %>% 
+        dplyr::summarise(median_corr = median(value)) %>%
+        dplyr::filter(stringr::str_remove(Var2, "M_") == stringr::str_remove(Var1, "F_"))
+
+M_melt_processed <- M_melt %>% mutate(Stage = stringr::str_remove(Var2, "M_"))
+M_melt_processed$Stage <- factor(M_melt_processed$Stage, levels = unique(M_melt_processed$Stage))
+
+ggplot2::ggplot(M_melt_processed, aes(x = Stage, y = 1, fill = median_corr, label = round(median_corr,0))) +
+        ggplot2::geom_tile() +
+        ggplot2::geom_text() +
+        ggplot2::theme_minimal() +
+        ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+                       legend.position = "",
+                       axis.text.y=element_blank()) +
+        ggplot2::scale_fill_gradient(low = "white", high = "#3C5488FF") +
+        ggplot2::labs(
+                x = "Ectocarpus stages",
+                y = "Manhattan")
+```
+
+## denoised data
+
+```{r}
+Ec_abundance.denoised <-
+        readr::read_csv(file = "data/Ec_abundance_denoised.csv") %>%
+        dplyr::select(1, sample_info_ec_proc$SampleName) %>%
+        tibble::column_to_rownames(var = "GeneID")
+
+merged_TPM.filt <-
+  as.matrix(Ec_abundance.denoised)
+```
+
+```{r}
+log2_TPM <- log2(merged_TPM.filt + 1)
+
+log2_TPM_renamed <- log2_TPM
+base::colnames(log2_TPM_renamed) <- sample_info_ec_proc$LibLab
+```
+
+```{r}
+ncol_Female <- grep( "F_" , colnames( log2_TPM_renamed ) )
+ncol_Male <- grep( "M_" , colnames( log2_TPM_renamed ) )
+```
+
+#### Pearson correlation
+
+```{r fig.height = 5, fig.width = 5}
+M = cor(x = log2_TPM_renamed[,ncol_Female],
+        y = log2_TPM_renamed[,ncol_Male],
+        method = "pearson")
+
+reshape2::melt(M) %>%
+        dplyr::group_by(Var1, Var2) %>% 
+        dplyr::summarise(median_corr = median(value)) %>%
+        ggplot2::ggplot(aes(x = Var1, y = Var2, fill = median_corr, label = round(median_corr,2))) +
+        ggplot2::geom_tile() +
+        ggplot2::geom_text() +
+        ggplot2::theme_minimal() +
+        ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+                       legend.position = "") +
+        ggplot2::scale_fill_gradient(low = "white", high = "#DC0000FF") +
+        ggplot2::labs(
+                x = "Female stages",
+                y = "Male stages",
+                title = "Pearson correlation")
+
+```
+
+```{r fig.height = 1.5, fig.width = 5}
+M_melt <- reshape2::melt(M) %>%
+        dplyr::group_by(Var1, Var2) %>% 
+        dplyr::summarise(median_corr = median(value)) %>%
+        dplyr::filter(stringr::str_remove(Var2, "M_") == stringr::str_remove(Var1, "F_"))
+
+M_melt_processed <- M_melt %>% mutate(Stage = stringr::str_remove(Var2, "M_"))
+M_melt_processed$Stage <- factor(M_melt_processed$Stage, levels = unique(M_melt_processed$Stage))
+
+ggplot2::ggplot(M_melt_processed, aes(x = Stage, y = 1, fill = median_corr, label = round(median_corr,2))) +
+        ggplot2::geom_tile() +
+        ggplot2::geom_text() +
+        ggplot2::theme_minimal() +
+        ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+                       legend.position = "",
+                       axis.text.y=element_blank()) +
+        ggplot2::scale_fill_gradient(low = "white", high = "#DC0000FF") +
+        ggplot2::labs(
+                x = "Ectocarpus stages",
+                y = "Pearson",
+                fill = "Correlation")
+```
+
+#### Spearman correlation
+
+```{r fig.height = 5, fig.width = 5}
+M = cor(x = log2_TPM_renamed[,ncol_Female],
+        y = log2_TPM_renamed[,ncol_Male],
+        method = "spearman")
+
+reshape2::melt(M) %>%
+        dplyr::group_by(Var1, Var2) %>% 
+        dplyr::summarise(median_corr = median(value)) %>%
+        ggplot2::ggplot(aes(x = Var1, y = Var2, fill = median_corr, label = round(median_corr,2))) +
+        ggplot2::geom_tile() +
+        ggplot2::geom_text() +
+        ggplot2::theme_minimal() +
+        ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+                       legend.position = "") +
+        ggplot2::scale_fill_gradient(low = "white", high = "#DC0000FF") +
+        ggplot2::labs(
+                x = "Female stages",
+                y = "Male stages",
+                title = "Spearman correlation")
+
+```
+
+```{r fig.height = 1.5, fig.width = 5}
+M_melt <- reshape2::melt(M) %>%
+        dplyr::group_by(Var1, Var2) %>% 
+        dplyr::summarise(median_corr = median(value)) %>%
+        dplyr::filter(stringr::str_remove(Var2, "M_") == stringr::str_remove(Var1, "F_"))
+
+M_melt_processed <- M_melt %>% mutate(Stage = stringr::str_remove(Var2, "M_"))
+M_melt_processed$Stage <- factor(M_melt_processed$Stage, levels = unique(M_melt_processed$Stage))
+
+ggplot2::ggplot(M_melt_processed, aes(x = Stage, y = 1, fill = median_corr, label = round(median_corr,2))) +
+        ggplot2::geom_tile() +
+        ggplot2::geom_text() +
+        ggplot2::theme_minimal() +
+        ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+                       legend.position = "",
+                       axis.text.y=element_blank()) +
+        ggplot2::scale_fill_gradient(low = "white", high = "#DC0000FF") +
+        ggplot2::labs(
+                x = "Ectocarpus stages",
+                y = "Spearman",
+                fill = "Correlation")
+```
+
+#### JSD metric
+
+```{r}
+mat_normalized <- apply(log2_TPM_renamed, 2, function(x) x/sum(x)) %>% as.data.frame()
+DM <- philentropy::distance(t(mat_normalized), use.row.names = TRUE, method = "jensen-shannon")
+DM2 <- sqrt(DM)
+```
+
+```{r fig.height = 1.5, fig.width = 5}
+M_melt <- reshape2::melt(DM2) %>%
+        dplyr::group_by(Var1, Var2) %>% 
+        dplyr::summarise(median_corr = median(value)) %>%
+        dplyr::filter(stringr::str_remove(Var2, "M_") == stringr::str_remove(Var1, "F_"))
+
+M_melt_processed <- M_melt %>% mutate(Stage = stringr::str_remove(Var2, "M_"))
+M_melt_processed$Stage <- factor(M_melt_processed$Stage, levels = unique(M_melt_processed$Stage))
+
+ggplot2::ggplot(M_melt_processed, aes(x = Stage, y = 1, fill = median_corr, label = round(median_corr,3))) +
+        ggplot2::geom_tile() +
+        ggplot2::geom_text() +
+        ggplot2::theme_minimal() +
+        ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+                       legend.position = "",
+                       axis.text.y=element_blank()) +
+        ggplot2::scale_fill_gradient(low = "white", high = "#3C5488FF") +
+        ggplot2::labs(
+                x = "Ectocarpus stages",
+                y = "JSD")
+```
+
+#### Manhattan distance
+
+```{r}
+DM <- philentropy::distance(t(log2_TPM_renamed), use.row.names = TRUE, method = "manhattan")
+```
+
+```{r fig.height = 1.5, fig.width = 5}
+M_melt <- reshape2::melt(DM) %>%
+        dplyr::group_by(Var1, Var2) %>% 
+        dplyr::summarise(median_corr = median(value)) %>%
+        dplyr::filter(stringr::str_remove(Var2, "M_") == stringr::str_remove(Var1, "F_"))
+
+M_melt_processed <- M_melt %>% mutate(Stage = stringr::str_remove(Var2, "M_"))
+M_melt_processed$Stage <- factor(M_melt_processed$Stage, levels = unique(M_melt_processed$Stage))
+
+ggplot2::ggplot(M_melt_processed, aes(x = Stage, y = 1, fill = median_corr, label = round(median_corr,0))) +
+        ggplot2::geom_tile() +
+        ggplot2::geom_text() +
+        ggplot2::theme_minimal() +
+        ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+                       legend.position = "",
+                       axis.text.y=element_blank()) +
+        ggplot2::scale_fill_gradient(low = "white", high = "#3C5488FF") +
+        ggplot2::labs(
+                x = "Ectocarpus stages",
+                y = "Manhattan")
+```
 
 ```{r}
 devtools::session_info()
