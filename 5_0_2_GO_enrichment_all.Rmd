@@ -1,81 +1,68 @@
 ---
-title: "Orthogroup analysis msc"
+title: "5.0.2 GO enrichment"
 output:
   html_document:
-    fig_width: 5
+    fig_width: 6
     fig_height: 4
     df_print: paged
-    code_folding: hide
 editor_options: 
   chunk_output_type: inline
 ---
 
-# Motivation
+# Gene Ontology (GO) enrichment
 
 Upset plot of orthogroups, as done in [Cossard et al. 2022 Nat Ecol Evol](https://www.nature.com/articles/s41559-022-01692-4) Extended Data Fig. 1.
+We can assess whether certain GO categories are enriched. We use `Fisher’s exact` test statistics with the `parent-child algorithm` as implemented in `TopGO`.
 
-Load the libraries
-
-```{r, results='hide', warning=FALSE, message=FALSE}
-library(topGO)
-# library(tximport)
-library(corrplot)
-library(myTAI)
-library(ComplexHeatmap)
-source("functions/parse_orthogroups.R")
+```{r}
 library(tidyverse)
 ```
 
-```{r, results='hide', warning=FALSE, message=FALSE}
-createGOdata <- function(geneList, ontology, gene2GO_map, nodeSize){
-  OUT <- new("topGOdata", 
-             description = paste("GOtest", ontology, sep = "_"), 
-             ontology = ontology, 
-             allGenes = geneList,  
-             annot = annFUN.gene2GO, 
-             gene2GO = gene_to_go_mapping[-1], 
-             nodeSize = nodeSize)
-  return(OUT)
-}
+## Load data
 
-resultGO <- function(GOdata, algorithm, firstSigNodes = 5, sig = F, plot = F){
-  ## Calculate fisher exact test
-  result_fisher <- runTest(object    = GOdata,
-                           algorithm = algorithm,
-                           statistic = "fisher")
-  OUT <- GenTable(object  = GOdata,
-                  fisher = result_fisher,
-                  topNodes = length(score(result_fisher)))
-  
-  ## Combine results from statistical tests:
-  
-  ## Correct for multiple testing:
-  OUT$fisher <- as.numeric(OUT$fisher)
-  OUT$fisher_adjusted <- p.adjust(p = OUT$fisher, method = c("fdr"))
-  if(sig == F & plot == F){
-    return(OUT)
-  }
-  ## Subset calls with significance higher than expected:
-  if(plot == F){
-    OUT_sig <- subset(x = OUT,
-                      subset = (Significant > Expected) & (fisher_adjusted < 0.1))
-    return(OUT_sig)
-  }
-  plot_OUT <- showSigOfNodes(GOdata, score(result_fisher),
-                             firstSigNodes = firstSigNodes,
-                             useInfo ='all')
-  return(plot_OUT)
-}
+### Load interproscan data
+
+```{r}
+GO_Fs <- readr::read_delim("data/Interproscan/Fs_ips/F_serratus_pep.filt.processed.faa.tsv", 
+                    delim = "\t", col_select = c(1,14)) %>%
+  drop_na() %>%
+  filter(GO_term != "-") %>% 
+  separate_rows(GO_term, sep = "\\|") %>% 
+  dplyr::mutate(GeneID = str_remove(GeneID, "\\.[^.]+$")) %>% 
+  arrange(GeneID) %>%
+  distinct()
+
+GO_Fd <- readr::read_delim("data/Interproscan/Fd_ips/F_distichus_pep.filt.processed.faa.tsv", 
+                    delim = "\t", col_select = c(1,14)) %>%
+  drop_na() %>%
+  filter(GO_term != "-") %>% 
+  separate_rows(GO_term, sep = "\\|") %>% 
+  dplyr::mutate(GeneID = str_remove(GeneID, "\\.[^.]+$")) %>% 
+  arrange(GeneID) %>%
+  distinct()
 ```
 
-```{r, message=FALSE, warning=FALSE}
+```R
+length(unique(GO_Fs$GO_term))
+length(unique(GO_Fs$GeneID))
+```
+
+There are 30,007 GO terms (whereof 2,040 are unique) attached to 12,672 genes in Fucus serratus.
+
+```R
+length(unique(GO_Fd$GO_term))
+length(unique(GO_Fd$GeneID))
+```
+
+
+```{r}
 Fs_ddsObj.wald_nonDEGlist <-
   base::readRDS("data/Fs_wald_nonDEG_list.rds")
 Fd_ddsObj.wald_nonDEGlist <-
   base::readRDS("data/Fd_wald_nonDEG_list.rds")
 ```
 
-```{r, message=FALSE, warning=FALSE}
+```{r}
 resnonDEG_24H48H <- Fs_ddsObj.wald_nonDEGlist[[1]] %>% 
         tibble::as_tibble(rownames = "GeneID") %>% 
         dplyr::mutate(stage = "24H_to_48H") %>% 
@@ -118,46 +105,17 @@ resnonDEG_3w4w_Fd <- Fd_ddsObj.wald_nonDEGlist[[4]] %>%
         dplyr::mutate(test = "nonDEG") %>%
         dplyr::mutate(species = "Fd")
 
-# resDEG_24H48H <- read_csv("GO_input/resDEG_24H48H_Fs.csv", show_col_types = FALSE) %>% 
-#   mutate(stage = "24H_to_48H") %>% 
-#   mutate(test = "DEG") %>%
-#   mutate(species = "Fs")
-# resDEG_48H1w <- read_csv("GO_input/resDEG_48H1w_Fs.csv", show_col_types = FALSE) %>% 
-#   mutate(stage = "48H_to_1w") %>% 
-#   mutate(test = "DEG") %>%
-#   mutate(species = "Fs")
-# resDEG_1w3w <- read_csv("GO_input/resDEG_1w3w_Fs.csv", show_col_types = FALSE) %>% 
-#   mutate(stage = "1w_to_3w") %>% 
-#   mutate(test = "DEG") %>%
-#   mutate(species = "Fs")
-# resDEG_3w4w <- read_csv("GO_input/resDEG_3w4w_Fs.csv", show_col_types = FALSE) %>% 
-#   mutate(stage = "3w_to_4w") %>% 
-#   mutate(test = "DEG") %>%
-#   mutate(species = "Fs")
-
-# resDEG_24H48H_Fd <- read_csv("GO_input/resDEG_24H48H_Fd.csv", show_col_types = FALSE) %>% 
-#   mutate(stage = "1E_to_2E") %>% 
-#   mutate(test = "DEG") %>%
-#   mutate(species = "Fd")
-# resDEG_48H1w_Fd <- read_csv("GO_input/resDEG_48H1w_Fd.csv", show_col_types = FALSE) %>% 
-#   mutate(stage = "2E_to_3E") %>% 
-#   mutate(test = "DEG") %>%
-#   mutate(species = "Fd")
-# resDEG_1w3w_Fd <- read_csv("GO_input/resDEG_1w3w_Fd.csv", show_col_types = FALSE) %>% 
-#   mutate(stage = "3E_to_4E") %>% 
-#   mutate(test = "DEG") %>%
-#   mutate(species = "Fd")
-# resDEG_3w4w_Fd <- read_csv("GO_input/resDEG_3w4w_Fd.csv", show_col_types = FALSE) %>% 
-#   mutate(stage = "4E_to_5E") %>% 
-#   mutate(test = "DEG") %>%
-#   mutate(species = "Fd")
+combined_table <- rbind(resnonDEG_24H48H, resnonDEG_48H1w, resnonDEG_1w3w, resnonDEG_3w4w,
+                        resnonDEG_24H48H_Fd, resnonDEG_48H1w_Fd, resnonDEG_1w3w_Fd, resnonDEG_3w4w_Fd)
 ```
 
 ```{r}
-combined_table <- rbind(resnonDEG_24H48H, resnonDEG_48H1w, resnonDEG_1w3w, resnonDEG_3w4w,
-                        resnonDEG_24H48H_Fd, resnonDEG_48H1w_Fd, resnonDEG_1w3w_Fd, resnonDEG_3w4w_Fd)
-                        # resDEG_24H48H, resDEG_48H1w, resDEG_1w3w, resDEG_3w4w
-                        # resDEG_24H48H_Fd, resDEG_48H1w_Fd, resDEG_1w3w_Fd, resDEG_3w4w_Fd
+# library(ggfortify)
+library(corrplot)
+library(myTAI)
+library(ComplexHeatmap)
+source("functions/parse_orthogroups.R")
+library(topGO)
 ```
 
 ```{r}
@@ -175,34 +133,25 @@ make_list_UpSet <- function(INPUT_table, padj_threshold = 0.1, DEG_type, species
 }
 ```
 
-
-```{r, message=FALSE, warning=FALSE}
+```{r}
 GeneList <- make_list_UpSet(combined_table, padj_threshold = 0.1, DEG_type = "nonDEG", species_name = "Fs")
 upsetting_input_distinct <- ComplexHeatmap::make_comb_mat(GeneList, mode = "distinct")
 ComplexHeatmap::UpSet(upsetting_input_distinct,
                       set_order = c(2,4,1,3),
                       row_title = "Stage transitions")
-```
-
-```{r, message=FALSE, warning=FALSE}
 GO_GeneList_Fs <- make_list_UpSet(combined_table, padj_threshold = 0.1, DEG_type = "nonDEG", species_name = "Fs", make_list = F) %>%
   dplyr::mutate(seen = 1) %>%
   pivot_wider(names_from = stage, values_from = seen) %>%
   drop_na() %>% 
   dplyr::select(GeneID)
-```
+````
 
-We keep 2630 out of 6492 genes.
-
-```{r, message=FALSE, warning=FALSE}
+```{r}
 GeneList <- make_list_UpSet(combined_table, padj_threshold = 0.1, DEG_type = "nonDEG", species_name = "Fd")
 upsetting_input_distinct <- ComplexHeatmap::make_comb_mat(GeneList, mode = "distinct")
 ComplexHeatmap::UpSet(upsetting_input_distinct,
                       set_order = c(1,2,3,4),
                       row_title = "Stage transitions")
-```
-
-```{r, message=FALSE, warning=FALSE}
 GO_GeneList_Fd <- make_list_UpSet(combined_table, padj_threshold = 0.1, DEG_type = "nonDEG", species_name = "Fd", make_list = F) %>%
   dplyr::mutate(seen = 1) %>%
   pivot_wider(names_from = stage, values_from = seen) %>%
@@ -210,156 +159,297 @@ GO_GeneList_Fd <- make_list_UpSet(combined_table, padj_threshold = 0.1, DEG_type
   dplyr::select(GeneID)
 ```
 
-```{r}
-GO_GeneList_Fs
-GO_GeneList_Fd
-```
+I must admit, what you just witnessed is a mess but I just wanted to string together code from old analyses.
 
-```{r, message=FALSE, warning=FALSE}
-gene_to_go_mapping <- readMappings(file = "GO_input/temp_GOmap_Fs.csv", sep = ",", IDsep = "\\|")
-GO_background <- combined_table %>% 
-  dplyr::filter(species == "Fs") %>%
-  dplyr::select(GeneID) %>% 
-  unique()
-GO_query <- GO_GeneList_Fs
-
-geneList <- factor(as.integer(GO_background$GeneID %in% GO_query$GeneID))
-names(geneList) <- GO_background$GeneID
-# "parentchild" can also be used as algorithm.
-myGOdata_CC <- createGOdata(geneList, ontology = "CC", 
-                            gene2GO_map = gene_to_go_mapping[-1], nodeSize = 10)
-myGOdata_BP <- createGOdata(geneList, ontology = "BP", 
-                            gene2GO_map = gene_to_go_mapping[-1], nodeSize = 10)
-myGOdata_MF <- createGOdata(geneList, ontology = "MF", 
-                            gene2GO_map = gene_to_go_mapping[-1], nodeSize = 10)
-
-resGO_CC <- resultGO(myGOdata_CC, "parentchild")
-resGO_BP <- resultGO(myGOdata_BP, "parentchild")
-resGO_MF <- resultGO(myGOdata_MF, "parentchild")
-```
+What is the number of rows.
 
 ```{r}
-resGO_CC %>% 
-  dplyr::filter(fisher_adjusted < 0.1) %>%
-  dplyr::select(GO.ID, Term, Significant, Expected, fisher)
-resGO_BP %>% 
-  dplyr::filter(fisher_adjusted < 0.1) %>%
-  dplyr::select(GO.ID, Term, Significant, Expected, fisher)
-resGO_MF %>% 
-  dplyr::filter(fisher_adjusted < 0.1) %>%
-  dplyr::select(GO.ID, Term, Significant, Expected, fisher)
+nrow(GO_GeneList_Fs)
+nrow(GO_GeneList_Fd)
 ```
 
-```{r, message=FALSE, warning=FALSE}
-gene_to_go_mapping <- readMappings(file = "GO_input/temp_GOmap_Fd.csv", sep = ",", IDsep = "\\|")
-GO_background <- combined_table %>% 
-  dplyr::filter(species == "Fd") %>%
-  dplyr::select(GeneID) %>% 
-  unique()
-GO_query <- GO_GeneList_Fd
+### process GO data
 
-geneList <- factor(as.integer(GO_background$GeneID %in% GO_query$GeneID))
-names(geneList) <- GO_background$GeneID
-# "parentchild" can also be used as algorithm.
-myGOdata_CC <- createGOdata(geneList, ontology = "CC", 
-                            gene2GO_map = gene_to_go_mapping[-1], nodeSize = 10)
-myGOdata_BP <- createGOdata(geneList, ontology = "BP", 
-                            gene2GO_map = gene_to_go_mapping[-1], nodeSize = 10)
-myGOdata_MF <- createGOdata(geneList, ontology = "MF", 
-                            gene2GO_map = gene_to_go_mapping[-1], nodeSize = 10)
-
-resGO_CC <- resultGO(myGOdata_CC, "parentchild")
-resGO_BP <- resultGO(myGOdata_BP, "parentchild")
-resGO_MF <- resultGO(myGOdata_MF, "parentchild")
-```
+There are 16,582 GO terms (whereof 1,928 are unique) attached to 7,118 genes in Fucus distichus.
 
 ```{r}
-resGO_CC %>% 
-  dplyr::filter(fisher_adjusted < 0.1) %>%
-  dplyr::select(GO.ID, Term, Significant, Expected, fisher)
-resGO_BP %>% 
-  dplyr::filter(fisher_adjusted < 0.1) %>%
-  dplyr::select(GO.ID, Term, Significant, Expected, fisher)
-resGO_MF %>% 
-  dplyr::filter(fisher_adjusted < 0.1) %>%
-  dplyr::select(GO.ID, Term, Significant, Expected, fisher)
-```
-
-How does this compare with age?
-
-
-```{r}
-fisherPS <- function(PS_query, PS_nonquery, alternative = "two.sided"){
-  INPUT_1 <- PS_query %>% mutate(query = T)
-  INPUT_2 <- PS_nonquery %>% mutate(query = F)
-  TEST <- rbind(INPUT_1, INPUT_2) %>%
-    dplyr::group_by(rank, query) %>%
-    summarise(n = n())
-  RESULTS <- list()
-  for (i in unique(TEST$rank)) {
-    sub_df <- TEST[TEST$rank == i, ]
-    # create a 2x2 contingency table
-    # extract the contingency table
-    A <- sum(sub_df$n[sub_df$query == TRUE])
-    B <- sum(sub_df$n[sub_df$query == FALSE])
-    C <- sum(TEST$n[TEST$query == TRUE]) - A
-    D <- sum(TEST$n[TEST$query == FALSE]) - B
-    cont_table <- matrix(c(A, B, C, D), nrow = 2, ncol = 2)
-    # perform Fisher's exact test
-    fisher_test <- fisher.test(cont_table, alternative = alternative)
-    
-    # store the results
-    RESULTS[[i]] <- list(rank = i,
-                         odds_ratio = fisher_test$estimate,
-                         p_value = fisher_test$p.value,
-                         query_prop = A/(B+A),
-                         background_prop = C/(D+C))
-  }
-  # combine the results into a data frame
-  OUT <- do.call(rbind.data.frame, RESULTS)
-  adjusted_p_values <- p.adjust(OUT$p_value, method = "BH")
-  OUT$adjusted_p_value <- adjusted_p_values
+createGOdata <- function(geneList, ontology, gene2GO_map, nodeSize){
+  OUT <- 
+    methods::new(
+      "topGOdata", 
+      description = paste("GOtest", ontology, sep = "_"), 
+      ontology = ontology, 
+      allGenes = geneList,  
+      annot = annFUN.gene2GO, 
+      gene2GO = gene2GO_map, 
+      nodeSize = nodeSize)
   return(OUT)
 }
 ```
 
+`processedGOdata()` wraps around my function `createGOdata()`
 ```{r}
-# Fs_age <- readr::read_csv("data/Fs_age_processed.csv")
-# Fd_age <- readr::read_csv("data/Fd_age_processed.csv")
+processedGOdata <-
+  function(DEG_contrasts, GO_data, GO_gene_mapping, ontology, nodeSize = 10, padj_threshold = 0.05){
+    # GO_background <-
+    #   dplyr::left_join(DEG_contrasts, GO_data) %>%
+    #   tidyr::drop_na()
+    # GO_query <-
+    #   dplyr::filter(GO_background, padj < 0.05)
+    # geneList <-
+    #   factor(as.integer(GO_background$GeneID %in% GO_query$GeneID))
+    # names(geneList) <- GO_background$GeneID
+    gene_background <-
+      DEG_contrasts %>%
+      tidyr::drop_na()
+    gene_query <-
+      dplyr::filter(gene_background, padj < padj_threshold)
+    geneList <-
+      factor(as.integer(gene_background$GeneID %in% gene_query$GeneID))
+    names(geneList) <- gene_background$GeneID
+    myGOdata <-
+      createGOdata(
+        geneList,
+        ontology = ontology,
+        gene2GO_map = GO_gene_mapping,
+        nodeSize = nodeSize
+        )
+    return(myGOdata)
+  }
+```
+
+To use `processedGOdata()`
+
+```R
+myGOdata_CC <-
+  processedGOdata(
+    DEG_contrasts = dplyr::filter(Fs_DEG_contrasts, contrast == "48H vs 24H"),
+    GO_data = GO_Fs,
+    GO_gene_mapping = GO_Fs_gene_mapping,
+    ontology = "CC")
+```
+
+`resultGO()` plots or outputs the significant GO terms.
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+resultGO <- function(GOdata, algorithm, firstSigNodes = 5, sig = F, plot = F, fisher_adjusted_threshold = 0.1){
+  ## Calculate fisher exact test
+  result_fisher <- 
+    topGO::runTest(
+      object = GOdata,
+      algorithm = algorithm,
+      statistic = "fisher")
+  OUT <- 
+    topGO::GenTable(
+      object  = GOdata,
+      fisher = result_fisher,
+      topNodes = length(score(result_fisher)))
+  
+  ## Correct for multiple testing:
+  OUT$fisher <- as.numeric(OUT$fisher)
+  OUT$fisher_adjusted <- 
+    stats::p.adjust(p = OUT$fisher, method = c("fdr"))
+  if(sig == F & plot == F){
+    return(OUT)
+  }
+  ## Subset calls with significance higher than expected:
+  if(plot == F){
+    OUT_sig <- 
+      OUT %>%
+      dplyr::filter(fisher_adjusted < fisher_adjusted_threshold) %>%
+      dplyr::select(GO.ID, Term, Significant, Expected, fisher, fisher_adjusted)
+    return(OUT_sig)
+  }
+  plot_OUT <- 
+    topGO::showSigOfNodes(
+      GOdata, 
+      score(result_fisher),
+      firstSigNodes = firstSigNodes,
+      useInfo ='all')
+  return(plot_OUT)
+}
+# also possible
+# resGO_sig <- resultGO(myGOdata, "weight01", firstSigNodes = 10, sig = T)
+```
+
+The script above were motivated three blogposts:
+
+-[Archetypalecology](https://archetypalecology.wordpress.com/2021/01/27/how-to-perform-kegg-and-go-enrichment-analysis-of-non-model-species-using-r/)
+
+-[Avrilomics](https://avrilomics.blogspot.com/2015/07/using-topgo-to-test-for-go-term.html)
+
+-[Zhiganglu](https://zhiganglu.com/post/topgo-ks-test/)
+
+For the GO analysis I used Fisher’s exact test. This is because it is more flexible. It is flexible because it requires a simpler input and assumes just two classes of genes - DEG (or nonDEG) and background. Node size 5 is recommended. Here are the top level GO categories:
+
+> CC = Cellular Compartment
+> MF = Molecular Function
+> BP = Biological Process
+
+```{r}
+GO_Fs_gene_mapping <- base::split(GO_Fs$GO_term, GO_Fs$GeneID)
+GO_Fd_gene_mapping <- base::split(GO_Fd$GO_term, GO_Fd$GeneID)
+```
+
+Here, I used `base::split()` rather than `topGO::readMapping()` because I have already loaded the `GO_Fs` and `GO_Fd` data. With `topGO::readMapping()`, GeneIDs with multiple GO terms are read (as expected) but (probably due to the GO annotations in different isoforms or different interproscan tools - not sure), we get duplicated element names in the output list.
+
+```R
+> read_delim("data/Interproscan/Fs_ips/F_serratus_pep.filt.processed.faa.tsv", 
++            delim = "\t", col_select = c(1,14)) %>%
++     drop_na() %>%
++     filter(GO_term != "-") %>%
++     dplyr::mutate(GeneID = str_remove(GeneID, "\\.[^.]+$")) %>%
++     distinct() %>%
++     write_csv("GO_input/temp_GOmap_Fs.csv")
+Rows: 247635 Columns: 2                                                                                                                                            
+── Column specification ────────────────────────────────────────────────────────────────────────────────────────────────────────
+Delimiter: "\t"
+chr (2): GeneID, GO_term
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Warning message:                                                                                                              
+One or more parsing issues, call `problems()` on your data frame for details, e.g.:
+  dat <- vroom(...)
+  problems(dat) 
+> 
+> gene_to_go_mapping <- readMappings(file = "GO_input/temp_GOmap_Fs.csv", sep = ",", IDsep = "\\|")
+> table(duplicated(names(gene_to_go_mapping)))
+
+FALSE  TRUE 
+12673  5775 
+> head(names(gene_to_go_mapping)[duplicated(names(gene_to_go_mapping))])
+[1] "ser_TRINITY_DN30930_c0_g1"  "ser_TRINITY_DN1578_c0_g1"   "ser_TRINITY_DN11998_c0_g1" 
+[4] "ser_TRINITY_DN11998_c0_g1"  "ser_TRINITY_DN3705_c0_g2"   "ser_TRINITY_DN166159_c0_g1"
+```
+
+Compare this to
+
+```R
+> table(duplicated(names(GO_Fs_gene_mapping)))
+
+FALSE 
+12672 
+> head(names(GO_Fs_gene_mapping)[duplicated(names(GO_Fs_gene_mapping))])
+character(0)
+```
+
+# GO×nonDEG analysis
+
+## Fucus distichus
+
+### nonDEG (Wald)
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+gene_background_unique <- combined_table %>% 
+  dplyr::filter(species == "Fd") %>%
+  dplyr::select(GeneID) %>% 
+  unique()
+
+geneList <-
+  factor(as.integer(gene_background_unique$GeneID %in% GO_GeneList_Fd$GeneID))
+names(geneList) <- gene_background_unique$GeneID
+myGOdata_CC <-
+  createGOdata(
+    geneList,
+    ontology = "CC",
+    gene2GO_map = GO_Fd_gene_mapping,
+    nodeSize = 10
+    )
+myGOdata_BP <-
+  createGOdata(
+    geneList,
+    ontology = "BP",
+    gene2GO_map = GO_Fd_gene_mapping,
+    nodeSize = 10
+    )
+myGOdata_MF <-
+  createGOdata(
+    geneList,
+    ontology = "MF",
+    gene2GO_map = GO_Fd_gene_mapping,
+    nodeSize = 10
+    )
+
+resGO_CC <- 
+  resultGO(myGOdata_CC, algorithm = "parentchild", sig = T)
+resGO_BP <- 
+  resultGO(myGOdata_BP, algorithm = "parentchild", sig = T)
+resGO_MF <- 
+  resultGO(myGOdata_MF, algorithm = "parentchild", sig = T)
+
 ```
 
 ```{r}
-# PS_query <- GO_GeneList_Fs %>% left_join(Fs_age) %>% dplyr::select(GeneID, rank)
-# PS_background <- combined_table %>% dplyr::filter(species == "Fs") %>% dplyr::select(GeneID) %>% unique() %>% left_join(Fs_age) %>% dplyr::select(GeneID, rank)
-# 
-# PS_nonquery <- subset(PS_background, !GeneID %in% PS_query$GeneID)
-# 
-# mean(PS_query$rank)
-# mean(PS_nonquery$rank)
-# wilcox.test(PS_query$rank, PS_nonquery$rank, alternative = "greater")
-# fisherPS(PS_query, PS_nonquery, alternative = "greater")
-# fisherPS(PS_query, PS_nonquery, alternative = "less")
-# 
-# # double check
-# sum(PS_query$rank == 7) / nrow(PS_query)
-# sum(PS_nonquery$rank == 7) / nrow(PS_nonquery)
-# ```
-# 
-# ```{r}
-# PS_query <- GO_GeneList_Fd %>% left_join(Fd_age) %>% dplyr::select(GeneID, rank)
-# PS_background <- combined_table %>% dplyr::filter(species == "Fd") %>% dplyr::select(GeneID) %>% unique() %>% left_join(Fd_age) %>% dplyr::select(GeneID, rank)
-# 
-# PS_nonquery <- subset(PS_background, !GeneID %in% PS_query$GeneID)
-# 
-# mean(PS_query$rank)
-# mean(PS_nonquery$rank)
-# wilcox.test(PS_query$rank, PS_nonquery$rank, alternative = "greater")
-# fisherPS(PS_query, PS_nonquery, alternative = "greater")
-# fisherPS(PS_query, PS_nonquery, alternative = "less")
-# 
-# # double check
-# sum(PS_query$rank == 7) / nrow(PS_query)
-# sum(PS_nonquery$rank == 7) / nrow(PS_nonquery)
+resGO_CC %>% 
+  dplyr::filter(fisher_adjusted < 0.1) %>%
+  dplyr::select(GO.ID, Term, fisher, Significant, Expected)
+resGO_BP %>% 
+  dplyr::filter(fisher_adjusted < 0.1) %>%
+  dplyr::select(GO.ID, Term, fisher, Significant, Expected)
+resGO_MF %>% 
+  dplyr::filter(fisher_adjusted < 0.1) %>%
+  dplyr::select(GO.ID, Term, fisher, Significant, Expected)
 ```
 
-In both species, PS7 is significantly down regulated in the nonDEGs.
+## Fucus serratus
+
+### nonDEG (Wald)
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+gene_background_unique <- combined_table %>% 
+  dplyr::filter(species == "Fs") %>%
+  dplyr::select(GeneID) %>% 
+  unique()
+
+geneList <-
+  factor(as.integer(gene_background_unique$GeneID %in% GO_GeneList_Fs$GeneID))
+names(geneList) <- gene_background_unique$GeneID
+myGOdata_CC <-
+  createGOdata(
+    geneList,
+    ontology = "CC",
+    gene2GO_map = GO_Fs_gene_mapping,
+    nodeSize = 10
+    )
+myGOdata_BP <-
+  createGOdata(
+    geneList,
+    ontology = "BP",
+    gene2GO_map = GO_Fs_gene_mapping,
+    nodeSize = 10
+    )
+myGOdata_MF <-
+  createGOdata(
+    geneList,
+    ontology = "MF",
+    gene2GO_map = GO_Fs_gene_mapping,
+    nodeSize = 10
+    )
+
+resGO_CC <- 
+  resultGO(myGOdata_CC, algorithm = "parentchild", sig = T)
+resGO_BP <- 
+  resultGO(myGOdata_BP, algorithm = "parentchild", sig = T)
+resGO_MF <- 
+  resultGO(myGOdata_MF, algorithm = "parentchild", sig = T)
+
+```
+
+```{r}
+resGO_CC %>% 
+  dplyr::filter(fisher_adjusted < 0.1) %>%
+  dplyr::select(GO.ID, Term, fisher, Significant, Expected)
+resGO_BP %>% 
+  dplyr::filter(fisher_adjusted < 0.1) %>%
+  dplyr::select(GO.ID, Term, fisher, Significant, Expected)
+resGO_MF %>% 
+  dplyr::filter(fisher_adjusted < 0.1) %>%
+  dplyr::select(GO.ID, Term, fisher, Significant, Expected)
+```
+
+Get session info.
+
+```{r}
+devtools::session_info()
+```
