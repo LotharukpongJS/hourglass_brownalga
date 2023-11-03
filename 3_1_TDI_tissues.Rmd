@@ -344,7 +344,7 @@ Fs_DES_M_matSP_tS_res <-
 
 _Fucus distichus_
 
-```{r, fig.height = 3.5, fig.width = 5}
+```{r fig.height = 2.5, fig.width = 3}
 Fd_DES_matSP_tS_res %>%
   ggplot2::ggplot(
     aes(
@@ -358,13 +358,13 @@ Fd_DES_matSP_tS_res %>%
     linetype = 'dashed',
     size = 2
     ) +
-  ggplot2::annotate(
-    "label",
-    x = 0.7, 
-    y = max(max(-log10(Fd_DES_matSP_tS_res$pval))/6, 2.5),
-    label = "pval < 0.05",
-    # angle = 270,
-    colour = "#E64B35FF") +
+  # ggplot2::annotate(
+  #   "label",
+  #   x = 0.7, 
+  #   y = max(max(-log10(Fd_DES_matSP_tS_res$pval))/6, 2.5),
+  #   label = "pval < 0.05",
+  #   # angle = 270,
+  #   colour = "#E64B35FF") +
   ggplot2::labs(
     title = "Fucus distichus matSP",
     subtitle = "FlatLineTest",
@@ -376,7 +376,7 @@ Fd_DES_matSP_tS_res %>%
 
 _Fucus serratus_
 
-```{r, fig.height = 3.5, fig.width = 5}
+```{r fig.height = 2.5, fig.width = 3}
 Fs_DES_F_matSP_tS_res %>%
   ggplot2::ggplot(
     aes(
@@ -390,13 +390,13 @@ Fs_DES_F_matSP_tS_res %>%
     linetype = 'dashed',
     size = 2
     ) +
-  ggplot2::annotate(
-    "label",
-    x = 0.7, 
-    y = max(max(-log10(Fs_DES_F_matSP_tS_res$pval))/6, 2.5),
-    label = "pval < 0.05",
-    # angle = 270,
-    colour = "#E64B35FF") +
+  # ggplot2::annotate(
+  #   "label",
+  #   x = 0.7, 
+  #   y = max(max(-log10(Fs_DES_F_matSP_tS_res$pval))/6, 2.5),
+  #   label = "pval < 0.05",
+  #   # angle = 270,
+  #   colour = "#E64B35FF") +
   ggplot2::labs(
     title = "Fucus serratus matSP (female)",
     subtitle = "FlatLineTest",
@@ -418,13 +418,13 @@ Fs_DES_M_matSP_tS_res %>%
     linetype = 'dashed',
     size = 2
     ) +
-  ggplot2::annotate(
-    "label",
-    x = 0.7, 
-    y = max(max(-log10(Fs_DES_M_matSP_tS_res$pval))/6, 2.5),
-    label = "pval < 0.05",
-    # angle = 270,
-    colour = "#E64B35FF") +
+  # ggplot2::annotate(
+  #   "label",
+  #   x = 0.7, 
+  #   y = max(max(-log10(Fs_DES_M_matSP_tS_res$pval))/6, 2.5),
+  #   label = "pval < 0.05",
+  #   # angle = 270,
+  #   colour = "#E64B35FF") +
   ggplot2::labs(
     title = "Fucus serratus matSP (male)",
     subtitle = "FlatLineTest",
@@ -659,7 +659,7 @@ Fs_DES_M_matSP_tS_res.denoised <-
 
 _Fucus distichus_
 
-```{r, fig.height = 3.5, fig.width = 5}
+```{r fig.height = 2.5, fig.width = 3}
 Fd_DES_matSP_tS_res.denoised %>%
   ggplot2::ggplot(
     aes(
@@ -673,13 +673,13 @@ Fd_DES_matSP_tS_res.denoised %>%
     linetype = 'dashed',
     size = 2
     ) +
-  ggplot2::annotate(
-    "label",
-    x = 0.7, 
-    y = max(max(-log10(Fd_DES_matSP_tS_res$pval))/6, 2.5),
-    label = "pval < 0.05",
-    # angle = 270,
-    colour = "#E64B35FF") +
+  # ggplot2::annotate(
+  #   "label",
+  #   x = 0.7, 
+  #   y = max(max(-log10(Fd_DES_matSP_tS_res$pval))/6, 2.5),
+  #   label = "pval < 0.05",
+  #   # angle = 270,
+  #   colour = "#E64B35FF") +
   ggplot2::labs(
     title = "Fucus distichus matSP [denoised]",
     subtitle = "FlatLineTest",
@@ -691,7 +691,7 @@ Fd_DES_matSP_tS_res.denoised %>%
 
 _Fucus serratus_
 
-```{r, fig.height = 3.5, fig.width = 5}
+```{r fig.height = 2.5, fig.width = 3}
 Fs_DES_F_matSP_tS_res.denoised %>%
   ggplot2::ggplot(
     aes(
@@ -705,13 +705,13 @@ Fs_DES_F_matSP_tS_res.denoised %>%
     linetype = 'dashed',
     size = 2
     ) +
-  ggplot2::annotate(
-    "label",
-    x = 0.7, 
-    y = max(max(-log10(Fs_DES_F_matSP_tS_res$pval))/6, 2.5),
-    label = "pval < 0.05",
-    # angle = 270,
-    colour = "#E64B35FF") +
+  # ggplot2::annotate(
+  #   "label",
+  #   x = 0.7, 
+  #   y = max(max(-log10(Fs_DES_F_matSP_tS_res$pval))/6, 2.5),
+  #   label = "pval < 0.05",
+  #   # angle = 270,
+  #   colour = "#E64B35FF") +
   ggplot2::labs(
     title = "Fucus serratus matSP (female) [denoised]",
     subtitle = "FlatLineTest",
@@ -733,13 +733,13 @@ Fs_DES_M_matSP_tS_res.denoised %>%
     linetype = 'dashed',
     size = 2
     ) +
-  ggplot2::annotate(
-    "label",
-    x = 0.7, 
-    y = max(max(-log10(Fs_DES_M_matSP_tS_res$pval))/6, 2.5),
-    label = "pval < 0.05",
-    # angle = 270,
-    colour = "#E64B35FF") +
+  # ggplot2::annotate(
+  #   "label",
+  #   x = 0.7, 
+  #   y = max(max(-log10(Fs_DES_M_matSP_tS_res$pval))/6, 2.5),
+  #   label = "pval < 0.05",
+  #   # angle = 270,
+  #   colour = "#E64B35FF") +
   ggplot2::labs(
     title = "Fucus serratus matSP (male) [denoised]",
     subtitle = "FlatLineTest",
