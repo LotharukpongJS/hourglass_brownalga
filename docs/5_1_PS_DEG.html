@@ -1641,7 +1641,9 @@ exact PS is significant in DEG or nonDEG.</p>
 <pre><code>## Loading required package: ggplot2</code></pre>
 <pre class="r"><code>library(tximport)
 library(myTAI)
-library(topGO)</code></pre>
+# library(topGO)
+library(Rgraphviz)</code></pre>
+<pre><code>## Loading required package: graph</code></pre>
 <pre><code>## Loading required package: BiocGenerics</code></pre>
 <pre><code>## 
 ## Attaching package: &#39;BiocGenerics&#39;</code></pre>
@@ -1656,75 +1658,19 @@ library(topGO)</code></pre>
 ##     match, mget, order, paste, pmax, pmax.int, pmin, pmin.int,
 ##     Position, rank, rbind, Reduce, rownames, sapply, setdiff, sort,
 ##     table, tapply, union, unique, unsplit, which.max, which.min</code></pre>
-<pre><code>## Loading required package: graph</code></pre>
-<pre><code>## Loading required package: Biobase</code></pre>
-<pre><code>## Welcome to Bioconductor
-## 
-##     Vignettes contain introductory material; view with
-##     &#39;browseVignettes()&#39;. To cite Bioconductor, see
-##     &#39;citation(&quot;Biobase&quot;)&#39;, and for packages &#39;citation(&quot;pkgname&quot;)&#39;.</code></pre>
-<pre><code>## Loading required package: GO.db</code></pre>
-<pre><code>## Loading required package: AnnotationDbi</code></pre>
-<pre><code>## Loading required package: stats4</code></pre>
-<pre><code>## Loading required package: IRanges</code></pre>
-<pre><code>## Loading required package: S4Vectors</code></pre>
-<pre><code>## 
-## Attaching package: &#39;S4Vectors&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:base&#39;:
-## 
-##     expand.grid, I, unname</code></pre>
-<pre><code>## </code></pre>
-<pre><code>## Loading required package: SparseM</code></pre>
-<pre><code>## 
-## Attaching package: &#39;SparseM&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:base&#39;:
-## 
-##     backsolve</code></pre>
-<pre><code>## 
-## groupGOTerms:    GOBPTerm, GOMFTerm, GOCCTerm environments built.</code></pre>
-<pre><code>## 
-## Attaching package: &#39;topGO&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:IRanges&#39;:
-## 
-##     members</code></pre>
-<pre class="r"><code>library(Rgraphviz)</code></pre>
 <pre><code>## Loading required package: grid</code></pre>
-<pre><code>## 
-## Attaching package: &#39;grid&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:topGO&#39;:
-## 
-##     depth</code></pre>
-<pre><code>## 
-## Attaching package: &#39;Rgraphviz&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:IRanges&#39;:
-## 
-##     from, to</code></pre>
-<pre><code>## The following objects are masked from &#39;package:S4Vectors&#39;:
-## 
-##     from, to</code></pre>
 <pre class="r"><code>library(tidyverse)</code></pre>
 <pre><code>## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
-## ✔ dplyr     1.1.2     ✔ readr     2.1.4
+## ✔ dplyr     1.1.3     ✔ readr     2.1.4
 ## ✔ forcats   1.0.0     ✔ stringr   1.5.0
-## ✔ lubridate 1.9.2     ✔ tibble    3.2.1
+## ✔ lubridate 1.9.3     ✔ tibble    3.2.1
 ## ✔ purrr     1.0.2     ✔ tidyr     1.3.0</code></pre>
 <pre><code>## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
-## ✖ lubridate::%within%()    masks IRanges::%within%()
 ## ✖ stringr::boundary()      masks graph::boundary()
-## ✖ dplyr::collapse()        masks IRanges::collapse()
-## ✖ dplyr::combine()         masks Biobase::combine(), BiocGenerics::combine()
-## ✖ dplyr::desc()            masks IRanges::desc()
-## ✖ tidyr::expand()          masks S4Vectors::expand()
+## ✖ dplyr::combine()         masks BiocGenerics::combine()
 ## ✖ dplyr::filter()          masks stats::filter()
-## ✖ dplyr::first()           masks S4Vectors::first()
 ## ✖ dplyr::lag()             masks stats::lag()
 ## ✖ BiocGenerics::Position() masks ggplot2::Position(), base::Position()
-## ✖ purrr::reduce()          masks IRanges::reduce()
-## ✖ dplyr::rename()          masks S4Vectors::rename()
-## ✖ lubridate::second()      masks S4Vectors::second()
-## ✖ lubridate::second&lt;-()    masks S4Vectors::second&lt;-()
-## ✖ dplyr::select()          masks AnnotationDbi::select()
-## ✖ dplyr::slice()           masks IRanges::slice()
 ## ℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors</code></pre>
 <div id="load-data" class="section level2">
 <h2>Load data</h2>
@@ -1794,6 +1740,37 @@ contrast_list &lt;-
 Fs_nonDEG_contrasts &lt;-
   get_DESeq2_contrasts(Fs_ddsObj.wald_nonDEGlist, contrast_list)</code></pre>
 <pre><code>## Loading required package: DESeq2</code></pre>
+<pre><code>## Loading required package: S4Vectors</code></pre>
+<pre><code>## Loading required package: stats4</code></pre>
+<pre><code>## 
+## Attaching package: &#39;S4Vectors&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:lubridate&#39;:
+## 
+##     second, second&lt;-</code></pre>
+<pre><code>## The following objects are masked from &#39;package:dplyr&#39;:
+## 
+##     first, rename</code></pre>
+<pre><code>## The following object is masked from &#39;package:tidyr&#39;:
+## 
+##     expand</code></pre>
+<pre><code>## The following objects are masked from &#39;package:Rgraphviz&#39;:
+## 
+##     from, to</code></pre>
+<pre><code>## The following objects are masked from &#39;package:base&#39;:
+## 
+##     expand.grid, I, unname</code></pre>
+<pre><code>## Loading required package: IRanges</code></pre>
+<pre><code>## 
+## Attaching package: &#39;IRanges&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:lubridate&#39;:
+## 
+##     %within%</code></pre>
+<pre><code>## The following objects are masked from &#39;package:dplyr&#39;:
+## 
+##     collapse, desc, slice</code></pre>
+<pre><code>## The following object is masked from &#39;package:purrr&#39;:
+## 
+##     reduce</code></pre>
 <pre><code>## Loading required package: GenomicRanges</code></pre>
 <pre><code>## Loading required package: GenomeInfoDb</code></pre>
 <pre><code>## Loading required package: SummarizedExperiment</code></pre>
@@ -1804,9 +1781,6 @@ Fs_nonDEG_contrasts &lt;-
 <pre><code>## The following object is masked from &#39;package:dplyr&#39;:
 ## 
 ##     count</code></pre>
-<pre><code>## The following objects are masked from &#39;package:Biobase&#39;:
-## 
-##     anyMissing, rowMedians</code></pre>
 <pre><code>## 
 ## Attaching package: &#39;MatrixGenerics&#39;</code></pre>
 <pre><code>## The following objects are masked from &#39;package:matrixStats&#39;:
@@ -1826,9 +1800,20 @@ Fs_nonDEG_contrasts &lt;-
 ##     rowSdDiffs, rowSds, rowSums2, rowTabulates, rowVarDiffs, rowVars,
 ##     rowWeightedMads, rowWeightedMeans, rowWeightedMedians,
 ##     rowWeightedSds, rowWeightedVars</code></pre>
-<pre><code>## The following object is masked from &#39;package:Biobase&#39;:
+<pre><code>## Loading required package: Biobase</code></pre>
+<pre><code>## Welcome to Bioconductor
+## 
+##     Vignettes contain introductory material; view with
+##     &#39;browseVignettes()&#39;. To cite Bioconductor, see
+##     &#39;citation(&quot;Biobase&quot;)&#39;, and for packages &#39;citation(&quot;pkgname&quot;)&#39;.</code></pre>
+<pre><code>## 
+## Attaching package: &#39;Biobase&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:MatrixGenerics&#39;:
 ## 
 ##     rowMedians</code></pre>
+<pre><code>## The following objects are masked from &#39;package:matrixStats&#39;:
+## 
+##     anyMissing, rowMedians</code></pre>
 <pre class="r"><code># Fs_denoised_DEG_contrasts &lt;-
 #   get_DESeq2_contrasts(Fs_ddsObj.denoised.wald_DEGlist , contrast_list)
 # Fs_denoised_nonDEG_contrasts &lt;-
@@ -1836,7 +1821,7 @@ Fs_nonDEG_contrasts &lt;-
 
 # Fucus distichus
 contrast_list &lt;- 
-  c(&quot;E2 vs E1&quot;, &quot;E3 vs E2&quot;, &quot;E4 vs E3&quot;, &quot;E5 vs E4&quot;)
+  c(&quot;E2 vs E1&quot;, &quot;E3 vs E2&quot;, &quot;E4 vs E3&quot;, &quot;E5 vs E4&quot;, &quot;E6 vs E5&quot;)
 # Fd_DEG_contrasts &lt;-
 #   get_DESeq2_contrasts(Fd_ddsObj.wald_DEGlist, contrast_list)
 Fd_nonDEG_contrasts &lt;-
@@ -2059,7 +2044,7 @@ diffPS(DEG_input = Fs_nonDEG_contrasts_input, age_list = Fs_age, alternative = &
 ##  Wilcoxon rank sum test with continuity correction
 ## 
 ## data:  PS_query$rank and PS_nonquery$rank
-## W = 4378815, p-value = 0.8348
+## W = 4272845, p-value = 0.9891
 ## alternative hypothesis: true location shift is greater than 0</code></pre>
 <pre class="r"><code>diffPS(DEG_input = Fd_LRT.1000, age_list = Fd_age, LRT.1000 = T, alternative = &quot;less&quot;)</code></pre>
 <pre><code>## Joining with `by = join_by(GeneID)`</code></pre>
@@ -2067,7 +2052,7 @@ diffPS(DEG_input = Fs_nonDEG_contrasts_input, age_list = Fs_age, alternative = &
 ##  Wilcoxon rank sum test with continuity correction
 ## 
 ## data:  PS_query$rank and PS_nonquery$rank
-## W = 4378815, p-value = 0.1652
+## W = 4272845, p-value = 0.01095
 ## alternative hypothesis: true location shift is less than 0</code></pre>
 <pre class="r"><code>diffPS(DEG_input = Fd_LRT.1000, age_list = Fd_age, LRT.1000 = T, alternative = &quot;two.sided&quot;)</code></pre>
 <pre><code>## Joining with `by = join_by(GeneID)`</code></pre>
@@ -2075,7 +2060,7 @@ diffPS(DEG_input = Fs_nonDEG_contrasts_input, age_list = Fs_age, alternative = &
 ##  Wilcoxon rank sum test with continuity correction
 ## 
 ## data:  PS_query$rank and PS_nonquery$rank
-## W = 4378815, p-value = 0.3305
+## W = 4272845, p-value = 0.02189
 ## alternative hypothesis: true location shift is not equal to 0</code></pre>
 <p>No significant differences in DEGs.</p>
 <div id="e2-vs-e1" class="section level5">
@@ -2088,7 +2073,7 @@ diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &
 ##  Wilcoxon rank sum test with continuity correction
 ## 
 ## data:  PS_query$rank and PS_nonquery$rank
-## W = 6993788, p-value = 0.564
+## W = 6411126, p-value = 0.2743
 ## alternative hypothesis: true location shift is greater than 0</code></pre>
 <pre class="r"><code>diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &quot;less&quot;)</code></pre>
 <pre><code>## Joining with `by = join_by(GeneID)`</code></pre>
@@ -2096,7 +2081,7 @@ diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &
 ##  Wilcoxon rank sum test with continuity correction
 ## 
 ## data:  PS_query$rank and PS_nonquery$rank
-## W = 6993788, p-value = 0.436
+## W = 6411126, p-value = 0.7257
 ## alternative hypothesis: true location shift is less than 0</code></pre>
 <pre class="r"><code>diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &quot;two.sided&quot;)</code></pre>
 <pre><code>## Joining with `by = join_by(GeneID)`</code></pre>
@@ -2104,7 +2089,7 @@ diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &
 ##  Wilcoxon rank sum test with continuity correction
 ## 
 ## data:  PS_query$rank and PS_nonquery$rank
-## W = 6993788, p-value = 0.872
+## W = 6411126, p-value = 0.5485
 ## alternative hypothesis: true location shift is not equal to 0</code></pre>
 </div>
 <div id="e3-vs-e2" class="section level5">
@@ -2117,7 +2102,7 @@ diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &
 ##  Wilcoxon rank sum test with continuity correction
 ## 
 ## data:  PS_query$rank and PS_nonquery$rank
-## W = 7154456, p-value = 0.9985
+## W = 7175270, p-value = 0.9972
 ## alternative hypothesis: true location shift is greater than 0</code></pre>
 <pre class="r"><code>diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &quot;less&quot;)</code></pre>
 <pre><code>## Joining with `by = join_by(GeneID)`</code></pre>
@@ -2125,7 +2110,7 @@ diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &
 ##  Wilcoxon rank sum test with continuity correction
 ## 
 ## data:  PS_query$rank and PS_nonquery$rank
-## W = 7154456, p-value = 0.001522
+## W = 7175270, p-value = 0.002771
 ## alternative hypothesis: true location shift is less than 0</code></pre>
 <pre class="r"><code>diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &quot;two.sided&quot;)</code></pre>
 <pre><code>## Joining with `by = join_by(GeneID)`</code></pre>
@@ -2133,7 +2118,7 @@ diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &
 ##  Wilcoxon rank sum test with continuity correction
 ## 
 ## data:  PS_query$rank and PS_nonquery$rank
-## W = 7154456, p-value = 0.003045
+## W = 7175270, p-value = 0.005541
 ## alternative hypothesis: true location shift is not equal to 0</code></pre>
 </div>
 <div id="e4-vs-e3" class="section level5">
@@ -2146,7 +2131,7 @@ diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &
 ##  Wilcoxon rank sum test with continuity correction
 ## 
 ## data:  PS_query$rank and PS_nonquery$rank
-## W = 5162585, p-value = 0.9567
+## W = 6212982, p-value = 0.9174
 ## alternative hypothesis: true location shift is greater than 0</code></pre>
 <pre class="r"><code>diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &quot;less&quot;)</code></pre>
 <pre><code>## Joining with `by = join_by(GeneID)`</code></pre>
@@ -2154,7 +2139,7 @@ diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &
 ##  Wilcoxon rank sum test with continuity correction
 ## 
 ## data:  PS_query$rank and PS_nonquery$rank
-## W = 5162585, p-value = 0.04334
+## W = 6212982, p-value = 0.08257
 ## alternative hypothesis: true location shift is less than 0</code></pre>
 <pre class="r"><code>diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &quot;two.sided&quot;)</code></pre>
 <pre><code>## Joining with `by = join_by(GeneID)`</code></pre>
@@ -2162,7 +2147,7 @@ diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &
 ##  Wilcoxon rank sum test with continuity correction
 ## 
 ## data:  PS_query$rank and PS_nonquery$rank
-## W = 5162585, p-value = 0.08669
+## W = 6212982, p-value = 0.1651
 ## alternative hypothesis: true location shift is not equal to 0</code></pre>
 </div>
 <div id="e5-vs-e4" class="section level5">
@@ -2175,7 +2160,7 @@ diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &
 ##  Wilcoxon rank sum test with continuity correction
 ## 
 ## data:  PS_query$rank and PS_nonquery$rank
-## W = 5007120, p-value = 0.996
+## W = 4108045, p-value = 0.9999
 ## alternative hypothesis: true location shift is greater than 0</code></pre>
 <pre class="r"><code>diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &quot;less&quot;)</code></pre>
 <pre><code>## Joining with `by = join_by(GeneID)`</code></pre>
@@ -2183,7 +2168,7 @@ diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &
 ##  Wilcoxon rank sum test with continuity correction
 ## 
 ## data:  PS_query$rank and PS_nonquery$rank
-## W = 5007120, p-value = 0.003956
+## W = 4108045, p-value = 9.274e-05
 ## alternative hypothesis: true location shift is less than 0</code></pre>
 <pre class="r"><code>diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &quot;two.sided&quot;)</code></pre>
 <pre><code>## Joining with `by = join_by(GeneID)`</code></pre>
@@ -2191,7 +2176,36 @@ diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &
 ##  Wilcoxon rank sum test with continuity correction
 ## 
 ## data:  PS_query$rank and PS_nonquery$rank
-## W = 5007120, p-value = 0.007912
+## W = 4108045, p-value = 0.0001855
+## alternative hypothesis: true location shift is not equal to 0</code></pre>
+</div>
+<div id="e6-vs-e5" class="section level5">
+<h5>E6 vs E5</h5>
+<pre class="r"><code>Fd_nonDEG_contrasts_input &lt;- 
+  Fd_nonDEG_contrasts %&gt;% dplyr::filter(contrast == &quot;E6 vs E5&quot;)
+diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &quot;greater&quot;)</code></pre>
+<pre><code>## Joining with `by = join_by(GeneID)`</code></pre>
+<pre><code>## 
+##  Wilcoxon rank sum test with continuity correction
+## 
+## data:  PS_query$rank and PS_nonquery$rank
+## W = 6011891, p-value = 0.9988
+## alternative hypothesis: true location shift is greater than 0</code></pre>
+<pre class="r"><code>diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &quot;less&quot;)</code></pre>
+<pre><code>## Joining with `by = join_by(GeneID)`</code></pre>
+<pre><code>## 
+##  Wilcoxon rank sum test with continuity correction
+## 
+## data:  PS_query$rank and PS_nonquery$rank
+## W = 6011891, p-value = 0.001199
+## alternative hypothesis: true location shift is less than 0</code></pre>
+<pre class="r"><code>diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &quot;two.sided&quot;)</code></pre>
+<pre><code>## Joining with `by = join_by(GeneID)`</code></pre>
+<pre><code>## 
+##  Wilcoxon rank sum test with continuity correction
+## 
+## data:  PS_query$rank and PS_nonquery$rank
+## W = 6011891, p-value = 0.002399
 ## alternative hypothesis: true location shift is not equal to 0</code></pre>
 </div>
 </div>
@@ -2419,7 +2433,7 @@ fisherPS(DEG_input = Fs_nonDEG_contrasts_input, age_list = Fs_age, alternative =
 ## `.groups` argument.</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["rank"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["odds_ratio"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["query_prop"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["background_prop"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["adjusted_p_value"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"1.0574129","3":"0.23561169","4":"0.10457038","5":"0.09945675","6":"0.6282978"},{"1":"2","2":"0.9585939","3":"0.64082239","4":"0.09733124","5":"0.10111027","6":"0.8250579"},{"1":"3","2":"0.7418367","3":"0.78346124","4":"0.07692308","5":"0.10099371","6":"0.8250579"},{"1":"4","2":"0.8005079","3":"0.78310935","4":"0.08256881","5":"0.10107088","6":"0.8250579"},{"1":"5","2":"1.7730299","3":"0.03267215","4":"0.16494845","5":"0.10023429","6":"0.2613772"},{"1":"6","2":"1.3981011","3":"0.07673036","4":"0.13471503","5":"0.10019545","6":"0.3069215"},{"1":"7","2":"0.9665205","3":"0.65622751","4":"0.09827357","5":"0.10133206","6":"0.8250579"},{"1":"8","2":"0.9413558","3":"0.82505795","4":"0.09792803","5":"0.10339651","6":"0.8250579"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["rank"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["odds_ratio"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["query_prop"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["background_prop"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["adjusted_p_value"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"1.1895989","3":"0.009618684","4":"0.11261426","5":"0.09639226","6":"0.07694947"},{"1":"2","2":"0.9953316","3":"0.534534933","4":"0.10047096","5":"0.10089469","6":"0.96455903"},{"1":"3","2":"0.9480403","3":"0.613011840","4":"0.09615385","5":"0.10089231","6":"0.96455903"},{"1":"4","2":"0.6090335","3":"0.932719693","4":"0.06422018","5":"0.10127486","6":"0.96455903"},{"1":"5","2":"1.5106331","3":"0.107495694","4":"0.14432990","5":"0.10043802","6":"0.42998277"},{"1":"6","2":"1.0902573","3":"0.390475822","4":"0.10880829","5":"0.10070980","6":"0.96455903"},{"1":"7","2":"0.9411948","3":"0.752882065","4":"0.09628154","5":"0.10168887","6":"0.96455903"},{"1":"8","2":"0.8878349","3":"0.964559031","4":"0.09509269","5":"0.10583599","6":"0.96455903"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <pre class="r"><code>fisherPS(DEG_input = Fd_LRT.1000, age_list = Fd_age, LRT.1000 = T, alternative = &quot;less&quot;)</code></pre>
@@ -2428,7 +2442,7 @@ fisherPS(DEG_input = Fs_nonDEG_contrasts_input, age_list = Fs_age, alternative =
 ## `.groups` argument.</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["rank"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["odds_ratio"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["query_prop"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["background_prop"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["adjusted_p_value"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"1.0574129","3":"0.7865803","4":"0.10457038","5":"0.09945675","6":"0.9836567"},{"1":"2","2":"0.9585939","3":"0.4116261","4":"0.09733124","5":"0.10111027","6":"0.6586017"},{"1":"3","2":"0.7418367","3":"0.3869882","4":"0.07692308","5":"0.10099371","6":"0.6586017"},{"1":"4","2":"0.8005079","3":"0.3283023","4":"0.08256881","5":"0.10107088","6":"0.6586017"},{"1":"5","2":"1.7730299","3":"0.9836567","4":"0.16494845","5":"0.10023429","6":"0.9836567"},{"1":"6","2":"1.3981011","3":"0.9504428","4":"0.13471503","5":"0.10019545","6":"0.9836567"},{"1":"7","2":"0.9665205","3":"0.3787745","4":"0.09827357","5":"0.10133206","6":"0.6586017"},{"1":"8","2":"0.9413558","3":"0.1927411","4":"0.09792803","5":"0.10339651","6":"0.6586017"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["rank"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["odds_ratio"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["query_prop"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["background_prop"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["adjusted_p_value"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"1.1895989","3":"0.99211218","4":"0.11261426","5":"0.09639226","6":"0.9921122"},{"1":"2","2":"0.9953316","3":"0.51970889","4":"0.10047096","5":"0.10089469","6":"0.9132636"},{"1":"3","2":"0.9480403","3":"0.57078978","4":"0.09615385","5":"0.10089231","6":"0.9132636"},{"1":"4","2":"0.6090335","3":"0.12868160","4":"0.06422018","5":"0.10127486","6":"0.5147264"},{"1":"5","2":"1.5106331","3":"0.93875624","4":"0.14432990","5":"0.10043802","6":"0.9921122"},{"1":"6","2":"1.0902573","3":"0.69633505","4":"0.10880829","5":"0.10070980","6":"0.9284467"},{"1":"7","2":"0.9411948","3":"0.27771917","4":"0.09628154","5":"0.10168887","6":"0.7405845"},{"1":"8","2":"0.8878349","3":"0.04100435","4":"0.09509269","5":"0.10583599","6":"0.3280348"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <pre class="r"><code>fisherPS(DEG_input = Fd_LRT.1000, age_list = Fd_age, LRT.1000 = T, alternative = &quot;two.sided&quot;)</code></pre>
@@ -2437,7 +2451,7 @@ fisherPS(DEG_input = Fs_nonDEG_contrasts_input, age_list = Fs_age, alternative =
 ## `.groups` argument.</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["rank"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["odds_ratio"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["query_prop"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["background_prop"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["adjusted_p_value"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"1.0574129","3":"0.45562695","4":"0.10457038","5":"0.09945675","6":"0.8382638"},{"1":"2","2":"0.9585939","3":"0.83826379","4":"0.09733124","5":"0.10111027","6":"0.8382638"},{"1":"3","2":"0.7418367","3":"0.81619838","4":"0.07692308","5":"0.10099371","6":"0.8382638"},{"1":"4","2":"0.8005079","3":"0.63220201","4":"0.08256881","5":"0.10107088","6":"0.8382638"},{"1":"5","2":"1.7730299","3":"0.04167586","4":"0.16494845","5":"0.10023429","6":"0.3334068"},{"1":"6","2":"1.3981011","3":"0.11660700","4":"0.13471503","5":"0.10019545","6":"0.4664280"},{"1":"7","2":"0.9665205","3":"0.74513747","4":"0.09827357","5":"0.10133206","6":"0.8382638"},{"1":"8","2":"0.9413558","3":"0.38456303","4":"0.09792803","5":"0.10339651","6":"0.8382638"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["rank"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["odds_ratio"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["query_prop"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["background_prop"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["adjusted_p_value"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"1.1895989","3":"0.01870046","4":"0.11261426","5":"0.09639226","6":"0.1496037"},{"1":"2","2":"0.9953316","3":"1.00000000","4":"0.10047096","5":"0.10089469","6":"1.0000000"},{"1":"3","2":"0.9480403","3":"1.00000000","4":"0.09615385","5":"0.10089231","6":"1.0000000"},{"1":"4","2":"0.6090335","3":"0.26123812","4":"0.06422018","5":"0.10127486","6":"0.5224762"},{"1":"5","2":"1.5106331","3":"0.17202739","4":"0.14432990","5":"0.10043802","6":"0.4587397"},{"1":"6","2":"1.0902573","3":"0.71669659","4":"0.10880829","5":"0.10070980","6":"0.9555954"},{"1":"7","2":"0.9411948","3":"0.54601427","4":"0.09628154","5":"0.10168887","6":"0.8736228"},{"1":"8","2":"0.8878349","3":"0.08197971","4":"0.09509269","5":"0.10583599","6":"0.3279189"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <p>No significant differences in DEGs.</p>
@@ -2451,7 +2465,7 @@ fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative =
 ## `.groups` argument.</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["rank"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["odds_ratio"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["query_prop"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["background_prop"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["adjusted_p_value"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"1.0990942","3":"0.03455682","4":"0.6359348","5":"0.6137841","6":"0.1222787"},{"1":"2","2":"1.0919494","3":"0.18361411","4":"0.6395564","5":"0.6190410","6":"0.3672282"},{"1":"3","2":"1.2718327","3":"0.29495120","4":"0.6750000","5":"0.6201954","6":"0.4719219"},{"1":"4","2":"1.5792782","3":"0.04585451","4":"0.7200000","5":"0.6195026","6":"0.1222787"},{"1":"5","2":"0.8885813","3":"0.73894363","4":"0.5925926","5":"0.6207755","6":"0.8445070"},{"1":"6","2":"1.0449623","3":"0.43096155","4":"0.6305732","5":"0.6202699","6":"0.5746154"},{"1":"7","2":"0.6467803","3":"1.00000000","4":"0.5300000","5":"0.6355253","6":"1.0000000"},{"1":"8","2":"1.1039725","3":"0.01939525","4":"0.6335202","5":"0.6102635","6":"0.1222787"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["rank"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["odds_ratio"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["query_prop"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["background_prop"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["adjusted_p_value"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"1.0359550","3":"0.25910301","4":"0.6441125","5":"0.6359751","6":"0.5182060"},{"1":"2","2":"1.0825106","3":"0.21567138","4":"0.6553030","5":"0.6371810","6":"0.5182060"},{"1":"3","2":"1.1770057","3":"0.38103269","4":"0.6750000","5":"0.6382719","6":"0.5462890"},{"1":"4","2":"1.8077313","3":"0.01904958","4":"0.7605634","5":"0.6372909","6":"0.0761983"},{"1":"5","2":"0.8571074","3":"0.78404365","4":"0.6025641","5":"0.6388511","6":"0.8960499"},{"1":"6","2":"1.0574365","3":"0.40971673","4":"0.6510067","5":"0.6382131","6":"0.5462890"},{"1":"7","2":"0.6927121","3":"0.99999996","4":"0.5632296","5":"0.6505629","6":"1.0000000"},{"1":"8","2":"1.1165612","3":"0.01264807","4":"0.6527351","5":"0.6273381","6":"0.0761983"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <pre class="r"><code>fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &quot;less&quot;)</code></pre>
@@ -2460,7 +2474,7 @@ fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative =
 ## `.groups` argument.</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["rank"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["odds_ratio"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["query_prop"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["background_prop"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["adjusted_p_value"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"1.0990942","3":"9.691835e-01","4":"0.6359348","5":"0.6137841","6":"9.827308e-01"},{"1":"2","2":"1.0919494","3":"8.399213e-01","4":"0.6395564","5":"0.6190410","6":"9.827308e-01"},{"1":"3","2":"1.2718327","3":"8.084619e-01","4":"0.6750000","5":"0.6201954","6":"9.827308e-01"},{"1":"4","2":"1.5792782","3":"9.736150e-01","4":"0.7200000","5":"0.6195026","6":"9.827308e-01"},{"1":"5","2":"0.8885813","3":"3.401313e-01","4":"0.5925926","5":"0.6207755","6":"9.827308e-01"},{"1":"6","2":"1.0449623","3":"6.332893e-01","4":"0.6305732","5":"0.6202699","6":"9.827308e-01"},{"1":"7","2":"0.6467803","3":"2.356563e-11","4":"0.5300000","5":"0.6355253","6":"1.885250e-10"},{"1":"8","2":"1.1039725","3":"9.827308e-01","4":"0.6335202","5":"0.6102635","6":"9.827308e-01"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["rank"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["odds_ratio"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["query_prop"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["background_prop"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["adjusted_p_value"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"1.0359550","3":"7.575904e-01","4":"0.6441125","5":"0.6359751","6":"9.903582e-01"},{"1":"2","2":"1.0825106","3":"8.109726e-01","4":"0.6553030","5":"0.6371810","6":"9.903582e-01"},{"1":"3","2":"1.1770057","3":"7.380643e-01","4":"0.6750000","5":"0.6382719","6":"9.903582e-01"},{"1":"4","2":"1.8077313","3":"9.903582e-01","4":"0.7605634","5":"0.6372909","6":"9.903582e-01"},{"1":"5","2":"0.8571074","3":"2.903933e-01","4":"0.6025641","5":"0.6388511","6":"9.903582e-01"},{"1":"6","2":"1.0574365","3":"6.559021e-01","4":"0.6510067","5":"0.6382131","6":"9.903582e-01"},{"1":"7","2":"0.6927121","3":"5.176130e-08","4":"0.5632296","5":"0.6505629","6":"4.140904e-07"},{"1":"8","2":"1.1165612","3":"9.888614e-01","4":"0.6527351","5":"0.6273381","6":"9.903582e-01"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <pre class="r"><code>fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &quot;two.sided&quot;)</code></pre>
@@ -2469,7 +2483,7 @@ fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative =
 ## `.groups` argument.</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["rank"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["odds_ratio"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["query_prop"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["background_prop"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["adjusted_p_value"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"1.0990942","3":"6.595346e-02","4":"0.6359348","5":"0.6137841","6":"1.758759e-01"},{"1":"2","2":"1.0919494","3":"3.583400e-01","4":"0.6395564","5":"0.6190410","6":"5.733440e-01"},{"1":"3","2":"1.2718327","3":"5.177952e-01","4":"0.6750000","5":"0.6201954","6":"6.903936e-01"},{"1":"4","2":"1.5792782","3":"9.340497e-02","4":"0.7200000","5":"0.6195026","6":"1.868099e-01"},{"1":"5","2":"0.8885813","3":"6.455912e-01","4":"0.5925926","5":"0.6207755","6":"7.378185e-01"},{"1":"6","2":"1.0449623","3":"8.680803e-01","4":"0.6305732","5":"0.6202699","6":"8.680803e-01"},{"1":"7","2":"0.6467803","3":"4.320166e-11","4":"0.5300000","5":"0.6355253","6":"3.456133e-10"},{"1":"8","2":"1.1039725","3":"3.753691e-02","4":"0.6335202","5":"0.6102635","6":"1.501476e-01"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["rank"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["odds_ratio"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["query_prop"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["background_prop"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["adjusted_p_value"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"1.0359550","3":"5.125544e-01","4":"0.6441125","5":"0.6359751","6":"7.384674e-01"},{"1":"2","2":"1.0825106","3":"4.244507e-01","4":"0.6553030","5":"0.6371810","6":"7.384674e-01"},{"1":"3","2":"1.1770057","3":"7.421153e-01","4":"0.6750000","5":"0.6382719","6":"7.963835e-01"},{"1":"4","2":"1.8077313","3":"3.441845e-02","4":"0.7605634","5":"0.6372909","6":"9.178252e-02"},{"1":"5","2":"0.8571074","3":"5.538505e-01","4":"0.6025641","5":"0.6388511","6":"7.384674e-01"},{"1":"6","2":"1.0574365","3":"7.963835e-01","4":"0.6510067","5":"0.6382131","6":"7.963835e-01"},{"1":"7","2":"0.6927121","3":"1.007699e-07","4":"0.5632296","5":"0.6505629","6":"8.061595e-07"},{"1":"8","2":"1.1165612","3":"2.511285e-02","4":"0.6527351","5":"0.6273381","6":"9.178252e-02"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 </div>
@@ -2483,7 +2497,7 @@ fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative =
 ## `.groups` argument.</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["rank"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["odds_ratio"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["query_prop"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["background_prop"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["adjusted_p_value"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"1.2995542","3":"7.384837e-08","4":"0.5244425","5":"0.4590377","6":"5.907869e-07"},{"1":"2","2":"1.0320780","3":"3.783881e-01","4":"0.4861368","5":"0.4782548","6":"7.164119e-01"},{"1":"3","2":"2.0285837","3":"2.167425e-02","4":"0.6500000","5":"0.4779153","6":"8.669701e-02"},{"1":"4","2":"1.0048362","3":"5.373089e-01","4":"0.4800000","5":"0.4787958","6":"7.164119e-01"},{"1":"5","2":"1.0108850","3":"5.246215e-01","4":"0.4814815","5":"0.4787791","6":"7.164119e-01"},{"1":"6","2":"0.6865233","3":"9.913241e-01","4":"0.3885350","5":"0.4806827","6":"1.000000e+00"},{"1":"7","2":"0.6303300","3":"1.000000e+00","4":"0.3818182","5":"0.4949358","6":"1.000000e+00"},{"1":"8","2":"1.0070280","3":"4.484436e-01","4":"0.4797875","5":"0.4780398","6":"7.164119e-01"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["rank"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["odds_ratio"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["query_prop"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["background_prop"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["adjusted_p_value"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"1.2624598","3":"1.437885e-06","4":"0.5044738","5":"0.4464054","6":"1.150308e-05"},{"1":"2","2":"1.0487045","3":"3.126232e-01","4":"0.4750462","5":"0.4632077","6":"6.773601e-01"},{"1":"3","2":"1.9313152","3":"2.951572e-02","4":"0.6250000","5":"0.4631990","6":"1.180629e-01"},{"1":"4","2":"1.0667927","3":"4.345740e-01","4":"0.4800000","5":"0.4638798","6":"6.773601e-01"},{"1":"5","2":"1.0997329","3":"3.773485e-01","4":"0.4875000","5":"0.4637908","6":"6.773601e-01"},{"1":"6","2":"0.7171783","3":"9.821648e-01","4":"0.3846154","5":"0.4656720","6":"1.000000e+00"},{"1":"7","2":"0.6521738","3":"1.000000e+00","4":"0.3746582","5":"0.4788180","6":"1.000000e+00"},{"1":"8","2":"1.0001221","3":"5.080201e-01","4":"0.4640542","5":"0.4640221","6":"6.773601e-01"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <pre class="r"><code>fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &quot;less&quot;)</code></pre>
@@ -2492,7 +2506,7 @@ fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative =
 ## `.groups` argument.</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["rank"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["odds_ratio"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["query_prop"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["background_prop"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["adjusted_p_value"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"1.2995542","3":"9.999999e-01","4":"0.5244425","5":"0.4590377","6":"9.999999e-01"},{"1":"2","2":"1.0320780","3":"6.550259e-01","4":"0.4861368","5":"0.4782548","6":"8.733679e-01"},{"1":"3","2":"2.0285837","3":"9.904491e-01","4":"0.6500000","5":"0.4779153","6":"9.999999e-01"},{"1":"4","2":"1.0048362","3":"5.550193e-01","4":"0.4800000","5":"0.4787958","6":"8.733679e-01"},{"1":"5","2":"1.0108850","3":"5.641832e-01","4":"0.4814815","5":"0.4787791","6":"8.733679e-01"},{"1":"6","2":"0.6865233","3":"1.335675e-02","4":"0.3885350","5":"0.4806827","6":"5.342702e-02"},{"1":"7","2":"0.6303300","3":"1.752112e-12","4":"0.3818182","5":"0.4949358","6":"1.401690e-11"},{"1":"8","2":"1.0070280","3":"5.696623e-01","4":"0.4797875","5":"0.4780398","6":"8.733679e-01"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["rank"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["odds_ratio"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["query_prop"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["background_prop"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["adjusted_p_value"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"1.2624598","3":"9.999989e-01","4":"0.5044738","5":"0.4464054","6":"9.999989e-01"},{"1":"2","2":"1.0487045","3":"7.182781e-01","4":"0.4750462","5":"0.4632077","6":"9.577042e-01"},{"1":"3","2":"1.9313152","3":"9.863991e-01","4":"0.6250000","5":"0.4631990","6":"9.999989e-01"},{"1":"4","2":"1.0667927","3":"6.542653e-01","4":"0.4800000","5":"0.4638798","6":"9.577042e-01"},{"1":"5","2":"1.0997329","3":"7.044343e-01","4":"0.4875000","5":"0.4637908","6":"9.577042e-01"},{"1":"6","2":"0.7171783","3":"2.641713e-02","4":"0.3846154","5":"0.4656720","6":"1.056685e-01"},{"1":"7","2":"0.6521738","3":"7.150710e-11","4":"0.3746582","5":"0.4788180","6":"5.720568e-10"},{"1":"8","2":"1.0001221","3":"5.103120e-01","4":"0.4640542","5":"0.4640221","6":"9.577042e-01"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <pre class="r"><code>fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &quot;two.sided&quot;)</code></pre>
@@ -2501,7 +2515,7 @@ fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative =
 ## `.groups` argument.</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["rank"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["odds_ratio"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["query_prop"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["background_prop"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["adjusted_p_value"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"1.2995542","3":"1.417969e-07","4":"0.5244425","5":"0.4590377","6":"5.671874e-07"},{"1":"2","2":"1.0320780","3":"7.547838e-01","4":"0.4861368","5":"0.4782548","6":"1.000000e+00"},{"1":"3","2":"2.0285837","3":"3.805977e-02","4":"0.6500000","5":"0.4779153","6":"7.611954e-02"},{"1":"4","2":"1.0048362","3":"1.000000e+00","4":"0.4800000","5":"0.4787958","6":"1.000000e+00"},{"1":"5","2":"1.0108850","3":"1.000000e+00","4":"0.4814815","5":"0.4787791","6":"1.000000e+00"},{"1":"6","2":"0.6865233","3":"2.371945e-02","4":"0.3885350","5":"0.4806827","6":"6.325187e-02"},{"1":"7","2":"0.6303300","3":"3.392882e-12","4":"0.3818182","5":"0.4949358","6":"2.714306e-11"},{"1":"8","2":"1.0070280","3":"8.904330e-01","4":"0.4797875","5":"0.4780398","6":"1.000000e+00"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["rank"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["odds_ratio"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["query_prop"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["background_prop"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["adjusted_p_value"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"1.2624598","3":"2.747808e-06","4":"0.5044738","5":"0.4464054","6":"1.099123e-05"},{"1":"2","2":"1.0487045","3":"6.229856e-01","4":"0.4750462","5":"0.4632077","6":"9.331999e-01"},{"1":"3","2":"1.9313152","3":"5.517216e-02","4":"0.6250000","5":"0.4631990","6":"1.103443e-01"},{"1":"4","2":"1.0667927","3":"8.165499e-01","4":"0.4800000","5":"0.4638798","6":"9.331999e-01"},{"1":"5","2":"1.0997329","3":"7.356169e-01","4":"0.4875000","5":"0.4637908","6":"9.331999e-01"},{"1":"6","2":"0.7171783","3":"5.131486e-02","4":"0.3846154","5":"0.4656720","6":"1.103443e-01"},{"1":"7","2":"0.6521738","3":"1.368157e-10","4":"0.3746582","5":"0.4788180","6":"1.094526e-09"},{"1":"8","2":"1.0001221","3":"1.000000e+00","4":"0.4640542","5":"0.4640221","6":"1.000000e+00"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 </div>
@@ -2515,7 +2529,7 @@ fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative =
 ## `.groups` argument.</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["rank"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["odds_ratio"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["query_prop"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["background_prop"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["adjusted_p_value"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"1.1470251","3":"1.061866e-02","4":"0.7721906","5":"0.7471569","6":"0.0424746231"},{"1":"2","2":"1.5608342","3":"4.758751e-05","4":"0.8236398","5":"0.7495021","6":"0.0003807001"},{"1":"3","2":"0.9748172","3":"6.112581e-01","4":"0.7500000","5":"0.7547521","6":"0.6985806831"},{"1":"4","2":"1.8106296","3":"4.010357e-02","4":"0.8472222","5":"0.7538379","6":"0.1069428568"},{"1":"5","2":"1.0438558","3":"4.960411e-01","4":"0.7625000","5":"0.7546439","6":"0.6985806831"},{"1":"6","2":"0.9918878","3":"5.607328e-01","4":"0.7532468","5":"0.7547577","6":"0.6985806831"},{"1":"7","2":"0.6072374","3":"1.000000e+00","4":"0.6688494","5":"0.7688636","6":"1.0000000000"},{"1":"8","2":"1.0242785","3":"3.380440e-01","4":"0.7572115","5":"0.7527745","6":"0.6760880547"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["rank"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["odds_ratio"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["query_prop"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["background_prop"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["adjusted_p_value"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"1.1192687","3":"2.105269e-02","4":"0.7308176","5":"0.7080757","6":"0.0842107716"},{"1":"2","2":"1.5149793","3":"4.007874e-05","4":"0.7872727","5":"0.7095323","6":"0.0003206299"},{"1":"3","2":"0.8249982","3":"7.792718e-01","4":"0.6744186","5":"0.7151786","6":"0.8905963121"},{"1":"4","2":"1.4352955","3":"1.146427e-01","4":"0.7820513","5":"0.7142857","6":"0.3057139684"},{"1":"5","2":"1.2829964","3":"2.071234e-01","4":"0.7625000","5":"0.7144688","6":"0.3844310792"},{"1":"6","2":"0.9071444","3":"7.462383e-01","4":"0.6951220","5":"0.7153776","6":"0.8905963121"},{"1":"7","2":"0.6303475","3":"1.000000e+00","4":"0.6292335","5":"0.7291821","6":"1.0000000000"},{"1":"8","2":"1.0374682","3":"2.402694e-01","4":"0.7191563","5":"0.7116689","6":"0.3844310792"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <pre class="r"><code>fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &quot;less&quot;)</code></pre>
@@ -2524,7 +2538,7 @@ fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative =
 ## `.groups` argument.</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["rank"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["odds_ratio"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["query_prop"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["background_prop"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["adjusted_p_value"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"1.1470251","3":"9.909239e-01","4":"0.7721906","5":"0.7471569","6":"9.999702e-01"},{"1":"2","2":"1.5608342","3":"9.999702e-01","4":"0.8236398","5":"0.7495021","6":"9.999702e-01"},{"1":"3","2":"0.9748172","3":"5.331451e-01","4":"0.7500000","5":"0.7547521","6":"9.999702e-01"},{"1":"4","2":"1.8106296","3":"9.801393e-01","4":"0.8472222","5":"0.7538379","6":"9.999702e-01"},{"1":"5","2":"1.0438558","3":"6.074387e-01","4":"0.7625000","5":"0.7546439","6":"9.999702e-01"},{"1":"6","2":"0.9918878","3":"5.143607e-01","4":"0.7532468","5":"0.7547577","6":"9.999702e-01"},{"1":"7","2":"0.6072374","3":"4.662755e-12","4":"0.6688494","5":"0.7688636","6":"3.730204e-11"},{"1":"8","2":"1.0242785","3":"6.814200e-01","4":"0.7572115","5":"0.7527745","6":"9.999702e-01"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["rank"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["odds_ratio"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["query_prop"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["background_prop"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["adjusted_p_value"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"1.1192687","3":"9.815630e-01","4":"0.7308176","5":"0.7080757","6":"9.999741e-01"},{"1":"2","2":"1.5149793","3":"9.999741e-01","4":"0.7872727","5":"0.7095323","6":"9.999741e-01"},{"1":"3","2":"0.8249982","3":"3.298577e-01","4":"0.6744186","5":"0.7151786","6":"8.796205e-01"},{"1":"4","2":"1.4352955","3":"9.290185e-01","4":"0.7820513","5":"0.7142857","6":"9.999741e-01"},{"1":"5","2":"1.2829964","3":"8.587199e-01","4":"0.7625000","5":"0.7144688","6":"9.999741e-01"},{"1":"6","2":"0.9071444","3":"3.119779e-01","4":"0.6951220","5":"0.7153776","6":"8.796205e-01"},{"1":"7","2":"0.6303475","3":"1.100194e-11","4":"0.6292335","5":"0.7291821","6":"8.801552e-11"},{"1":"8","2":"1.0374682","3":"7.750983e-01","4":"0.7191563","5":"0.7116689","6":"9.999741e-01"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <pre class="r"><code>fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &quot;two.sided&quot;)</code></pre>
@@ -2533,7 +2547,7 @@ fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative =
 ## `.groups` argument.</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["rank"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["odds_ratio"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["query_prop"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["background_prop"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["adjusted_p_value"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"1.1470251","3":"1.996177e-02","4":"0.7721906","5":"0.7471569","6":"5.323139e-02"},{"1":"2","2":"1.5608342","3":"8.708900e-05","4":"0.8236398","5":"0.7495021","6":"3.483560e-04"},{"1":"3","2":"0.9748172","3":"1.000000e+00","4":"0.7500000","5":"0.7547521","6":"1.000000e+00"},{"1":"4","2":"1.8106296","3":"7.332775e-02","4":"0.8472222","5":"0.7538379","6":"1.466555e-01"},{"1":"5","2":"1.0438558","3":"1.000000e+00","4":"0.7625000","5":"0.7546439","6":"1.000000e+00"},{"1":"6","2":"0.9918878","3":"1.000000e+00","4":"0.7532468","5":"0.7547577","6":"1.000000e+00"},{"1":"7","2":"0.6072374","3":"7.295568e-12","4":"0.6688494","5":"0.7688636","6":"5.836454e-11"},{"1":"8","2":"1.0242785","3":"6.667066e-01","4":"0.7572115","5":"0.7527745","6":"1.000000e+00"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["rank"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["odds_ratio"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["query_prop"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["background_prop"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["adjusted_p_value"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"1.1192687","3":"4.166171e-02","4":"0.7308176","5":"0.7080757","6":"1.110979e-01"},{"1":"2","2":"1.5149793","3":"7.109786e-05","4":"0.7872727","5":"0.7095323","6":"2.843914e-04"},{"1":"3","2":"0.8249982","3":"6.113502e-01","4":"0.6744186","5":"0.7151786","6":"6.113502e-01"},{"1":"4","2":"1.4352955","3":"2.086822e-01","4":"0.7820513","5":"0.7142857","6":"4.173644e-01"},{"1":"5","2":"1.2829964","3":"3.851127e-01","4":"0.7625000","5":"0.7144688","6":"6.113502e-01"},{"1":"6","2":"0.9071444","3":"5.999830e-01","4":"0.6951220","5":"0.7153776","6":"6.113502e-01"},{"1":"7","2":"0.6303475","3":"2.111925e-11","4":"0.6292335","5":"0.7291821","6":"1.689540e-10"},{"1":"8","2":"1.0374682","3":"4.661583e-01","4":"0.7191563","5":"0.7116689","6":"6.113502e-01"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 </div>
@@ -2547,7 +2561,7 @@ fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative =
 ## `.groups` argument.</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["rank"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["odds_ratio"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["query_prop"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["background_prop"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["adjusted_p_value"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"1.2480354","3":"0.0001585398","4":"0.8109705","5":"0.7746453","6":"0.001268318"},{"1":"2","2":"1.3465611","3":"0.0053135705","4":"0.8287796","5":"0.7823473","6":"0.021254282"},{"1":"3","2":"0.7036258","3":"0.8867589177","4":"0.7209302","5":"0.7859425","6":"0.999999997"},{"1":"4","2":"0.9791442","3":"0.5946967411","4":"0.7820513","5":"0.7856226","6":"0.907933712"},{"1":"5","2":"1.3094871","3":"0.2206167562","4":"0.8271605","5":"0.7851547","6":"0.588311350"},{"1":"6","2":"0.9775435","3":"0.5915982164","4":"0.7818182","5":"0.7856679","6":"0.907933712"},{"1":"7","2":"0.6508783","3":"0.9999999969","4":"0.7184725","5":"0.7967962","6":"0.999999997"},{"1":"8","2":"0.9758362","3":"0.6809502838","4":"0.7832755","5":"0.7873980","6":"0.907933712"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["rank"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["odds_ratio"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["query_prop"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["background_prop"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["adjusted_p_value"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"1.3028086","3":"3.182699e-05","4":"0.8397742","5":"0.8009101","6":"0.0002546159"},{"1":"2","2":"1.3748347","3":"5.643907e-03","4":"0.8539326","5":"0.8095982","6":"0.0225756269"},{"1":"3","2":"0.7926927","3":"7.970330e-01","4":"0.7750000","5":"0.8129229","6":"0.9999999422"},{"1":"4","2":"1.4329703","3":"1.839051e-01","4":"0.8611111","5":"0.8122585","6":"0.3678101444"},{"1":"5","2":"1.2896878","3":"2.584542e-01","4":"0.8481013","5":"0.8123500","6":"0.4135266851"},{"1":"6","2":"1.3586273","3":"1.094005e-01","4":"0.8543046","5":"0.8118772","6":"0.2917346549"},{"1":"7","2":"0.6570257","3":"9.999999e-01","4":"0.7528090","5":"0.8225534","6":"0.9999999422"},{"1":"8","2":"0.8958377","3":"9.705480e-01","4":"0.8033033","5":"0.8201083","6":"0.9999999422"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <pre class="r"><code>fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &quot;less&quot;)</code></pre>
@@ -2556,7 +2570,7 @@ fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative =
 ## `.groups` argument.</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["rank"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["odds_ratio"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["query_prop"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["background_prop"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["adjusted_p_value"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"1.2480354","3":"9.998748e-01","4":"0.8109705","5":"0.7746453","6":"9.998748e-01"},{"1":"2","2":"1.3465611","3":"9.961876e-01","4":"0.8287796","5":"0.7823473","6":"9.998748e-01"},{"1":"3","2":"0.7036258","3":"1.948994e-01","4":"0.7209302","5":"0.7859425","6":"7.795978e-01"},{"1":"4","2":"0.9791442","3":"5.143806e-01","4":"0.7820513","5":"0.7856226","6":"8.230089e-01"},{"1":"5","2":"1.3094871","3":"8.546221e-01","4":"0.8271605","5":"0.7851547","6":"9.998748e-01"},{"1":"6","2":"0.9775435","3":"4.836900e-01","4":"0.7818182","5":"0.7856679","6":"8.230089e-01"},{"1":"7","2":"0.6508783","3":"4.894690e-09","4":"0.7184725","5":"0.7967962","6":"3.915752e-08"},{"1":"8","2":"0.9758362","3":"3.390558e-01","4":"0.7832755","5":"0.7873980","6":"8.230089e-01"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["rank"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["odds_ratio"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["query_prop"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["background_prop"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["adjusted_p_value"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"1.3028086","3":"9.999759e-01","4":"0.8397742","5":"0.8009101","6":"9.999759e-01"},{"1":"2","2":"1.3748347","3":"9.960441e-01","4":"0.8539326","5":"0.8095982","6":"9.999759e-01"},{"1":"3","2":"0.7926927","3":"3.283785e-01","4":"0.7750000","5":"0.8129229","6":"8.756761e-01"},{"1":"4","2":"1.4329703","3":"8.902208e-01","4":"0.8611111","5":"0.8122585","6":"9.999759e-01"},{"1":"5","2":"1.2896878","3":"8.298074e-01","4":"0.8481013","5":"0.8123500","6":"9.999759e-01"},{"1":"6","2":"1.3586273","3":"9.270454e-01","4":"0.8543046","5":"0.8118772","6":"9.999759e-01"},{"1":"7","2":"0.6570257","3":"8.935434e-08","4":"0.7528090","5":"0.8225534","6":"7.148347e-07"},{"1":"8","2":"0.8958377","3":"3.364575e-02","4":"0.8033033","5":"0.8201083","6":"1.345830e-01"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <pre class="r"><code>fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &quot;two.sided&quot;)</code></pre>
@@ -2565,7 +2579,39 @@ fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative =
 ## `.groups` argument.</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["rank"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["odds_ratio"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["query_prop"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["background_prop"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["adjusted_p_value"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"1.2480354","3":"2.913527e-04","4":"0.8109705","5":"0.7746453","6":"1.165411e-03"},{"1":"2","2":"1.3465611","3":"9.662433e-03","4":"0.8287796","5":"0.7823473","6":"2.576649e-02"},{"1":"3","2":"0.7036258","3":"3.497107e-01","4":"0.7209302","5":"0.7859425","6":"6.649403e-01"},{"1":"4","2":"0.9791442","3":"8.904615e-01","4":"0.7820513","5":"0.7856226","6":"9.236208e-01"},{"1":"5","2":"1.3094871","3":"4.155877e-01","4":"0.8271605","5":"0.7851547","6":"6.649403e-01"},{"1":"6","2":"0.9775435","3":"9.236208e-01","4":"0.7818182","5":"0.7856679","6":"9.236208e-01"},{"1":"7","2":"0.6508783","3":"9.281939e-09","4":"0.7184725","5":"0.7967962","6":"7.425551e-08"},{"1":"8","2":"0.9758362","3":"6.580397e-01","4":"0.7832755","5":"0.7873980","6":"8.773862e-01"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["rank"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["odds_ratio"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["query_prop"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["background_prop"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["adjusted_p_value"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"1.3028086","3":"6.222868e-05","4":"0.8397742","5":"0.8009101","6":"2.489147e-04"},{"1":"2","2":"1.3748347","3":"1.126273e-02","4":"0.8539326","5":"0.8095982","6":"3.003394e-02"},{"1":"3","2":"0.7926927","3":"5.419831e-01","4":"0.7750000","5":"0.8129229","6":"5.419831e-01"},{"1":"4","2":"1.4329703","3":"3.623386e-01","4":"0.8611111","5":"0.8122585","6":"4.831181e-01"},{"1":"5","2":"1.2896878","3":"4.715220e-01","4":"0.8481013","5":"0.8123500","6":"5.388823e-01"},{"1":"6","2":"1.3586273","3":"2.065636e-01","4":"0.8543046","5":"0.8118772","6":"3.305017e-01"},{"1":"7","2":"0.6570257","3":"1.441790e-07","4":"0.7528090","5":"0.8225534","6":"1.153432e-06"},{"1":"8","2":"0.8958377","3":"6.586570e-02","4":"0.8033033","5":"0.8201083","6":"1.317314e-01"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+</div>
+<div id="e6-vs-e5-1" class="section level5">
+<h5>E6 vs E5</h5>
+<pre class="r"><code>Fd_nonDEG_contrasts_input &lt;- 
+  Fd_nonDEG_contrasts %&gt;% dplyr::filter(contrast == &quot;E6 vs E5&quot;)
+fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &quot;greater&quot;)</code></pre>
+<pre><code>## Joining with `by = join_by(GeneID)`
+## `summarise()` has grouped output by &#39;rank&#39;. You can override using the
+## `.groups` argument.</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":["rank"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["odds_ratio"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["query_prop"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["background_prop"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["adjusted_p_value"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"1.1943722","3":"0.0005482286","4":"0.7047330","5":"0.6664771","6":"0.004385829"},{"1":"2","2":"1.3637839","3":"0.0011027726","4":"0.7378277","5":"0.6735766","6":"0.004411091"},{"1":"3","2":"0.9858392","3":"0.5911807696","4":"0.6750000","5":"0.6781213","6":"0.788241026"},{"1":"4","2":"1.4285434","3":"0.1165358086","4":"0.7500000","5":"0.6774151","6":"0.233071617"},{"1":"5","2":"1.0256363","3":"0.5124256823","4":"0.6835443","5":"0.6780475","6":"0.788241026"},{"1":"6","2":"1.3242861","3":"0.0752038240","4":"0.7350993","5":"0.6769459","6":"0.200543531"},{"1":"7","2":"0.6685649","3":"0.9999999982","4":"0.5992509","5":"0.6910432","6":"0.999999998"},{"1":"8","2":"0.9449882","3":"0.8787051887","4":"0.6711712","5":"0.6835413","6":"0.999999998"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+<pre class="r"><code>fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &quot;less&quot;)</code></pre>
+<pre><code>## Joining with `by = join_by(GeneID)`
+## `summarise()` has grouped output by &#39;rank&#39;. You can override using the
+## `.groups` argument.</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":["rank"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["odds_ratio"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["query_prop"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["background_prop"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["adjusted_p_value"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"1.1943722","3":"9.995475e-01","4":"0.7047330","5":"0.6664771","6":"9.995475e-01"},{"1":"2","2":"1.3637839","3":"9.992128e-01","4":"0.7378277","5":"0.6735766","6":"9.995475e-01"},{"1":"3","2":"0.9858392","3":"5.427368e-01","4":"0.6750000","5":"0.6781213","6":"9.995475e-01"},{"1":"4","2":"1.4285434","3":"9.275709e-01","4":"0.7500000","5":"0.6774151","6":"9.995475e-01"},{"1":"5","2":"1.0256363","3":"5.836903e-01","4":"0.6835443","5":"0.6780475","6":"9.995475e-01"},{"1":"6","2":"1.3242861","3":"9.474195e-01","4":"0.7350993","5":"0.6769459","6":"9.995475e-01"},{"1":"7","2":"0.6685649","3":"2.785255e-09","4":"0.5992509","5":"0.6910432","6":"2.228204e-08"},{"1":"8","2":"0.9449882","3":"1.315629e-01","4":"0.6711712","5":"0.6835413","6":"5.262517e-01"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+<pre class="r"><code>fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = &quot;two.sided&quot;)</code></pre>
+<pre><code>## Joining with `by = join_by(GeneID)`
+## `summarise()` has grouped output by &#39;rank&#39;. You can override using the
+## `.groups` argument.</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":["rank"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["odds_ratio"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["p_value"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["query_prop"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["background_prop"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["adjusted_p_value"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"1.1943722","3":"1.010861e-03","4":"0.7047330","5":"0.6664771","6":"4.043445e-03"},{"1":"2","2":"1.3637839","3":"2.087757e-03","4":"0.7378277","5":"0.6735766","6":"5.567352e-03"},{"1":"3","2":"0.9858392","3":"1.000000e+00","4":"0.6750000","5":"0.6781213","6":"1.000000e+00"},{"1":"4","2":"1.4285434","3":"2.067786e-01","4":"0.7500000","5":"0.6774151","6":"3.308458e-01"},{"1":"5","2":"1.0256363","3":"1.000000e+00","4":"0.6835443","5":"0.6780475","6":"1.000000e+00"},{"1":"6","2":"1.3242861","3":"1.355159e-01","4":"0.7350993","5":"0.6769459","6":"2.710317e-01"},{"1":"7","2":"0.6685649","3":"5.121333e-09","4":"0.5992509","5":"0.6910432","6":"4.097066e-08"},{"1":"8","2":"0.9449882","3":"2.545920e-01","4":"0.6711712","5":"0.6835413","6":"3.394560e-01"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 </div>
@@ -2722,16 +2768,16 @@ uses profile HMM) having different sensitivity.</p>
 ##  system   x86_64, darwin17.0
 ##  ui       X11
 ##  language (EN)
-##  collate  en_GB.UTF-8
-##  ctype    en_GB.UTF-8
+##  collate  en_US.UTF-8
+##  ctype    en_US.UTF-8
 ##  tz       Europe/Berlin
-##  date     2023-08-28
-##  pandoc   2.19.2 @ /Applications/RStudio.app/Contents/MacOS/quarto/bin/tools/ (via rmarkdown)
+##  date     2023-11-23
+##  pandoc   3.1.6.2 @ /usr/local/bin/ (via rmarkdown)
 ## 
 ## ─ Packages ───────────────────────────────────────────────────────────────────
 ##  package              * version    date (UTC) lib source
 ##  annotate               1.76.0     2022-11-01 [1] Bioconductor
-##  AnnotationDbi        * 1.60.2     2023-03-10 [1] Bioconductor
+##  AnnotationDbi          1.60.2     2023-03-10 [1] Bioconductor
 ##  Biobase              * 2.58.0     2022-11-01 [1] Bioconductor
 ##  BiocGenerics         * 0.44.0     2022-11-01 [1] Bioconductor
 ##  BiocParallel           1.32.6     2023-03-17 [1] Bioconductor
@@ -2752,10 +2798,10 @@ uses profile HMM) having different sensitivity.</p>
 ##  DESeq2               * 1.38.3     2023-01-19 [1] Bioconductor
 ##  devtools               2.4.5      2022-10-11 [1] CRAN (R 4.2.0)
 ##  digest                 0.6.33     2023-07-07 [1] CRAN (R 4.2.0)
-##  dplyr                * 1.1.2      2023-04-20 [1] CRAN (R 4.2.0)
+##  dplyr                * 1.1.3      2023-09-03 [1] CRAN (R 4.2.0)
 ##  ellipsis               0.3.2      2021-04-29 [1] CRAN (R 4.2.0)
-##  evaluate               0.21       2023-05-05 [1] CRAN (R 4.2.0)
-##  fansi                  1.0.4      2023-01-22 [1] CRAN (R 4.2.0)
+##  evaluate               0.22       2023-09-29 [1] CRAN (R 4.2.2)
+##  fansi                  1.0.5      2023-10-08 [1] CRAN (R 4.2.2)
 ##  farver                 2.1.1      2022-07-06 [1] CRAN (R 4.2.0)
 ##  fastmap                1.1.1      2023-02-24 [1] CRAN (R 4.2.0)
 ##  forcats              * 1.0.0      2023-01-29 [1] CRAN (R 4.2.0)
@@ -2767,15 +2813,13 @@ uses profile HMM) having different sensitivity.</p>
 ##  GenomeInfoDbData       1.2.9      2023-05-04 [1] Bioconductor
 ##  GenomicRanges        * 1.50.2     2022-12-16 [1] Bioconductor
 ##  ggfortify            * 0.4.16     2023-03-20 [1] CRAN (R 4.2.0)
-##  ggplot2              * 3.4.3      2023-08-14 [1] CRAN (R 4.2.0)
+##  ggplot2              * 3.4.4      2023-10-12 [1] CRAN (R 4.2.2)
 ##  glue                   1.6.2      2022-02-24 [1] CRAN (R 4.2.0)
-##  GO.db                * 3.16.0     2023-08-17 [1] Bioconductor
 ##  graph                * 1.76.0     2022-11-01 [1] Bioconductor
 ##  gridExtra              2.3        2017-09-09 [1] CRAN (R 4.2.0)
-##  gtable                 0.3.3      2023-03-21 [1] CRAN (R 4.2.0)
-##  highr                  0.10       2022-12-22 [1] CRAN (R 4.2.0)
+##  gtable                 0.3.4      2023-08-21 [1] CRAN (R 4.2.0)
 ##  hms                    1.1.3      2023-03-21 [1] CRAN (R 4.2.0)
-##  htmltools              0.5.6      2023-08-10 [1] CRAN (R 4.2.0)
+##  htmltools              0.5.6.1    2023-10-06 [1] CRAN (R 4.2.2)
 ##  htmlwidgets            1.6.2      2023-03-17 [1] CRAN (R 4.2.0)
 ##  httpuv                 1.6.11     2023-05-11 [1] CRAN (R 4.2.2)
 ##  httr                   1.4.7      2023-08-15 [1] CRAN (R 4.2.0)
@@ -2784,13 +2828,13 @@ uses profile HMM) having different sensitivity.</p>
 ##  jquerylib              0.1.4      2021-04-26 [1] CRAN (R 4.2.0)
 ##  jsonlite               1.8.7      2023-06-29 [1] CRAN (R 4.2.0)
 ##  KEGGREST               1.38.0     2022-11-01 [1] Bioconductor
-##  knitr                  1.43       2023-05-25 [1] CRAN (R 4.2.2)
-##  labeling               0.4.2      2020-10-20 [1] CRAN (R 4.2.0)
+##  knitr                  1.44       2023-09-11 [1] CRAN (R 4.2.0)
+##  labeling               0.4.3      2023-08-29 [1] CRAN (R 4.2.0)
 ##  later                  1.3.1      2023-05-02 [1] CRAN (R 4.2.2)
-##  lattice                0.21-8     2023-04-05 [1] CRAN (R 4.2.0)
+##  lattice                0.21-9     2023-10-01 [1] CRAN (R 4.2.2)
 ##  lifecycle              1.0.3      2022-10-07 [1] CRAN (R 4.2.0)
 ##  locfit                 1.5-9.8    2023-06-11 [1] CRAN (R 4.2.0)
-##  lubridate            * 1.9.2      2023-02-10 [1] CRAN (R 4.2.0)
+##  lubridate            * 1.9.3      2023-09-27 [1] CRAN (R 4.2.0)
 ##  magrittr               2.0.3      2022-03-30 [1] CRAN (R 4.2.0)
 ##  Matrix                 1.5-4.1    2023-05-18 [1] CRAN (R 4.2.0)
 ##  MatrixGenerics       * 1.10.0     2022-11-01 [1] Bioconductor
@@ -2799,13 +2843,13 @@ uses profile HMM) having different sensitivity.</p>
 ##  mime                   0.12       2021-09-28 [1] CRAN (R 4.2.0)
 ##  miniUI                 0.1.1.1    2018-05-18 [1] CRAN (R 4.2.0)
 ##  munsell                0.5.0      2018-06-12 [1] CRAN (R 4.2.0)
-##  myTAI                * 1.0.1.9000 2023-08-18 [1] Github (drostlab/myTAI@59a95dd)
+##  myTAI                * 1.0.1.9000 2023-10-03 [1] Github (drostlab/myTAI@e159136)
 ##  pillar                 1.9.0      2023-03-22 [1] CRAN (R 4.2.0)
 ##  pkgbuild               1.4.2      2023-06-26 [1] CRAN (R 4.2.0)
 ##  pkgconfig              2.0.3      2019-09-22 [1] CRAN (R 4.2.0)
-##  pkgload                1.3.2.1    2023-07-08 [1] CRAN (R 4.2.0)
+##  pkgload                1.3.3      2023-09-22 [1] CRAN (R 4.2.0)
 ##  png                    0.1-8      2022-11-29 [1] CRAN (R 4.2.0)
-##  prettyunits            1.1.1      2020-01-24 [1] CRAN (R 4.2.0)
+##  prettyunits            1.2.0      2023-09-24 [1] CRAN (R 4.2.0)
 ##  processx               3.8.2      2023-06-30 [1] CRAN (R 4.2.0)
 ##  profvis                0.3.8      2023-05-02 [1] CRAN (R 4.2.0)
 ##  promises               1.2.1      2023-08-10 [1] CRAN (R 4.2.2)
@@ -2819,15 +2863,14 @@ uses profile HMM) having different sensitivity.</p>
 ##  remotes                2.4.2.1    2023-07-18 [1] CRAN (R 4.2.2)
 ##  Rgraphviz            * 2.42.0     2022-11-01 [1] Bioconductor
 ##  rlang                  1.1.1      2023-04-28 [1] CRAN (R 4.2.0)
-##  rmarkdown              2.24       2023-08-14 [1] CRAN (R 4.2.0)
+##  rmarkdown              2.25       2023-09-18 [1] CRAN (R 4.2.2)
 ##  RSQLite                2.3.1      2023-04-03 [1] CRAN (R 4.2.0)
 ##  rstudioapi             0.15.0     2023-07-07 [1] CRAN (R 4.2.0)
 ##  S4Vectors            * 0.36.2     2023-02-26 [1] Bioconductor
 ##  sass                   0.4.7      2023-07-15 [1] CRAN (R 4.2.0)
 ##  scales                 1.2.1      2022-08-20 [1] CRAN (R 4.2.0)
 ##  sessioninfo            1.2.2      2021-12-06 [1] CRAN (R 4.2.0)
-##  shiny                  1.7.5      2023-08-12 [1] CRAN (R 4.2.0)
-##  SparseM              * 1.81       2021-02-18 [1] CRAN (R 4.2.0)
+##  shiny                  1.7.5.1    2023-10-14 [1] CRAN (R 4.2.2)
 ##  stringi                1.7.12     2023-01-11 [1] CRAN (R 4.2.0)
 ##  stringr              * 1.5.0      2022-12-02 [1] CRAN (R 4.2.0)
 ##  SummarizedExperiment * 1.28.0     2022-11-01 [1] Bioconductor
@@ -2836,15 +2879,14 @@ uses profile HMM) having different sensitivity.</p>
 ##  tidyselect             1.2.0      2022-10-10 [1] CRAN (R 4.2.0)
 ##  tidyverse            * 2.0.0      2023-02-22 [1] CRAN (R 4.2.0)
 ##  timechange             0.2.0      2023-01-11 [1] CRAN (R 4.2.0)
-##  topGO                * 2.50.0     2022-11-01 [1] Bioconductor
 ##  tximport             * 1.26.1     2022-12-16 [1] Bioconductor
 ##  tzdb                   0.4.0      2023-05-12 [1] CRAN (R 4.2.2)
 ##  urlchecker             1.0.1      2021-11-30 [1] CRAN (R 4.2.0)
 ##  usethis                2.2.2      2023-07-06 [1] CRAN (R 4.2.0)
 ##  utf8                   1.2.3      2023-01-31 [1] CRAN (R 4.2.0)
-##  vctrs                  0.6.3      2023-06-14 [1] CRAN (R 4.2.0)
-##  vroom                  1.6.3      2023-04-28 [1] CRAN (R 4.2.0)
-##  withr                  2.5.0      2022-03-03 [1] CRAN (R 4.2.0)
+##  vctrs                  0.6.4      2023-10-12 [1] CRAN (R 4.2.2)
+##  vroom                  1.6.4      2023-10-02 [1] CRAN (R 4.2.2)
+##  withr                  2.5.1      2023-09-26 [1] CRAN (R 4.2.0)
 ##  xfun                   0.40       2023-08-09 [1] CRAN (R 4.2.2)
 ##  XML                    3.99-0.14  2023-03-19 [1] CRAN (R 4.2.0)
 ##  xtable                 1.8-4      2019-04-21 [1] CRAN (R 4.2.0)

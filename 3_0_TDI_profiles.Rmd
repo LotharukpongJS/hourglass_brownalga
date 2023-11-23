@@ -672,7 +672,7 @@ Fs_TDI.rlog %>%
 
 # Fd
 Fd_TDI %>% 
-  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5") & Sex == "Mixed") %>%
+  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5", "E6") & Sex == "Mixed") %>%
   ggplot2::ggplot(
     aes(
       y = TDI, 
@@ -695,7 +695,7 @@ Fd_TDI %>%
        subtitle = "TPM")
 
 Fd_TDI.sqrt %>% 
-  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5") & Sex == "Mixed") %>%
+  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5", "E6") & Sex == "Mixed") %>%
   ggplot2::ggplot(
     aes(
       y = TDI, 
@@ -718,7 +718,7 @@ Fd_TDI.sqrt %>%
        subtitle = "sqrt(TPM)")
 
 Fd_TDI.log2 %>% 
-  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5") & Sex == "Mixed") %>%
+  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5", "E6") & Sex == "Mixed") %>%
   ggplot2::ggplot(
     aes(
       y = TDI, 
@@ -741,7 +741,7 @@ Fd_TDI.log2 %>%
        subtitle = "log2(TPM+\u03b1)")
 
 Fd_TDI.rank %>% 
-  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5") & Sex == "Mixed") %>%
+  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5", "E6") & Sex == "Mixed") %>%
   ggplot2::ggplot(
     aes(
       y = TDI, 
@@ -764,7 +764,7 @@ Fd_TDI.rank %>%
        subtitle = "rank(TPM)")
 
 Fd_TDI.rlog %>% 
-  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5") & Sex == "Mixed") %>%
+  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5", "E6") & Sex == "Mixed") %>%
   ggplot2::ggplot(
     aes(
       y = TDI, 
@@ -1277,9 +1277,9 @@ Fs_DES_tS_res <-
 Fd_DES_tS <- 
   tfStability(
     dplyr::select(Fd_DES, !c(gamete, matSP)),
-    TestStatistic = "LateConservationTest",
+    TestStatistic = "ReductiveHourglassTest",
     transforms = c("none", "sqrt", "log2", "rank"),
-    modules = list(early = 1:2, mid = 3:4, late = 5),
+    modules = list(early = 1:4, mid = 5, late = 6),
     permutations = 50000
     )
 Fd_DES_tS_processed <-
@@ -1288,9 +1288,9 @@ Fd_DES_tS_processed <-
 Fd_DES_tS.rlog <- 
   tfStability(
     dplyr::select(Fd_DES.rlog, !c(gamete, matSP)),
-    TestStatistic = "LateConservationTest",
+    TestStatistic = "ReductiveHourglassTest",
     transforms = c("none"), # it is already transformed.
-    modules = list(early = 1:2, mid = 3:4, late = 5),
+    modules = list(early = 1:4, mid = 5, late = 6),
     permutations = 50000
     )
 Fd_DES_tS.rlog_processed <-
@@ -1300,7 +1300,7 @@ Fd_DES_tS.rlog_processed <-
 Fd_DES_tS_res <- 
   dplyr::bind_rows(Fd_DES_tS_processed, Fd_DES_tS.rlog_processed) %>%
   dplyr::rename("pval" = value) %>%
-  dplyr::mutate(test = "LateConservationTest")
+  dplyr::mutate(test = "ReductiveHourglassTest")
 ```
 
 
@@ -1393,7 +1393,7 @@ Fd_DES_tS_res %>%
   #   colour = "#E64B35FF") +
   ggplot2::labs(
     title = "Fucus distichus",
-    subtitle = "LateConservationTest",
+    subtitle = "ReductiveHourglassTest",
     x = "Transformation"
   ) +
   ggplot2::coord_flip() +
@@ -1422,7 +1422,7 @@ Fd_DES_tS_res %>%
   #   colour = "#E64B35FF") +
   ggplot2::labs(
     title = "Fucus distichus",
-    subtitle = "LateConservationTest",
+    subtitle = "ReductiveHourglassTest",
     x = "Transformation"
   ) +
   ggplot2::coord_flip() +

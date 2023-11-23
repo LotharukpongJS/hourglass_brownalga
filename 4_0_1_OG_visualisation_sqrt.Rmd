@@ -35,7 +35,7 @@ sample_info_ec <-
 
 sample_info_fd_embryo <-
   sample_info_fd %>%
-  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5")) %>%
+  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5", "E6")) %>%
   dplyr::mutate(LibLab = str_c(Species, "_", Stage, "_", Replicate))
 sample_info_fs_embryo <-
   sample_info_fs %>%

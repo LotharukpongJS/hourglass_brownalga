@@ -21,7 +21,7 @@ We also use the `Fisher’s exact test` later to find which exact PS is signific
 library(ggfortify)
 library(tximport)
 library(myTAI)
-library(topGO)
+# library(topGO)
 library(Rgraphviz)
 library(tidyverse)
 ```
@@ -91,7 +91,7 @@ Fs_nonDEG_contrasts <-
 
 # Fucus distichus
 contrast_list <- 
-  c("E2 vs E1", "E3 vs E2", "E4 vs E3", "E5 vs E4")
+  c("E2 vs E1", "E3 vs E2", "E4 vs E3", "E5 vs E4", "E6 vs E5")
 # Fd_DEG_contrasts <-
 #   get_DESeq2_contrasts(Fd_ddsObj.wald_DEGlist, contrast_list)
 Fd_nonDEG_contrasts <-
@@ -243,6 +243,16 @@ diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "
 diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "two.sided")
 ```
 
+##### E6 vs E5
+
+```{r}
+Fd_nonDEG_contrasts_input <- 
+  Fd_nonDEG_contrasts %>% dplyr::filter(contrast == "E6 vs E5")
+diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "greater")
+diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "less")
+diffPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "two.sided")
+```
+
 ## Summary
 
 We find that DEGs (based on LRT) do not tend to have any difference in PS. In contrast, nonDEGs tend to be older, though usually not significant between stages, except for "4w vs 3w" in _F. serratus_ and "E3 vs E2", "E4 vs E3" and "E5 vs E4" in _F. distichus_. Now, we turn to the Fisher's exact test to see whether any specific PS is differentially expressed.
@@ -389,6 +399,16 @@ fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative =
 ```{r}
 Fd_nonDEG_contrasts_input <- 
   Fd_nonDEG_contrasts %>% dplyr::filter(contrast == "E5 vs E4")
+fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "greater")
+fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "less")
+fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "two.sided")
+```
+
+##### E6 vs E5
+
+```{r}
+Fd_nonDEG_contrasts_input <- 
+  Fd_nonDEG_contrasts %>% dplyr::filter(contrast == "E6 vs E5")
 fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "greater")
 fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "less")
 fisherPS(DEG_input = Fd_nonDEG_contrasts_input, age_list = Fd_age, alternative = "two.sided")

@@ -493,6 +493,38 @@ resGO_BP <-
 resGO_MF <- 
   resultGO(myGOdata_MF, algorithm = "parentchild", sig = T)
 ```
+#### E6 vs E5
+
+```{r}
+contrast = "E6 vs E5"
+genes_for_analysis = dplyr::filter(Fd_denoised_nonDEG_contrasts, contrast == contrast)
+
+myGOdata_CC <-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fd,
+    GO_gene_mapping = GO_Fd_gene_mapping,
+    ontology = "CC")
+myGOdata_BP <-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fd,
+    GO_gene_mapping = GO_Fd_gene_mapping,
+    ontology = "BP")
+myGOdata_MF <-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fd,
+    GO_gene_mapping = GO_Fd_gene_mapping,
+    ontology = "MF")
+
+resGO_CC <- 
+  resultGO(myGOdata_CC, algorithm = "parentchild", sig = T)
+resGO_BP <- 
+  resultGO(myGOdata_BP, algorithm = "parentchild", sig = T)
+resGO_MF <- 
+  resultGO(myGOdata_MF, algorithm = "parentchild", sig = T)
+```
 
 ```{r}
 resGO_CC

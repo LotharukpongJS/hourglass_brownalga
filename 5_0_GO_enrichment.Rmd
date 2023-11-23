@@ -14,11 +14,6 @@ editor_options:
 Based on the DEG and nonDEG datasets, we can assess whether certain GO categories are enriched. We use `Fisher’s exact` test statistics with the `parent-child algorithm` as implemented in `TopGO`.
 
 ```{r}
-library(ggfortify)
-library(tximport)
-library(myTAI)
-library(topGO)
-library(Rgraphviz)
 library(tidyverse)
 ```
 
@@ -27,8 +22,8 @@ library(tidyverse)
 ```{r}
 # Fs_ddsObj.wald_DEGlist <-
 #   base::readRDS("data/Fs_wald_DEG_list.rds")
-# Fd_ddsObj.wald_DEGlist <-
-#   base::readRDS("data/Fd_wald_DEG_list.rds")
+Fd_ddsObj.wald_DEGlist <-
+  base::readRDS("data/Fd_wald_DEG_list.rds")
 
 Fs_ddsObj.wald_nonDEGlist <-
   base::readRDS("data/Fs_wald_nonDEG_list.rds")
@@ -49,6 +44,18 @@ Fs_LRT.1000 <-
   readr::read_csv("data/Fs_LRT_1000.csv")
 Fd_LRT.1000 <-
   readr::read_csv("data/Fd_LRT_1000.csv")
+```
+
+To avoid 
+`Error in vroom_(file, delim = delim %||% col_types$delim, col_names = col_names,  :  bad value`
+, I load the packages later.
+
+```{r}
+library(ggfortify)
+library(tximport)
+library(myTAI)
+library(topGO)
+library(Rgraphviz)
 ```
 
 ```{r}
@@ -87,9 +94,9 @@ Fs_nonDEG_contrasts <-
 
 # Fucus distichus
 contrast_list <- 
-  c("E2 vs E1", "E3 vs E2", "E4 vs E3", "E5 vs E4")
-# Fd_DEG_contrasts <-
-#   get_DESeq2_contrasts(Fd_ddsObj.wald_DEGlist, contrast_list)
+  c("E2 vs E1", "E3 vs E2", "E4 vs E3", "E5 vs E4", "E6 vs E5")
+Fd_DEG_contrasts <-
+  get_DESeq2_contrasts(Fd_ddsObj.wald_DEGlist, contrast_list)
 Fd_nonDEG_contrasts <-
   get_DESeq2_contrasts(Fd_ddsObj.wald_nonDEGlist, contrast_list)
 # Fd_denoised_DEG_contrasts <-
@@ -670,6 +677,83 @@ resGO_MF
 ```{r}
 contrast = "E5 vs E4"
 genes_for_analysis = dplyr::filter(Fd_nonDEG_contrasts, contrast == contrast)
+
+myGOdata_CC <-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fd,
+    GO_gene_mapping = GO_Fd_gene_mapping,
+    ontology = "CC")
+myGOdata_BP <-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fd,
+    GO_gene_mapping = GO_Fd_gene_mapping,
+    ontology = "BP")
+myGOdata_MF <-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fd,
+    GO_gene_mapping = GO_Fd_gene_mapping,
+    ontology = "MF")
+
+resGO_CC <- 
+  resultGO(myGOdata_CC, algorithm = "parentchild", sig = T)
+resGO_BP <- 
+  resultGO(myGOdata_BP, algorithm = "parentchild", sig = T)
+resGO_MF <- 
+  resultGO(myGOdata_MF, algorithm = "parentchild", sig = T)
+```
+
+#### E6 vs E5
+
+```{r}
+contrast = "E6 vs E5"
+genes_for_analysis = dplyr::filter(Fd_nonDEG_contrasts, contrast == contrast)
+
+myGOdata_CC <-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fd,
+    GO_gene_mapping = GO_Fd_gene_mapping,
+    ontology = "CC")
+myGOdata_BP <-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fd,
+    GO_gene_mapping = GO_Fd_gene_mapping,
+    ontology = "BP")
+myGOdata_MF <-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fd,
+    GO_gene_mapping = GO_Fd_gene_mapping,
+    ontology = "MF")
+
+resGO_CC <- 
+  resultGO(myGOdata_CC, algorithm = "parentchild", sig = T)
+resGO_BP <- 
+  resultGO(myGOdata_BP, algorithm = "parentchild", sig = T)
+resGO_MF <- 
+  resultGO(myGOdata_MF, algorithm = "parentchild", sig = T)
+```
+
+
+```{r}
+resGO_CC
+resGO_BP
+resGO_MF
+```
+
+### DEG Fucus distichus
+
+This was added because of the high number of DEGs found between the last stages.
+
+#### E6 vs E5
+
+```{r}
+contrast = "E6 vs E5"
+genes_for_analysis = dplyr::filter(Fd_DEG_contrasts, contrast == contrast)
 
 myGOdata_CC <-
   processedGOdata(

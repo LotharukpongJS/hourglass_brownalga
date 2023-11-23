@@ -603,7 +603,7 @@ Fd_PES_tS_res <-
 
 Fucus serratus development
 
-```{r}
+```{r fig.height = 2.5, fig.width = 3}
 Fs_PES_tS_res %>%
   ggplot2::ggplot(
     aes(
@@ -617,13 +617,13 @@ Fs_PES_tS_res %>%
     linetype = 'dashed',
     size = 2
     ) +
-  ggplot2::annotate(
-    "label",
-    x = 0.7, 
-    y = max(-log10(Fs_PES_tS_res$pval))/6,
-    label = "pval < 0.05",
-    # angle = 270,
-    colour = "#E64B35FF") +
+  # ggplot2::annotate(
+  #   "label",
+  #   x = 0.7, 
+  #   y = max(-log10(Fs_PES_tS_res$pval))/6,
+  #   label = "pval < 0.05",
+  #   # angle = 270,
+  #   colour = "#E64B35FF") +
   ggplot2::labs(
     title = "Fucus serratus",
     subtitle = "FlatLineTest",
@@ -646,13 +646,13 @@ Fs_PES_tS_res %>%
     linetype = 'dashed',
     size = 2
     ) +
-  ggplot2::annotate(
-    "label",
-    x = 1.5, 
-    y = 0.05 - 0.005,
-    label = "pval < 0.05",
-    # angle = 270,
-    colour = "#E64B35FF") +
+  # ggplot2::annotate(
+  #   "label",
+  #   x = 1.5, 
+  #   y = 0.05 - 0.005,
+  #   label = "pval < 0.05",
+  #   # angle = 270,
+  #   colour = "#E64B35FF") +
   ggplot2::labs(
     title = "Fucus serratus",
     subtitle = "FlatLineTest",
@@ -664,7 +664,7 @@ Fs_PES_tS_res %>%
 
 Fucus distichus development
 
-```{r}
+```{r fig.height = 2.5, fig.width = 3}
 Fd_PES_tS_res %>%
   ggplot2::ggplot(
     aes(
@@ -678,13 +678,13 @@ Fd_PES_tS_res %>%
     linetype = 'dashed',
     size = 2
     ) +
-  ggplot2::annotate(
-    "label",
-    x = 0.7, 
-    y = max(-log10(Fd_PES_tS_res$pval))/6,
-    label = "pval < 0.05",
-    # angle = 270,
-    colour = "#E64B35FF") +
+  # ggplot2::annotate(
+  #   "label",
+  #   x = 0.7, 
+  #   y = max(-log10(Fd_PES_tS_res$pval))/6,
+  #   label = "pval < 0.05",
+  #   # angle = 270,
+  #   colour = "#E64B35FF") +
   ggplot2::labs(
     title = "Fucus distichus",
     subtitle = "FlatLineTest",
@@ -707,13 +707,13 @@ Fd_PES_tS_res %>%
     linetype = 'dashed',
     size = 2
     ) +
-  ggplot2::annotate(
-    "label",
-    x = 1.5, 
-    y = 0.05 - 0.005,
-    label = "pval < 0.05",
-    # angle = 270,
-    colour = "#E64B35FF") +
+  # ggplot2::annotate(
+  #   "label",
+  #   x = 1.5, 
+  #   y = 0.05 - 0.005,
+  #   label = "pval < 0.05",
+  #   # angle = 270,
+  #   colour = "#E64B35FF") +
   ggplot2::labs(
     title = "Fucus distichus",
     subtitle = "FlatLineTest",
@@ -759,9 +759,9 @@ Fs_PES_tS_res <-
 Fd_PES_tS <- 
   tfStability(
     dplyr::select(Fd_PES, !c(gamete, matSP)),
-    TestStatistic = "LateConservationTest",
+    TestStatistic = "ReductiveHourglassTest",
     transforms = c("none", "sqrt", "log2", "rank"),
-    modules = list(early = 1:2, mid = 3:4, late = 5),
+    modules = list(early = 1:4, mid = 5, late = 6),
     permutations = 20000
     )
 Fd_PES_tS_processed <-
@@ -770,9 +770,9 @@ Fd_PES_tS_processed <-
 Fd_PES_tS.rlog <- 
   tfStability(
     dplyr::select(Fd_PES.rlog, !c(gamete, matSP)),
-    TestStatistic = "LateConservationTest",
+    TestStatistic = "ReductiveHourglassTest",
     transforms = c("none"), # it is already transformed.
-    modules = list(early = 1:2, mid = 3:4, late = 5),
+    modules = list(early = 1:4, mid = 5, late = 6),
     permutations = 20000
     )
 Fd_PES_tS.rlog_processed <-
@@ -782,7 +782,7 @@ Fd_PES_tS.rlog_processed <-
 Fd_PES_tS_res <- 
   dplyr::bind_rows(Fd_PES_tS_processed, Fd_PES_tS.rlog_processed) %>%
   dplyr::rename("pval" = value) %>%
-  dplyr::mutate(test = "LateConservationTest")
+  dplyr::mutate(test = "ReductiveHourglassTest")
 ```
 
 
@@ -790,7 +790,7 @@ Fd_PES_tS_res <-
 
 Fucus serratus development
 
-```{r}
+```{r fig.height = 2.5, fig.width = 3}
 Fs_PES_tS_res %>%
   ggplot2::ggplot(
     aes(
@@ -804,13 +804,13 @@ Fs_PES_tS_res %>%
     linetype = 'dashed',
     size = 2
     ) +
-  ggplot2::annotate(
-    "label",
-    x = 0.7, 
-    y = max(-log10(Fs_PES_tS_res$pval))/6,
-    label = "pval < 0.05",
-    # angle = 270,
-    colour = "#E64B35FF") +
+  # ggplot2::annotate(
+  #   "label",
+  #   x = 0.7, 
+  #   y = max(-log10(Fs_PES_tS_res$pval))/6,
+  #   label = "pval < 0.05",
+  #   # angle = 270,
+  #   colour = "#E64B35FF") +
   ggplot2::labs(
     title = "Fucus serratus",
     subtitle = "ReductiveHourglassTest",
@@ -833,13 +833,13 @@ Fs_PES_tS_res %>%
     linetype = 'dashed',
     size = 2
     ) +
-  ggplot2::annotate(
-    "label",
-    x = 1.5, 
-    y = 0.05 - 0.005,
-    label = "pval < 0.05",
-    # angle = 270,
-    colour = "#E64B35FF") +
+  # ggplot2::annotate(
+  #   "label",
+  #   x = 1.5, 
+  #   y = 0.05 - 0.005,
+  #   label = "pval < 0.05",
+  #   # angle = 270,
+  #   colour = "#E64B35FF") +
   ggplot2::labs(
     title = "Fucus serratus",
     subtitle = "ReductiveHourglassTest",
@@ -851,7 +851,7 @@ Fs_PES_tS_res %>%
 
 Fucus distichus development
 
-```{r}
+```{r fig.height = 2.5, fig.width = 3}
 Fd_PES_tS_res %>%
   ggplot2::ggplot(
     aes(
@@ -865,16 +865,16 @@ Fd_PES_tS_res %>%
     linetype = 'dashed',
     size = 2
     ) +
-  ggplot2::annotate(
-    "label",
-    x = 0.7, 
-    y = max(-log10(Fd_PES_tS_res$pval))/6,
-    label = "pval < 0.05",
-    # angle = 270,
-    colour = "#E64B35FF") +
+  # ggplot2::annotate(
+  #   "label",
+  #   x = 0.7, 
+  #   y = max(-log10(Fd_PES_tS_res$pval))/6,
+  #   label = "pval < 0.05",
+  #   # angle = 270,
+  #   colour = "#E64B35FF") +
   ggplot2::labs(
     title = "Fucus distichus",
-    subtitle = "LateConservationTest",
+    subtitle = "ReductiveHourglassTest",
     x = "Transformation"
   ) +
   ggplot2::coord_flip() +
@@ -894,16 +894,16 @@ Fd_PES_tS_res %>%
     linetype = 'dashed',
     size = 2
     ) +
-  ggplot2::annotate(
-    "label",
-    x = 1.5, 
-    y = 0.05 - 0.005,
-    label = "pval < 0.05",
-    # angle = 270,
-    colour = "#E64B35FF") +
+  # ggplot2::annotate(
+  #   "label",
+  #   x = 1.5, 
+  #   y = 0.05 - 0.005,
+  #   label = "pval < 0.05",
+  #   # angle = 270,
+  #   colour = "#E64B35FF") +
   ggplot2::labs(
     title = "Fucus distichus",
-    subtitle = "LateConservationTest",
+    subtitle = "ReductiveHourglassTest",
     x = "Transformation"
   ) +
   ggplot2::coord_flip() +
@@ -1031,7 +1031,7 @@ Fs_TAI.rlog %>%
 
 # Fd
 Fd_TAI %>% 
-  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5") & Sex == "Mixed") %>%
+  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5", "E6") & Sex == "Mixed") %>%
   ggplot2::ggplot(
     aes(
       y = TAI, 
@@ -1054,7 +1054,7 @@ Fd_TAI %>%
        subtitle = "TPM")
 
 Fd_TAI.sqrt %>% 
-  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5") & Sex == "Mixed") %>%
+  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5", "E6") & Sex == "Mixed") %>%
   ggplot2::ggplot(
     aes(
       y = TAI, 
@@ -1077,7 +1077,7 @@ Fd_TAI.sqrt %>%
        subtitle = "sqrt(TPM)")
 
 Fd_TAI.log2 %>% 
-  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5") & Sex == "Mixed") %>%
+  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5", "E6") & Sex == "Mixed") %>%
   ggplot2::ggplot(
     aes(
       y = TAI, 
@@ -1100,7 +1100,7 @@ Fd_TAI.log2 %>%
        subtitle = "log2(TPM+\u03b1)")
 
 Fd_TAI.rank %>% 
-  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5") & Sex == "Mixed") %>%
+  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5", "E6") & Sex == "Mixed") %>%
   ggplot2::ggplot(
     aes(
       y = TAI, 
@@ -1123,7 +1123,7 @@ Fd_TAI.rank %>%
        subtitle = "rank(TPM)")
 
 Fd_TAI.rlog %>% 
-  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5") & Sex == "Mixed") %>%
+  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5", "E6") & Sex == "Mixed") %>%
   ggplot2::ggplot(
     aes(
       y = TAI, 

@@ -63,7 +63,7 @@ sample_info_fd <-
   dplyr::arrange(
     base::match(
       Stage, 
-      c("gamete", "24H", "48H", "1w", "3w", "4w", "matSP"))
+      c("gamete", "24H", "48H", "1w", "3w", "4w", "6m", "matSP"))
     ) %>%
   dplyr::mutate(
     Stage = case_when(
@@ -72,6 +72,7 @@ sample_info_fd <-
       Species == "Fd" & Stage == "1w" ~ "E3",
       Species == "Fd" & Stage == "3w" ~ "E4",
       Species == "Fd" & Stage == "4w" ~ "E5",
+      Species == "Fd" & Stage == "6m" ~ "E6",
       TRUE ~ Stage
       )
     )
@@ -105,7 +106,9 @@ Fd_keep <-
 #   Fd_keep[, grep("Fd_f", colnames(Fd_keep))]
 ```
 
-in Fd, out of 9914 genes, we keep 7898
+in Fd, out of 9914 genes, we keep 7907
+
+Note, after the 6 months Fd samples were sequenced, I quantified the expression using the nf-core RNA-seq pipeline as in the other samples (r3.5). The samples were added to the original directory and renamed.
 
 ## Load _F. serratus_ count data
 

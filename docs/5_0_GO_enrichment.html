@@ -1630,101 +1630,23 @@ display: none;
 GO categories are enriched. We use <code>Fisher’s exact</code> test
 statistics with the <code>parent-child algorithm</code> as implemented
 in <code>TopGO</code>.</p>
-<pre class="r"><code>library(ggfortify)</code></pre>
-<pre><code>## Loading required package: ggplot2</code></pre>
-<pre class="r"><code>library(tximport)
-library(myTAI)
-library(topGO)</code></pre>
-<pre><code>## Loading required package: BiocGenerics</code></pre>
-<pre><code>## 
-## Attaching package: &#39;BiocGenerics&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:stats&#39;:
-## 
-##     IQR, mad, sd, var, xtabs</code></pre>
-<pre><code>## The following objects are masked from &#39;package:base&#39;:
-## 
-##     anyDuplicated, aperm, append, as.data.frame, basename, cbind,
-##     colnames, dirname, do.call, duplicated, eval, evalq, Filter, Find,
-##     get, grep, grepl, intersect, is.unsorted, lapply, Map, mapply,
-##     match, mget, order, paste, pmax, pmax.int, pmin, pmin.int,
-##     Position, rank, rbind, Reduce, rownames, sapply, setdiff, sort,
-##     table, tapply, union, unique, unsplit, which.max, which.min</code></pre>
-<pre><code>## Loading required package: graph</code></pre>
-<pre><code>## Loading required package: Biobase</code></pre>
-<pre><code>## Welcome to Bioconductor
-## 
-##     Vignettes contain introductory material; view with
-##     &#39;browseVignettes()&#39;. To cite Bioconductor, see
-##     &#39;citation(&quot;Biobase&quot;)&#39;, and for packages &#39;citation(&quot;pkgname&quot;)&#39;.</code></pre>
-<pre><code>## Loading required package: GO.db</code></pre>
-<pre><code>## Loading required package: AnnotationDbi</code></pre>
-<pre><code>## Loading required package: stats4</code></pre>
-<pre><code>## Loading required package: IRanges</code></pre>
-<pre><code>## Loading required package: S4Vectors</code></pre>
-<pre><code>## 
-## Attaching package: &#39;S4Vectors&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:base&#39;:
-## 
-##     expand.grid, I, unname</code></pre>
-<pre><code>## </code></pre>
-<pre><code>## Loading required package: SparseM</code></pre>
-<pre><code>## 
-## Attaching package: &#39;SparseM&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:base&#39;:
-## 
-##     backsolve</code></pre>
-<pre><code>## 
-## groupGOTerms:    GOBPTerm, GOMFTerm, GOCCTerm environments built.</code></pre>
-<pre><code>## 
-## Attaching package: &#39;topGO&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:IRanges&#39;:
-## 
-##     members</code></pre>
-<pre class="r"><code>library(Rgraphviz)</code></pre>
-<pre><code>## Loading required package: grid</code></pre>
-<pre><code>## 
-## Attaching package: &#39;grid&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:topGO&#39;:
-## 
-##     depth</code></pre>
-<pre><code>## 
-## Attaching package: &#39;Rgraphviz&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:IRanges&#39;:
-## 
-##     from, to</code></pre>
-<pre><code>## The following objects are masked from &#39;package:S4Vectors&#39;:
-## 
-##     from, to</code></pre>
 <pre class="r"><code>library(tidyverse)</code></pre>
 <pre><code>## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
-## ✔ dplyr     1.1.2     ✔ readr     2.1.4
+## ✔ dplyr     1.1.3     ✔ readr     2.1.4
 ## ✔ forcats   1.0.0     ✔ stringr   1.5.0
-## ✔ lubridate 1.9.2     ✔ tibble    3.2.1
-## ✔ purrr     1.0.2     ✔ tidyr     1.3.0</code></pre>
-<pre><code>## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
-## ✖ lubridate::%within%()    masks IRanges::%within%()
-## ✖ stringr::boundary()      masks graph::boundary()
-## ✖ dplyr::collapse()        masks IRanges::collapse()
-## ✖ dplyr::combine()         masks Biobase::combine(), BiocGenerics::combine()
-## ✖ dplyr::desc()            masks IRanges::desc()
-## ✖ tidyr::expand()          masks S4Vectors::expand()
-## ✖ dplyr::filter()          masks stats::filter()
-## ✖ dplyr::first()           masks S4Vectors::first()
-## ✖ dplyr::lag()             masks stats::lag()
-## ✖ BiocGenerics::Position() masks ggplot2::Position(), base::Position()
-## ✖ purrr::reduce()          masks IRanges::reduce()
-## ✖ dplyr::rename()          masks S4Vectors::rename()
-## ✖ lubridate::second()      masks S4Vectors::second()
-## ✖ lubridate::second&lt;-()    masks S4Vectors::second&lt;-()
-## ✖ dplyr::select()          masks AnnotationDbi::select()
-## ✖ dplyr::slice()           masks IRanges::slice()
+## ✔ ggplot2   3.4.4     ✔ tibble    3.2.1
+## ✔ lubridate 1.9.3     ✔ tidyr     1.3.0
+## ✔ purrr     1.0.2     
+## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+## ✖ dplyr::filter() masks stats::filter()
+## ✖ dplyr::lag()    masks stats::lag()
 ## ℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors</code></pre>
 <div id="load-data" class="section level2">
 <h2>Load data</h2>
 <pre class="r"><code># Fs_ddsObj.wald_DEGlist &lt;-
 #   base::readRDS(&quot;data/Fs_wald_DEG_list.rds&quot;)
-# Fd_ddsObj.wald_DEGlist &lt;-
-#   base::readRDS(&quot;data/Fd_wald_DEG_list.rds&quot;)
+Fd_ddsObj.wald_DEGlist &lt;-
+  base::readRDS(&quot;data/Fd_wald_DEG_list.rds&quot;)
 
 Fs_ddsObj.wald_nonDEGlist &lt;-
   base::readRDS(&quot;data/Fs_wald_nonDEG_list.rds&quot;)
@@ -1761,6 +1683,109 @@ Fs_LRT.1000 &lt;-
 ## 
 ## ℹ Use `spec()` to retrieve the full column specification for this data.
 ## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+<p>To avoid
+<code>Error in vroom_(file, delim = delim %||% col_types$delim, col_names = col_names,  :  bad value</code>
+, I load the packages later.</p>
+<pre class="r"><code>library(ggfortify)
+library(tximport)
+library(myTAI)
+library(topGO)</code></pre>
+<pre><code>## Loading required package: BiocGenerics</code></pre>
+<pre><code>## 
+## Attaching package: &#39;BiocGenerics&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:lubridate&#39;:
+## 
+##     intersect, setdiff, union</code></pre>
+<pre><code>## The following objects are masked from &#39;package:dplyr&#39;:
+## 
+##     combine, intersect, setdiff, union</code></pre>
+<pre><code>## The following objects are masked from &#39;package:stats&#39;:
+## 
+##     IQR, mad, sd, var, xtabs</code></pre>
+<pre><code>## The following objects are masked from &#39;package:base&#39;:
+## 
+##     anyDuplicated, aperm, append, as.data.frame, basename, cbind,
+##     colnames, dirname, do.call, duplicated, eval, evalq, Filter, Find,
+##     get, grep, grepl, intersect, is.unsorted, lapply, Map, mapply,
+##     match, mget, order, paste, pmax, pmax.int, pmin, pmin.int,
+##     Position, rank, rbind, Reduce, rownames, sapply, setdiff, sort,
+##     table, tapply, union, unique, unsplit, which.max, which.min</code></pre>
+<pre><code>## Loading required package: graph</code></pre>
+<pre><code>## 
+## Attaching package: &#39;graph&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:stringr&#39;:
+## 
+##     boundary</code></pre>
+<pre><code>## Loading required package: Biobase</code></pre>
+<pre><code>## Welcome to Bioconductor
+## 
+##     Vignettes contain introductory material; view with
+##     &#39;browseVignettes()&#39;. To cite Bioconductor, see
+##     &#39;citation(&quot;Biobase&quot;)&#39;, and for packages &#39;citation(&quot;pkgname&quot;)&#39;.</code></pre>
+<pre><code>## Loading required package: GO.db</code></pre>
+<pre><code>## Loading required package: AnnotationDbi</code></pre>
+<pre><code>## Loading required package: stats4</code></pre>
+<pre><code>## Loading required package: IRanges</code></pre>
+<pre><code>## Loading required package: S4Vectors</code></pre>
+<pre><code>## 
+## Attaching package: &#39;S4Vectors&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:lubridate&#39;:
+## 
+##     second, second&lt;-</code></pre>
+<pre><code>## The following objects are masked from &#39;package:dplyr&#39;:
+## 
+##     first, rename</code></pre>
+<pre><code>## The following object is masked from &#39;package:tidyr&#39;:
+## 
+##     expand</code></pre>
+<pre><code>## The following objects are masked from &#39;package:base&#39;:
+## 
+##     expand.grid, I, unname</code></pre>
+<pre><code>## 
+## Attaching package: &#39;IRanges&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:lubridate&#39;:
+## 
+##     %within%</code></pre>
+<pre><code>## The following objects are masked from &#39;package:dplyr&#39;:
+## 
+##     collapse, desc, slice</code></pre>
+<pre><code>## The following object is masked from &#39;package:purrr&#39;:
+## 
+##     reduce</code></pre>
+<pre><code>## 
+## Attaching package: &#39;AnnotationDbi&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:dplyr&#39;:
+## 
+##     select</code></pre>
+<pre><code>## </code></pre>
+<pre><code>## Loading required package: SparseM</code></pre>
+<pre><code>## 
+## Attaching package: &#39;SparseM&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:base&#39;:
+## 
+##     backsolve</code></pre>
+<pre><code>## 
+## groupGOTerms:    GOBPTerm, GOMFTerm, GOCCTerm environments built.</code></pre>
+<pre><code>## 
+## Attaching package: &#39;topGO&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:IRanges&#39;:
+## 
+##     members</code></pre>
+<pre class="r"><code>library(Rgraphviz)</code></pre>
+<pre><code>## Loading required package: grid</code></pre>
+<pre><code>## 
+## Attaching package: &#39;grid&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:topGO&#39;:
+## 
+##     depth</code></pre>
+<pre><code>## 
+## Attaching package: &#39;Rgraphviz&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:IRanges&#39;:
+## 
+##     from, to</code></pre>
+<pre><code>## The following objects are masked from &#39;package:S4Vectors&#39;:
+## 
+##     from, to</code></pre>
 <pre class="r"><code>get_DESeq2_contrasts &lt;-
   function(DEGlist, contrast_list){
     if(!is.list(DEGlist)){
@@ -1794,12 +1819,12 @@ Fs_nonDEG_contrasts &lt;-
 <pre><code>## Loading required package: matrixStats</code></pre>
 <pre><code>## 
 ## Attaching package: &#39;matrixStats&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:dplyr&#39;:
-## 
-##     count</code></pre>
 <pre><code>## The following objects are masked from &#39;package:Biobase&#39;:
 ## 
 ##     anyMissing, rowMedians</code></pre>
+<pre><code>## The following object is masked from &#39;package:dplyr&#39;:
+## 
+##     count</code></pre>
 <pre><code>## 
 ## Attaching package: &#39;MatrixGenerics&#39;</code></pre>
 <pre><code>## The following objects are masked from &#39;package:matrixStats&#39;:
@@ -1829,9 +1854,9 @@ Fs_nonDEG_contrasts &lt;-
 
 # Fucus distichus
 contrast_list &lt;- 
-  c(&quot;E2 vs E1&quot;, &quot;E3 vs E2&quot;, &quot;E4 vs E3&quot;, &quot;E5 vs E4&quot;)
-# Fd_DEG_contrasts &lt;-
-#   get_DESeq2_contrasts(Fd_ddsObj.wald_DEGlist, contrast_list)
+  c(&quot;E2 vs E1&quot;, &quot;E3 vs E2&quot;, &quot;E4 vs E3&quot;, &quot;E5 vs E4&quot;, &quot;E6 vs E5&quot;)
+Fd_DEG_contrasts &lt;-
+  get_DESeq2_contrasts(Fd_ddsObj.wald_DEGlist, contrast_list)
 Fd_nonDEG_contrasts &lt;-
   get_DESeq2_contrasts(Fd_ddsObj.wald_nonDEGlist, contrast_list)
 # Fd_denoised_DEG_contrasts &lt;-
@@ -2812,13 +2837,13 @@ myGOdata_CC &lt;-
     )</code></pre>
 <pre><code>## 
 ## Building most specific GOs .....</code></pre>
-<pre><code>##  ( 206 GO terms found. )</code></pre>
+<pre><code>##  ( 204 GO terms found. )</code></pre>
 <pre><code>## 
 ## Build GO DAG topology ..........</code></pre>
-<pre><code>##  ( 402 GO terms and 713 relations. )</code></pre>
+<pre><code>##  ( 401 GO terms and 712 relations. )</code></pre>
 <pre><code>## 
 ## Annotating nodes ...............</code></pre>
-<pre><code>##  ( 959 genes annotated to the GO terms. )</code></pre>
+<pre><code>##  ( 964 genes annotated to the GO terms. )</code></pre>
 <pre class="r"><code>myGOdata_BP &lt;-
   createGOdata(
     geneList,
@@ -2834,7 +2859,7 @@ myGOdata_CC &lt;-
 <pre><code>##  ( 1674 GO terms and 3344 relations. )</code></pre>
 <pre><code>## 
 ## Annotating nodes ...............</code></pre>
-<pre><code>##  ( 2138 genes annotated to the GO terms. )</code></pre>
+<pre><code>##  ( 2151 genes annotated to the GO terms. )</code></pre>
 <pre class="r"><code>myGOdata_MF &lt;-
   createGOdata(
     geneList,
@@ -2844,19 +2869,19 @@ myGOdata_CC &lt;-
     )</code></pre>
 <pre><code>## 
 ## Building most specific GOs .....</code></pre>
-<pre><code>##  ( 740 GO terms found. )</code></pre>
+<pre><code>##  ( 742 GO terms found. )</code></pre>
 <pre><code>## 
 ## Build GO DAG topology ..........</code></pre>
 <pre><code>##  ( 1125 GO terms and 1450 relations. )</code></pre>
 <pre><code>## 
 ## Annotating nodes ...............</code></pre>
-<pre><code>##  ( 3404 genes annotated to the GO terms. )</code></pre>
+<pre><code>##  ( 3416 genes annotated to the GO terms. )</code></pre>
 <pre class="r"><code>resGO_CC &lt;- 
   resultGO(myGOdata_CC, algorithm = &quot;parentchild&quot;, sig = T)</code></pre>
 <pre><code>## 
 ##           -- Parent-Child Algorithm -- 
 ## 
-##       the algorithm is scoring 71 nontrivial nodes
+##       the algorithm is scoring 72 nontrivial nodes
 ##       parameters: 
 ##           test statistic: fisher : joinFun = union</code></pre>
 <pre><code>## 
@@ -2870,7 +2895,7 @@ myGOdata_CC &lt;-
 <pre><code>## 
 ##   Level 6:   11 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 5:   11 nodes to be scored.</code></pre>
+##   Level 5:   12 nodes to be scored.</code></pre>
 <pre><code>## 
 ##   Level 4:   13 nodes to be scored.</code></pre>
 <pre><code>## 
@@ -2882,7 +2907,7 @@ myGOdata_CC &lt;-
 <pre><code>## 
 ##           -- Parent-Child Algorithm -- 
 ## 
-##       the algorithm is scoring 337 nontrivial nodes
+##       the algorithm is scoring 328 nontrivial nodes
 ##       parameters: 
 ##           test statistic: fisher : joinFun = union</code></pre>
 <pre><code>## 
@@ -2890,23 +2915,23 @@ myGOdata_CC &lt;-
 <pre><code>## 
 ##   Level 12:  3 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 11:  9 nodes to be scored.</code></pre>
+##   Level 11:  8 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 10:  13 nodes to be scored.</code></pre>
+##   Level 10:  12 nodes to be scored.</code></pre>
 <pre><code>## 
 ##   Level 9:   32 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 8:   35 nodes to be scored.</code></pre>
+##   Level 8:   36 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 7:   44 nodes to be scored.</code></pre>
+##   Level 7:   40 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 6:   61 nodes to be scored.</code></pre>
+##   Level 6:   58 nodes to be scored.</code></pre>
 <pre><code>## 
 ##   Level 5:   69 nodes to be scored.</code></pre>
 <pre><code>## 
 ##   Level 4:   37 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 3:   26 nodes to be scored.</code></pre>
+##   Level 3:   25 nodes to be scored.</code></pre>
 <pre><code>## 
 ##   Level 2:   6 nodes to be scored.</code></pre>
 <pre class="r"><code>resGO_MF &lt;- 
@@ -2914,19 +2939,19 @@ myGOdata_CC &lt;-
 <pre><code>## 
 ##           -- Parent-Child Algorithm -- 
 ## 
-##       the algorithm is scoring 223 nontrivial nodes
+##       the algorithm is scoring 219 nontrivial nodes
 ##       parameters: 
 ##           test statistic: fisher : joinFun = union</code></pre>
 <pre><code>## 
 ##   Level 9:   5 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 8:   8 nodes to be scored.</code></pre>
+##   Level 8:   9 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 7:   22 nodes to be scored.</code></pre>
+##   Level 7:   20 nodes to be scored.</code></pre>
 <pre><code>## 
 ##   Level 6:   45 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 5:   52 nodes to be scored.</code></pre>
+##   Level 5:   49 nodes to be scored.</code></pre>
 <pre><code>## 
 ##   Level 4:   51 nodes to be scored.</code></pre>
 <pre><code>## 
@@ -2936,19 +2961,19 @@ myGOdata_CC &lt;-
 <pre class="r"><code>resGO_CC</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["GO.ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Term"],"name":[2],"type":["chr"],"align":["left"]},{"label":["Significant"],"name":[3],"type":["int"],"align":["right"]},{"label":["Expected"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["fisher"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"GO:0005694","2":"chromosome","3":"15","4":"4.5","5":"2e-04"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["GO.ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Term"],"name":[2],"type":["chr"],"align":["left"]},{"label":["Significant"],"name":[3],"type":["int"],"align":["right"]},{"label":["Expected"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["fisher"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"GO:0043228","2":"non-membrane-bounded organelle","3":"49","4":"25.62","5":"7.7e-07"},{"1":"GO:0043232","2":"intracellular non-membrane-bounded organ...","3":"49","4":"25.62","5":"1.4e-06"},{"1":"GO:1990904","2":"ribonucleoprotein complex","3":"16","4":"8.16","5":"2.7e-03"},{"1":"GO:0044815","2":"DNA packaging complex","3":"6","4":"1.72","5":"3.3e-03"},{"1":"GO:0005694","2":"chromosome","3":"17","4":"5.15","5":"3.5e-03"},{"1":"GO:0043229","2":"intracellular organelle","3":"69","4":"57.12","5":"4.5e-03"},{"1":"GO:0044391","2":"ribosomal subunit","3":"12","4":"3.58","5":"5.0e-03"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <pre class="r"><code>resGO_BP</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["GO.ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Term"],"name":[2],"type":["chr"],"align":["left"]},{"label":["Significant"],"name":[3],"type":["int"],"align":["right"]},{"label":["Expected"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["fisher"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"GO:0006259","2":"DNA metabolic process","3":"37","4":"16.70","5":"3.1e-08"},{"1":"GO:0051276","2":"chromosome organization","3":"17","4":"4.57","5":"3.8e-05"},{"1":"GO:0006260","2":"DNA replication","3":"19","4":"4.44","5":"9.7e-05"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["GO.ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Term"],"name":[2],"type":["chr"],"align":["left"]},{"label":["Significant"],"name":[3],"type":["int"],"align":["right"]},{"label":["Expected"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["fisher"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"GO:0006259","2":"DNA metabolic process","3":"40","4":"17.61","5":"9.5e-08"},{"1":"GO:0006260","2":"DNA replication","3":"21","4":"4.68","5":"1.5e-05"},{"1":"GO:0044260","2":"cellular macromolecule metabolic process","3":"78","4":"53.81","5":"2.6e-05"},{"1":"GO:0051276","2":"chromosome organization","3":"15","4":"4.82","5":"4.8e-05"},{"1":"GO:0006412","2":"translation","3":"28","4":"17.89","5":"2.1e-04"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <pre class="r"><code>resGO_MF</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["GO.ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Term"],"name":[2],"type":["chr"],"align":["left"]},{"label":["Significant"],"name":[3],"type":["int"],"align":["right"]},{"label":["Expected"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["fisher"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["GO.ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Term"],"name":[2],"type":["chr"],"align":["left"]},{"label":["Significant"],"name":[3],"type":["int"],"align":["right"]},{"label":["Expected"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["fisher"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"GO:0005198","2":"structural molecule activity","3":"30","4":"12.20","5":"9.9e-07"},{"1":"GO:0003677","2":"DNA binding","3":"39","4":"20.95","5":"4.3e-04"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 </div>
@@ -2967,13 +2992,13 @@ myGOdata_CC &lt;-
     ontology = &quot;CC&quot;)</code></pre>
 <pre><code>## 
 ## Building most specific GOs .....</code></pre>
-<pre><code>##  ( 206 GO terms found. )</code></pre>
+<pre><code>##  ( 204 GO terms found. )</code></pre>
 <pre><code>## 
 ## Build GO DAG topology ..........</code></pre>
-<pre><code>##  ( 402 GO terms and 713 relations. )</code></pre>
+<pre><code>##  ( 401 GO terms and 712 relations. )</code></pre>
 <pre><code>## 
 ## Annotating nodes ...............</code></pre>
-<pre><code>##  ( 957 genes annotated to the GO terms. )</code></pre>
+<pre><code>##  ( 963 genes annotated to the GO terms. )</code></pre>
 <pre class="r"><code>myGOdata_BP &lt;-
   processedGOdata(
     DEG_contrasts = genes_for_analysis,
@@ -2988,7 +3013,7 @@ myGOdata_CC &lt;-
 <pre><code>##  ( 1674 GO terms and 3344 relations. )</code></pre>
 <pre><code>## 
 ## Annotating nodes ...............</code></pre>
-<pre><code>##  ( 2135 genes annotated to the GO terms. )</code></pre>
+<pre><code>##  ( 2148 genes annotated to the GO terms. )</code></pre>
 <pre class="r"><code>myGOdata_MF &lt;-
   processedGOdata(
     DEG_contrasts = genes_for_analysis,
@@ -2997,19 +3022,19 @@ myGOdata_CC &lt;-
     ontology = &quot;MF&quot;)</code></pre>
 <pre><code>## 
 ## Building most specific GOs .....</code></pre>
-<pre><code>##  ( 740 GO terms found. )</code></pre>
+<pre><code>##  ( 742 GO terms found. )</code></pre>
 <pre><code>## 
 ## Build GO DAG topology ..........</code></pre>
 <pre><code>##  ( 1125 GO terms and 1450 relations. )</code></pre>
 <pre><code>## 
 ## Annotating nodes ...............</code></pre>
-<pre><code>##  ( 3398 genes annotated to the GO terms. )</code></pre>
+<pre><code>##  ( 3411 genes annotated to the GO terms. )</code></pre>
 <pre class="r"><code>resGO_CC &lt;- 
   resultGO(myGOdata_CC, algorithm = &quot;parentchild&quot;, sig = T)</code></pre>
 <pre><code>## 
 ##           -- Parent-Child Algorithm -- 
 ## 
-##       the algorithm is scoring 88 nontrivial nodes
+##       the algorithm is scoring 85 nontrivial nodes
 ##       parameters: 
 ##           test statistic: fisher : joinFun = union</code></pre>
 <pre><code>## 
@@ -3023,11 +3048,11 @@ myGOdata_CC &lt;-
 <pre><code>## 
 ##   Level 6:   14 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 5:   15 nodes to be scored.</code></pre>
+##   Level 5:   14 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 4:   15 nodes to be scored.</code></pre>
+##   Level 4:   14 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 3:   14 nodes to be scored.</code></pre>
+##   Level 3:   13 nodes to be scored.</code></pre>
 <pre><code>## 
 ##   Level 2:   2 nodes to be scored.</code></pre>
 <pre class="r"><code>resGO_BP &lt;- 
@@ -3035,7 +3060,7 @@ myGOdata_CC &lt;-
 <pre><code>## 
 ##           -- Parent-Child Algorithm -- 
 ## 
-##       the algorithm is scoring 375 nontrivial nodes
+##       the algorithm is scoring 372 nontrivial nodes
 ##       parameters: 
 ##           test statistic: fisher : joinFun = union</code></pre>
 <pre><code>## 
@@ -3049,11 +3074,11 @@ myGOdata_CC &lt;-
 <pre><code>## 
 ##   Level 9:   39 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 8:   42 nodes to be scored.</code></pre>
+##   Level 8:   41 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 7:   52 nodes to be scored.</code></pre>
+##   Level 7:   51 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 6:   70 nodes to be scored.</code></pre>
+##   Level 6:   69 nodes to be scored.</code></pre>
 <pre><code>## 
 ##   Level 5:   72 nodes to be scored.</code></pre>
 <pre><code>## 
@@ -3067,19 +3092,19 @@ myGOdata_CC &lt;-
 <pre><code>## 
 ##           -- Parent-Child Algorithm -- 
 ## 
-##       the algorithm is scoring 230 nontrivial nodes
+##       the algorithm is scoring 232 nontrivial nodes
 ##       parameters: 
 ##           test statistic: fisher : joinFun = union</code></pre>
 <pre><code>## 
 ##   Level 9:   5 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 8:   8 nodes to be scored.</code></pre>
+##   Level 8:   9 nodes to be scored.</code></pre>
 <pre><code>## 
 ##   Level 7:   25 nodes to be scored.</code></pre>
 <pre><code>## 
 ##   Level 6:   46 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 5:   53 nodes to be scored.</code></pre>
+##   Level 5:   54 nodes to be scored.</code></pre>
 <pre><code>## 
 ##   Level 4:   52 nodes to be scored.</code></pre>
 <pre><code>## 
@@ -3089,19 +3114,19 @@ myGOdata_CC &lt;-
 <pre class="r"><code>resGO_CC</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["GO.ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Term"],"name":[2],"type":["chr"],"align":["left"]},{"label":["Significant"],"name":[3],"type":["int"],"align":["right"]},{"label":["Expected"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["fisher"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"GO:0043231","2":"intracellular membrane-bounded organelle","3":"238","4":"217.00","5":"7.40e-16"},{"1":"GO:0043227","2":"membrane-bounded organelle","3":"240","4":"225.93","5":"4.40e-09"},{"1":"GO:0012505","2":"endomembrane system","3":"65","4":"58.04","5":"2.10e-04"},{"1":"GO:0005694","2":"chromosome","3":"35","4":"32.15","5":"2.90e-04"},{"1":"GO:0005737","2":"cytoplasm","3":"168","4":"158.95","5":"1.99e-03"},{"1":"GO:0031090","2":"organelle membrane","3":"57","4":"50.90","5":"3.51e-03"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["GO.ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Term"],"name":[2],"type":["chr"],"align":["left"]},{"label":["Significant"],"name":[3],"type":["int"],"align":["right"]},{"label":["Expected"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["fisher"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"GO:0043231","2":"intracellular membrane-bounded organelle","3":"239","4":"219.89","5":"3.40e-13"},{"1":"GO:0043227","2":"membrane-bounded organelle","3":"241","4":"228.03","5":"2.70e-07"},{"1":"GO:0005737","2":"cytoplasm","3":"170","4":"160.16","5":"2.30e-04"},{"1":"GO:0012505","2":"endomembrane system","3":"65","4":"58.82","5":"3.80e-04"},{"1":"GO:0005694","2":"chromosome","3":"35","4":"32.58","5":"2.33e-03"},{"1":"GO:0031090","2":"organelle membrane","3":"57","4":"51.58","5":"3.33e-03"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <pre class="r"><code>resGO_BP</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["GO.ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Term"],"name":[2],"type":["chr"],"align":["left"]},{"label":["Significant"],"name":[3],"type":["int"],"align":["right"]},{"label":["Expected"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["fisher"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"GO:0006725","2":"cellular aromatic compound metabolic pro...","3":"595","4":"568.42","5":"2.70e-07"},{"1":"GO:0046483","2":"heterocycle metabolic process","3":"602","4":"575.72","5":"4.00e-07"},{"1":"GO:0090304","2":"nucleic acid metabolic process","3":"470","4":"447.99","5":"1.70e-06"},{"1":"GO:0006396","2":"RNA processing","3":"142","4":"130.47","5":"3.60e-06"},{"1":"GO:1901360","2":"organic cyclic compound metabolic proces...","3":"611","4":"583.93","5":"5.70e-06"},{"1":"GO:0006139","2":"nucleobase-containing compound metabolic...","3":"559","4":"535.58","5":"1.10e-04"},{"1":"GO:0016192","2":"vesicle-mediated transport","3":"78","4":"72.08","5":"1.90e-04"},{"1":"GO:0008152","2":"metabolic process","3":"1407","4":"1396.88","5":"3.80e-04"},{"1":"GO:0033554","2":"cellular response to stress","3":"96","4":"90.33","5":"1.66e-03"},{"1":"GO:0005975","2":"carbohydrate metabolic process","3":"97","4":"89.41","5":"2.15e-03"},{"1":"GO:0006418","2":"tRNA aminoacylation for protein translat...","3":"25","4":"22.81","5":"2.53e-03"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["GO.ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Term"],"name":[2],"type":["chr"],"align":["left"]},{"label":["Significant"],"name":[3],"type":["int"],"align":["right"]},{"label":["Expected"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["fisher"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"GO:0006725","2":"cellular aromatic compound metabolic pro...","3":"595","4":"574.59","5":"0.000013"},{"1":"GO:0046483","2":"heterocycle metabolic process","3":"602","4":"581.94","5":"0.000019"},{"1":"GO:0006396","2":"RNA processing","3":"142","4":"131.47","5":"0.000044"},{"1":"GO:0090304","2":"nucleic acid metabolic process","3":"470","4":"451.40","5":"0.000078"},{"1":"GO:0016192","2":"vesicle-mediated transport","3":"78","4":"72.63","5":"0.000220"},{"1":"GO:0008152","2":"metabolic process","3":"1420","4":"1416.70","5":"0.000310"},{"1":"GO:1901360","2":"organic cyclic compound metabolic proces...","3":"611","4":"590.22","5":"0.000320"},{"1":"GO:0006139","2":"nucleobase-containing compound metabolic...","3":"560","4":"541.49","5":"0.002010"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <pre class="r"><code>resGO_MF</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["GO.ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Term"],"name":[2],"type":["chr"],"align":["left"]},{"label":["Significant"],"name":[3],"type":["int"],"align":["right"]},{"label":["Expected"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["fisher"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"GO:0003824","2":"catalytic activity","3":"1591","4":"1557.58","5":"1.80e-09"},{"1":"GO:0140640","2":"catalytic activity, acting on a nucleic ...","3":"211","4":"190.63","5":"1.40e-08"},{"1":"GO:1901363","2":"heterocyclic compound binding","3":"1057","4":"1046.21","5":"1.30e-06"},{"1":"GO:0097159","2":"organic cyclic compound binding","3":"1057","4":"1046.21","5":"1.30e-06"},{"1":"GO:0043168","2":"anion binding","3":"647","4":"644.17","5":"1.60e-04"},{"1":"GO:0003676","2":"nucleic acid binding","3":"465","4":"446.31","5":"1.81e-03"},{"1":"GO:0016779","2":"nucleotidyltransferase activity","3":"45","4":"40.66","5":"2.13e-03"},{"1":"GO:0036094","2":"small molecule binding","3":"686","4":"682.12","5":"2.40e-03"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["GO.ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Term"],"name":[2],"type":["chr"],"align":["left"]},{"label":["Significant"],"name":[3],"type":["int"],"align":["right"]},{"label":["Expected"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["fisher"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"GO:0003824","2":"catalytic activity","3":"1604","4":"1581.50","5":"5.7e-10"},{"1":"GO:1901363","2":"heterocyclic compound binding","3":"1064","4":"1062.56","5":"1.8e-06"},{"1":"GO:0097159","2":"organic cyclic compound binding","3":"1064","4":"1062.56","5":"1.8e-06"},{"1":"GO:0140640","2":"catalytic activity, acting on a nucleic ...","3":"209","4":"192.78","5":"7.0e-06"},{"1":"GO:0043168","2":"anion binding","3":"651","4":"654.16","5":"1.3e-04"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 </div>
@@ -3118,13 +3143,13 @@ myGOdata_CC &lt;-
     ontology = &quot;CC&quot;)</code></pre>
 <pre><code>## 
 ## Building most specific GOs .....</code></pre>
-<pre><code>##  ( 206 GO terms found. )</code></pre>
+<pre><code>##  ( 204 GO terms found. )</code></pre>
 <pre><code>## 
 ## Build GO DAG topology ..........</code></pre>
-<pre><code>##  ( 402 GO terms and 713 relations. )</code></pre>
+<pre><code>##  ( 401 GO terms and 712 relations. )</code></pre>
 <pre><code>## 
 ## Annotating nodes ...............</code></pre>
-<pre><code>##  ( 957 genes annotated to the GO terms. )</code></pre>
+<pre><code>##  ( 963 genes annotated to the GO terms. )</code></pre>
 <pre class="r"><code>myGOdata_BP &lt;-
   processedGOdata(
     DEG_contrasts = genes_for_analysis,
@@ -3139,7 +3164,7 @@ myGOdata_CC &lt;-
 <pre><code>##  ( 1674 GO terms and 3344 relations. )</code></pre>
 <pre><code>## 
 ## Annotating nodes ...............</code></pre>
-<pre><code>##  ( 2135 genes annotated to the GO terms. )</code></pre>
+<pre><code>##  ( 2148 genes annotated to the GO terms. )</code></pre>
 <pre class="r"><code>myGOdata_MF &lt;-
   processedGOdata(
     DEG_contrasts = genes_for_analysis,
@@ -3148,19 +3173,19 @@ myGOdata_CC &lt;-
     ontology = &quot;MF&quot;)</code></pre>
 <pre><code>## 
 ## Building most specific GOs .....</code></pre>
-<pre><code>##  ( 740 GO terms found. )</code></pre>
+<pre><code>##  ( 742 GO terms found. )</code></pre>
 <pre><code>## 
 ## Build GO DAG topology ..........</code></pre>
 <pre><code>##  ( 1125 GO terms and 1450 relations. )</code></pre>
 <pre><code>## 
 ## Annotating nodes ...............</code></pre>
-<pre><code>##  ( 3398 genes annotated to the GO terms. )</code></pre>
+<pre><code>##  ( 3411 genes annotated to the GO terms. )</code></pre>
 <pre class="r"><code>resGO_CC &lt;- 
   resultGO(myGOdata_CC, algorithm = &quot;parentchild&quot;, sig = T)</code></pre>
 <pre><code>## 
 ##           -- Parent-Child Algorithm -- 
 ## 
-##       the algorithm is scoring 88 nontrivial nodes
+##       the algorithm is scoring 85 nontrivial nodes
 ##       parameters: 
 ##           test statistic: fisher : joinFun = union</code></pre>
 <pre><code>## 
@@ -3174,11 +3199,11 @@ myGOdata_CC &lt;-
 <pre><code>## 
 ##   Level 6:   14 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 5:   15 nodes to be scored.</code></pre>
+##   Level 5:   14 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 4:   15 nodes to be scored.</code></pre>
+##   Level 4:   14 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 3:   14 nodes to be scored.</code></pre>
+##   Level 3:   13 nodes to be scored.</code></pre>
 <pre><code>## 
 ##   Level 2:   2 nodes to be scored.</code></pre>
 <pre class="r"><code>resGO_BP &lt;- 
@@ -3186,7 +3211,7 @@ myGOdata_CC &lt;-
 <pre><code>## 
 ##           -- Parent-Child Algorithm -- 
 ## 
-##       the algorithm is scoring 375 nontrivial nodes
+##       the algorithm is scoring 372 nontrivial nodes
 ##       parameters: 
 ##           test statistic: fisher : joinFun = union</code></pre>
 <pre><code>## 
@@ -3200,11 +3225,11 @@ myGOdata_CC &lt;-
 <pre><code>## 
 ##   Level 9:   39 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 8:   42 nodes to be scored.</code></pre>
+##   Level 8:   41 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 7:   52 nodes to be scored.</code></pre>
+##   Level 7:   51 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 6:   70 nodes to be scored.</code></pre>
+##   Level 6:   69 nodes to be scored.</code></pre>
 <pre><code>## 
 ##   Level 5:   72 nodes to be scored.</code></pre>
 <pre><code>## 
@@ -3218,19 +3243,19 @@ myGOdata_CC &lt;-
 <pre><code>## 
 ##           -- Parent-Child Algorithm -- 
 ## 
-##       the algorithm is scoring 230 nontrivial nodes
+##       the algorithm is scoring 232 nontrivial nodes
 ##       parameters: 
 ##           test statistic: fisher : joinFun = union</code></pre>
 <pre><code>## 
 ##   Level 9:   5 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 8:   8 nodes to be scored.</code></pre>
+##   Level 8:   9 nodes to be scored.</code></pre>
 <pre><code>## 
 ##   Level 7:   25 nodes to be scored.</code></pre>
 <pre><code>## 
 ##   Level 6:   46 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 5:   53 nodes to be scored.</code></pre>
+##   Level 5:   54 nodes to be scored.</code></pre>
 <pre><code>## 
 ##   Level 4:   52 nodes to be scored.</code></pre>
 <pre><code>## 
@@ -3240,19 +3265,19 @@ myGOdata_CC &lt;-
 <pre class="r"><code>resGO_CC</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["GO.ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Term"],"name":[2],"type":["chr"],"align":["left"]},{"label":["Significant"],"name":[3],"type":["int"],"align":["right"]},{"label":["Expected"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["fisher"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"GO:0043231","2":"intracellular membrane-bounded organelle","3":"238","4":"217.00","5":"7.40e-16"},{"1":"GO:0043227","2":"membrane-bounded organelle","3":"240","4":"225.93","5":"4.40e-09"},{"1":"GO:0012505","2":"endomembrane system","3":"65","4":"58.04","5":"2.10e-04"},{"1":"GO:0005694","2":"chromosome","3":"35","4":"32.15","5":"2.90e-04"},{"1":"GO:0005737","2":"cytoplasm","3":"168","4":"158.95","5":"1.99e-03"},{"1":"GO:0031090","2":"organelle membrane","3":"57","4":"50.90","5":"3.51e-03"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["GO.ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Term"],"name":[2],"type":["chr"],"align":["left"]},{"label":["Significant"],"name":[3],"type":["int"],"align":["right"]},{"label":["Expected"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["fisher"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"GO:0043231","2":"intracellular membrane-bounded organelle","3":"239","4":"219.89","5":"3.40e-13"},{"1":"GO:0043227","2":"membrane-bounded organelle","3":"241","4":"228.03","5":"2.70e-07"},{"1":"GO:0005737","2":"cytoplasm","3":"170","4":"160.16","5":"2.30e-04"},{"1":"GO:0012505","2":"endomembrane system","3":"65","4":"58.82","5":"3.80e-04"},{"1":"GO:0005694","2":"chromosome","3":"35","4":"32.58","5":"2.33e-03"},{"1":"GO:0031090","2":"organelle membrane","3":"57","4":"51.58","5":"3.33e-03"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <pre class="r"><code>resGO_BP</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["GO.ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Term"],"name":[2],"type":["chr"],"align":["left"]},{"label":["Significant"],"name":[3],"type":["int"],"align":["right"]},{"label":["Expected"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["fisher"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"GO:0006725","2":"cellular aromatic compound metabolic pro...","3":"595","4":"568.42","5":"2.70e-07"},{"1":"GO:0046483","2":"heterocycle metabolic process","3":"602","4":"575.72","5":"4.00e-07"},{"1":"GO:0090304","2":"nucleic acid metabolic process","3":"470","4":"447.99","5":"1.70e-06"},{"1":"GO:0006396","2":"RNA processing","3":"142","4":"130.47","5":"3.60e-06"},{"1":"GO:1901360","2":"organic cyclic compound metabolic proces...","3":"611","4":"583.93","5":"5.70e-06"},{"1":"GO:0006139","2":"nucleobase-containing compound metabolic...","3":"559","4":"535.58","5":"1.10e-04"},{"1":"GO:0016192","2":"vesicle-mediated transport","3":"78","4":"72.08","5":"1.90e-04"},{"1":"GO:0008152","2":"metabolic process","3":"1407","4":"1396.88","5":"3.80e-04"},{"1":"GO:0033554","2":"cellular response to stress","3":"96","4":"90.33","5":"1.66e-03"},{"1":"GO:0005975","2":"carbohydrate metabolic process","3":"97","4":"89.41","5":"2.15e-03"},{"1":"GO:0006418","2":"tRNA aminoacylation for protein translat...","3":"25","4":"22.81","5":"2.53e-03"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["GO.ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Term"],"name":[2],"type":["chr"],"align":["left"]},{"label":["Significant"],"name":[3],"type":["int"],"align":["right"]},{"label":["Expected"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["fisher"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"GO:0006725","2":"cellular aromatic compound metabolic pro...","3":"595","4":"574.59","5":"0.000013"},{"1":"GO:0046483","2":"heterocycle metabolic process","3":"602","4":"581.94","5":"0.000019"},{"1":"GO:0006396","2":"RNA processing","3":"142","4":"131.47","5":"0.000044"},{"1":"GO:0090304","2":"nucleic acid metabolic process","3":"470","4":"451.40","5":"0.000078"},{"1":"GO:0016192","2":"vesicle-mediated transport","3":"78","4":"72.63","5":"0.000220"},{"1":"GO:0008152","2":"metabolic process","3":"1420","4":"1416.70","5":"0.000310"},{"1":"GO:1901360","2":"organic cyclic compound metabolic proces...","3":"611","4":"590.22","5":"0.000320"},{"1":"GO:0006139","2":"nucleobase-containing compound metabolic...","3":"560","4":"541.49","5":"0.002010"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <pre class="r"><code>resGO_MF</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["GO.ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Term"],"name":[2],"type":["chr"],"align":["left"]},{"label":["Significant"],"name":[3],"type":["int"],"align":["right"]},{"label":["Expected"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["fisher"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"GO:0003824","2":"catalytic activity","3":"1591","4":"1557.58","5":"1.80e-09"},{"1":"GO:0140640","2":"catalytic activity, acting on a nucleic ...","3":"211","4":"190.63","5":"1.40e-08"},{"1":"GO:1901363","2":"heterocyclic compound binding","3":"1057","4":"1046.21","5":"1.30e-06"},{"1":"GO:0097159","2":"organic cyclic compound binding","3":"1057","4":"1046.21","5":"1.30e-06"},{"1":"GO:0043168","2":"anion binding","3":"647","4":"644.17","5":"1.60e-04"},{"1":"GO:0003676","2":"nucleic acid binding","3":"465","4":"446.31","5":"1.81e-03"},{"1":"GO:0016779","2":"nucleotidyltransferase activity","3":"45","4":"40.66","5":"2.13e-03"},{"1":"GO:0036094","2":"small molecule binding","3":"686","4":"682.12","5":"2.40e-03"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["GO.ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Term"],"name":[2],"type":["chr"],"align":["left"]},{"label":["Significant"],"name":[3],"type":["int"],"align":["right"]},{"label":["Expected"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["fisher"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"GO:0003824","2":"catalytic activity","3":"1604","4":"1581.50","5":"5.7e-10"},{"1":"GO:1901363","2":"heterocyclic compound binding","3":"1064","4":"1062.56","5":"1.8e-06"},{"1":"GO:0097159","2":"organic cyclic compound binding","3":"1064","4":"1062.56","5":"1.8e-06"},{"1":"GO:0140640","2":"catalytic activity, acting on a nucleic ...","3":"209","4":"192.78","5":"7.0e-06"},{"1":"GO:0043168","2":"anion binding","3":"651","4":"654.16","5":"1.3e-04"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 </div>
@@ -3269,13 +3294,13 @@ myGOdata_CC &lt;-
     ontology = &quot;CC&quot;)</code></pre>
 <pre><code>## 
 ## Building most specific GOs .....</code></pre>
-<pre><code>##  ( 206 GO terms found. )</code></pre>
+<pre><code>##  ( 204 GO terms found. )</code></pre>
 <pre><code>## 
 ## Build GO DAG topology ..........</code></pre>
-<pre><code>##  ( 402 GO terms and 713 relations. )</code></pre>
+<pre><code>##  ( 401 GO terms and 712 relations. )</code></pre>
 <pre><code>## 
 ## Annotating nodes ...............</code></pre>
-<pre><code>##  ( 957 genes annotated to the GO terms. )</code></pre>
+<pre><code>##  ( 963 genes annotated to the GO terms. )</code></pre>
 <pre class="r"><code>myGOdata_BP &lt;-
   processedGOdata(
     DEG_contrasts = genes_for_analysis,
@@ -3290,7 +3315,7 @@ myGOdata_CC &lt;-
 <pre><code>##  ( 1674 GO terms and 3344 relations. )</code></pre>
 <pre><code>## 
 ## Annotating nodes ...............</code></pre>
-<pre><code>##  ( 2135 genes annotated to the GO terms. )</code></pre>
+<pre><code>##  ( 2148 genes annotated to the GO terms. )</code></pre>
 <pre class="r"><code>myGOdata_MF &lt;-
   processedGOdata(
     DEG_contrasts = genes_for_analysis,
@@ -3299,19 +3324,19 @@ myGOdata_CC &lt;-
     ontology = &quot;MF&quot;)</code></pre>
 <pre><code>## 
 ## Building most specific GOs .....</code></pre>
-<pre><code>##  ( 740 GO terms found. )</code></pre>
+<pre><code>##  ( 742 GO terms found. )</code></pre>
 <pre><code>## 
 ## Build GO DAG topology ..........</code></pre>
 <pre><code>##  ( 1125 GO terms and 1450 relations. )</code></pre>
 <pre><code>## 
 ## Annotating nodes ...............</code></pre>
-<pre><code>##  ( 3398 genes annotated to the GO terms. )</code></pre>
+<pre><code>##  ( 3411 genes annotated to the GO terms. )</code></pre>
 <pre class="r"><code>resGO_CC &lt;- 
   resultGO(myGOdata_CC, algorithm = &quot;parentchild&quot;, sig = T)</code></pre>
 <pre><code>## 
 ##           -- Parent-Child Algorithm -- 
 ## 
-##       the algorithm is scoring 88 nontrivial nodes
+##       the algorithm is scoring 85 nontrivial nodes
 ##       parameters: 
 ##           test statistic: fisher : joinFun = union</code></pre>
 <pre><code>## 
@@ -3325,11 +3350,11 @@ myGOdata_CC &lt;-
 <pre><code>## 
 ##   Level 6:   14 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 5:   15 nodes to be scored.</code></pre>
+##   Level 5:   14 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 4:   15 nodes to be scored.</code></pre>
+##   Level 4:   14 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 3:   14 nodes to be scored.</code></pre>
+##   Level 3:   13 nodes to be scored.</code></pre>
 <pre><code>## 
 ##   Level 2:   2 nodes to be scored.</code></pre>
 <pre class="r"><code>resGO_BP &lt;- 
@@ -3337,7 +3362,7 @@ myGOdata_CC &lt;-
 <pre><code>## 
 ##           -- Parent-Child Algorithm -- 
 ## 
-##       the algorithm is scoring 375 nontrivial nodes
+##       the algorithm is scoring 372 nontrivial nodes
 ##       parameters: 
 ##           test statistic: fisher : joinFun = union</code></pre>
 <pre><code>## 
@@ -3351,11 +3376,11 @@ myGOdata_CC &lt;-
 <pre><code>## 
 ##   Level 9:   39 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 8:   42 nodes to be scored.</code></pre>
+##   Level 8:   41 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 7:   52 nodes to be scored.</code></pre>
+##   Level 7:   51 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 6:   70 nodes to be scored.</code></pre>
+##   Level 6:   69 nodes to be scored.</code></pre>
 <pre><code>## 
 ##   Level 5:   72 nodes to be scored.</code></pre>
 <pre><code>## 
@@ -3369,19 +3394,19 @@ myGOdata_CC &lt;-
 <pre><code>## 
 ##           -- Parent-Child Algorithm -- 
 ## 
-##       the algorithm is scoring 230 nontrivial nodes
+##       the algorithm is scoring 232 nontrivial nodes
 ##       parameters: 
 ##           test statistic: fisher : joinFun = union</code></pre>
 <pre><code>## 
 ##   Level 9:   5 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 8:   8 nodes to be scored.</code></pre>
+##   Level 8:   9 nodes to be scored.</code></pre>
 <pre><code>## 
 ##   Level 7:   25 nodes to be scored.</code></pre>
 <pre><code>## 
 ##   Level 6:   46 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 5:   53 nodes to be scored.</code></pre>
+##   Level 5:   54 nodes to be scored.</code></pre>
 <pre><code>## 
 ##   Level 4:   52 nodes to be scored.</code></pre>
 <pre><code>## 
@@ -3391,19 +3416,19 @@ myGOdata_CC &lt;-
 <pre class="r"><code>resGO_CC</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["GO.ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Term"],"name":[2],"type":["chr"],"align":["left"]},{"label":["Significant"],"name":[3],"type":["int"],"align":["right"]},{"label":["Expected"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["fisher"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"GO:0043231","2":"intracellular membrane-bounded organelle","3":"238","4":"217.00","5":"7.40e-16"},{"1":"GO:0043227","2":"membrane-bounded organelle","3":"240","4":"225.93","5":"4.40e-09"},{"1":"GO:0012505","2":"endomembrane system","3":"65","4":"58.04","5":"2.10e-04"},{"1":"GO:0005694","2":"chromosome","3":"35","4":"32.15","5":"2.90e-04"},{"1":"GO:0005737","2":"cytoplasm","3":"168","4":"158.95","5":"1.99e-03"},{"1":"GO:0031090","2":"organelle membrane","3":"57","4":"50.90","5":"3.51e-03"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["GO.ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Term"],"name":[2],"type":["chr"],"align":["left"]},{"label":["Significant"],"name":[3],"type":["int"],"align":["right"]},{"label":["Expected"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["fisher"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"GO:0043231","2":"intracellular membrane-bounded organelle","3":"239","4":"219.89","5":"3.40e-13"},{"1":"GO:0043227","2":"membrane-bounded organelle","3":"241","4":"228.03","5":"2.70e-07"},{"1":"GO:0005737","2":"cytoplasm","3":"170","4":"160.16","5":"2.30e-04"},{"1":"GO:0012505","2":"endomembrane system","3":"65","4":"58.82","5":"3.80e-04"},{"1":"GO:0005694","2":"chromosome","3":"35","4":"32.58","5":"2.33e-03"},{"1":"GO:0031090","2":"organelle membrane","3":"57","4":"51.58","5":"3.33e-03"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <pre class="r"><code>resGO_BP</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["GO.ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Term"],"name":[2],"type":["chr"],"align":["left"]},{"label":["Significant"],"name":[3],"type":["int"],"align":["right"]},{"label":["Expected"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["fisher"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"GO:0006725","2":"cellular aromatic compound metabolic pro...","3":"595","4":"568.42","5":"2.70e-07"},{"1":"GO:0046483","2":"heterocycle metabolic process","3":"602","4":"575.72","5":"4.00e-07"},{"1":"GO:0090304","2":"nucleic acid metabolic process","3":"470","4":"447.99","5":"1.70e-06"},{"1":"GO:0006396","2":"RNA processing","3":"142","4":"130.47","5":"3.60e-06"},{"1":"GO:1901360","2":"organic cyclic compound metabolic proces...","3":"611","4":"583.93","5":"5.70e-06"},{"1":"GO:0006139","2":"nucleobase-containing compound metabolic...","3":"559","4":"535.58","5":"1.10e-04"},{"1":"GO:0016192","2":"vesicle-mediated transport","3":"78","4":"72.08","5":"1.90e-04"},{"1":"GO:0008152","2":"metabolic process","3":"1407","4":"1396.88","5":"3.80e-04"},{"1":"GO:0033554","2":"cellular response to stress","3":"96","4":"90.33","5":"1.66e-03"},{"1":"GO:0005975","2":"carbohydrate metabolic process","3":"97","4":"89.41","5":"2.15e-03"},{"1":"GO:0006418","2":"tRNA aminoacylation for protein translat...","3":"25","4":"22.81","5":"2.53e-03"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["GO.ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Term"],"name":[2],"type":["chr"],"align":["left"]},{"label":["Significant"],"name":[3],"type":["int"],"align":["right"]},{"label":["Expected"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["fisher"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"GO:0006725","2":"cellular aromatic compound metabolic pro...","3":"595","4":"574.59","5":"0.000013"},{"1":"GO:0046483","2":"heterocycle metabolic process","3":"602","4":"581.94","5":"0.000019"},{"1":"GO:0006396","2":"RNA processing","3":"142","4":"131.47","5":"0.000044"},{"1":"GO:0090304","2":"nucleic acid metabolic process","3":"470","4":"451.40","5":"0.000078"},{"1":"GO:0016192","2":"vesicle-mediated transport","3":"78","4":"72.63","5":"0.000220"},{"1":"GO:0008152","2":"metabolic process","3":"1420","4":"1416.70","5":"0.000310"},{"1":"GO:1901360","2":"organic cyclic compound metabolic proces...","3":"611","4":"590.22","5":"0.000320"},{"1":"GO:0006139","2":"nucleobase-containing compound metabolic...","3":"560","4":"541.49","5":"0.002010"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <pre class="r"><code>resGO_MF</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["GO.ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Term"],"name":[2],"type":["chr"],"align":["left"]},{"label":["Significant"],"name":[3],"type":["int"],"align":["right"]},{"label":["Expected"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["fisher"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"GO:0003824","2":"catalytic activity","3":"1591","4":"1557.58","5":"1.80e-09"},{"1":"GO:0140640","2":"catalytic activity, acting on a nucleic ...","3":"211","4":"190.63","5":"1.40e-08"},{"1":"GO:1901363","2":"heterocyclic compound binding","3":"1057","4":"1046.21","5":"1.30e-06"},{"1":"GO:0097159","2":"organic cyclic compound binding","3":"1057","4":"1046.21","5":"1.30e-06"},{"1":"GO:0043168","2":"anion binding","3":"647","4":"644.17","5":"1.60e-04"},{"1":"GO:0003676","2":"nucleic acid binding","3":"465","4":"446.31","5":"1.81e-03"},{"1":"GO:0016779","2":"nucleotidyltransferase activity","3":"45","4":"40.66","5":"2.13e-03"},{"1":"GO:0036094","2":"small molecule binding","3":"686","4":"682.12","5":"2.40e-03"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["GO.ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Term"],"name":[2],"type":["chr"],"align":["left"]},{"label":["Significant"],"name":[3],"type":["int"],"align":["right"]},{"label":["Expected"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["fisher"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"GO:0003824","2":"catalytic activity","3":"1604","4":"1581.50","5":"5.7e-10"},{"1":"GO:1901363","2":"heterocyclic compound binding","3":"1064","4":"1062.56","5":"1.8e-06"},{"1":"GO:0097159","2":"organic cyclic compound binding","3":"1064","4":"1062.56","5":"1.8e-06"},{"1":"GO:0140640","2":"catalytic activity, acting on a nucleic ...","3":"209","4":"192.78","5":"7.0e-06"},{"1":"GO:0043168","2":"anion binding","3":"651","4":"654.16","5":"1.3e-04"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 </div>
@@ -3420,13 +3445,13 @@ myGOdata_CC &lt;-
     ontology = &quot;CC&quot;)</code></pre>
 <pre><code>## 
 ## Building most specific GOs .....</code></pre>
-<pre><code>##  ( 206 GO terms found. )</code></pre>
+<pre><code>##  ( 204 GO terms found. )</code></pre>
 <pre><code>## 
 ## Build GO DAG topology ..........</code></pre>
-<pre><code>##  ( 402 GO terms and 713 relations. )</code></pre>
+<pre><code>##  ( 401 GO terms and 712 relations. )</code></pre>
 <pre><code>## 
 ## Annotating nodes ...............</code></pre>
-<pre><code>##  ( 957 genes annotated to the GO terms. )</code></pre>
+<pre><code>##  ( 963 genes annotated to the GO terms. )</code></pre>
 <pre class="r"><code>myGOdata_BP &lt;-
   processedGOdata(
     DEG_contrasts = genes_for_analysis,
@@ -3441,7 +3466,7 @@ myGOdata_CC &lt;-
 <pre><code>##  ( 1674 GO terms and 3344 relations. )</code></pre>
 <pre><code>## 
 ## Annotating nodes ...............</code></pre>
-<pre><code>##  ( 2135 genes annotated to the GO terms. )</code></pre>
+<pre><code>##  ( 2148 genes annotated to the GO terms. )</code></pre>
 <pre class="r"><code>myGOdata_MF &lt;-
   processedGOdata(
     DEG_contrasts = genes_for_analysis,
@@ -3450,19 +3475,19 @@ myGOdata_CC &lt;-
     ontology = &quot;MF&quot;)</code></pre>
 <pre><code>## 
 ## Building most specific GOs .....</code></pre>
-<pre><code>##  ( 740 GO terms found. )</code></pre>
+<pre><code>##  ( 742 GO terms found. )</code></pre>
 <pre><code>## 
 ## Build GO DAG topology ..........</code></pre>
 <pre><code>##  ( 1125 GO terms and 1450 relations. )</code></pre>
 <pre><code>## 
 ## Annotating nodes ...............</code></pre>
-<pre><code>##  ( 3398 genes annotated to the GO terms. )</code></pre>
+<pre><code>##  ( 3411 genes annotated to the GO terms. )</code></pre>
 <pre class="r"><code>resGO_CC &lt;- 
   resultGO(myGOdata_CC, algorithm = &quot;parentchild&quot;, sig = T)</code></pre>
 <pre><code>## 
 ##           -- Parent-Child Algorithm -- 
 ## 
-##       the algorithm is scoring 88 nontrivial nodes
+##       the algorithm is scoring 85 nontrivial nodes
 ##       parameters: 
 ##           test statistic: fisher : joinFun = union</code></pre>
 <pre><code>## 
@@ -3476,11 +3501,11 @@ myGOdata_CC &lt;-
 <pre><code>## 
 ##   Level 6:   14 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 5:   15 nodes to be scored.</code></pre>
+##   Level 5:   14 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 4:   15 nodes to be scored.</code></pre>
+##   Level 4:   14 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 3:   14 nodes to be scored.</code></pre>
+##   Level 3:   13 nodes to be scored.</code></pre>
 <pre><code>## 
 ##   Level 2:   2 nodes to be scored.</code></pre>
 <pre class="r"><code>resGO_BP &lt;- 
@@ -3488,7 +3513,7 @@ myGOdata_CC &lt;-
 <pre><code>## 
 ##           -- Parent-Child Algorithm -- 
 ## 
-##       the algorithm is scoring 375 nontrivial nodes
+##       the algorithm is scoring 372 nontrivial nodes
 ##       parameters: 
 ##           test statistic: fisher : joinFun = union</code></pre>
 <pre><code>## 
@@ -3502,11 +3527,11 @@ myGOdata_CC &lt;-
 <pre><code>## 
 ##   Level 9:   39 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 8:   42 nodes to be scored.</code></pre>
+##   Level 8:   41 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 7:   52 nodes to be scored.</code></pre>
+##   Level 7:   51 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 6:   70 nodes to be scored.</code></pre>
+##   Level 6:   69 nodes to be scored.</code></pre>
 <pre><code>## 
 ##   Level 5:   72 nodes to be scored.</code></pre>
 <pre><code>## 
@@ -3520,19 +3545,152 @@ myGOdata_CC &lt;-
 <pre><code>## 
 ##           -- Parent-Child Algorithm -- 
 ## 
-##       the algorithm is scoring 230 nontrivial nodes
+##       the algorithm is scoring 232 nontrivial nodes
 ##       parameters: 
 ##           test statistic: fisher : joinFun = union</code></pre>
 <pre><code>## 
 ##   Level 9:   5 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 8:   8 nodes to be scored.</code></pre>
+##   Level 8:   9 nodes to be scored.</code></pre>
 <pre><code>## 
 ##   Level 7:   25 nodes to be scored.</code></pre>
 <pre><code>## 
 ##   Level 6:   46 nodes to be scored.</code></pre>
 <pre><code>## 
-##   Level 5:   53 nodes to be scored.</code></pre>
+##   Level 5:   54 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 4:   52 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 3:   27 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 2:   13 nodes to be scored.</code></pre>
+</div>
+<div id="e6-vs-e5" class="section level4">
+<h4>E6 vs E5</h4>
+<pre class="r"><code>contrast = &quot;E6 vs E5&quot;
+genes_for_analysis = dplyr::filter(Fd_nonDEG_contrasts, contrast == contrast)
+
+myGOdata_CC &lt;-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fd,
+    GO_gene_mapping = GO_Fd_gene_mapping,
+    ontology = &quot;CC&quot;)</code></pre>
+<pre><code>## 
+## Building most specific GOs .....</code></pre>
+<pre><code>##  ( 204 GO terms found. )</code></pre>
+<pre><code>## 
+## Build GO DAG topology ..........</code></pre>
+<pre><code>##  ( 401 GO terms and 712 relations. )</code></pre>
+<pre><code>## 
+## Annotating nodes ...............</code></pre>
+<pre><code>##  ( 963 genes annotated to the GO terms. )</code></pre>
+<pre class="r"><code>myGOdata_BP &lt;-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fd,
+    GO_gene_mapping = GO_Fd_gene_mapping,
+    ontology = &quot;BP&quot;)</code></pre>
+<pre><code>## 
+## Building most specific GOs .....</code></pre>
+<pre><code>##  ( 623 GO terms found. )</code></pre>
+<pre><code>## 
+## Build GO DAG topology ..........</code></pre>
+<pre><code>##  ( 1674 GO terms and 3344 relations. )</code></pre>
+<pre><code>## 
+## Annotating nodes ...............</code></pre>
+<pre><code>##  ( 2148 genes annotated to the GO terms. )</code></pre>
+<pre class="r"><code>myGOdata_MF &lt;-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fd,
+    GO_gene_mapping = GO_Fd_gene_mapping,
+    ontology = &quot;MF&quot;)</code></pre>
+<pre><code>## 
+## Building most specific GOs .....</code></pre>
+<pre><code>##  ( 742 GO terms found. )</code></pre>
+<pre><code>## 
+## Build GO DAG topology ..........</code></pre>
+<pre><code>##  ( 1125 GO terms and 1450 relations. )</code></pre>
+<pre><code>## 
+## Annotating nodes ...............</code></pre>
+<pre><code>##  ( 3411 genes annotated to the GO terms. )</code></pre>
+<pre class="r"><code>resGO_CC &lt;- 
+  resultGO(myGOdata_CC, algorithm = &quot;parentchild&quot;, sig = T)</code></pre>
+<pre><code>## 
+##           -- Parent-Child Algorithm -- 
+## 
+##       the algorithm is scoring 85 nontrivial nodes
+##       parameters: 
+##           test statistic: fisher : joinFun = union</code></pre>
+<pre><code>## 
+##   Level 10:  1 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 9:   3 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 8:   11 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 7:   12 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 6:   14 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 5:   14 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 4:   14 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 3:   13 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 2:   2 nodes to be scored.</code></pre>
+<pre class="r"><code>resGO_BP &lt;- 
+  resultGO(myGOdata_BP, algorithm = &quot;parentchild&quot;, sig = T)</code></pre>
+<pre><code>## 
+##           -- Parent-Child Algorithm -- 
+## 
+##       the algorithm is scoring 372 nontrivial nodes
+##       parameters: 
+##           test statistic: fisher : joinFun = union</code></pre>
+<pre><code>## 
+##   Level 13:  1 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 12:  3 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 11:  9 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 10:  14 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 9:   39 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 8:   41 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 7:   51 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 6:   69 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 5:   72 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 4:   40 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 3:   26 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 2:   6 nodes to be scored.</code></pre>
+<pre class="r"><code>resGO_MF &lt;- 
+  resultGO(myGOdata_MF, algorithm = &quot;parentchild&quot;, sig = T)</code></pre>
+<pre><code>## 
+##           -- Parent-Child Algorithm -- 
+## 
+##       the algorithm is scoring 232 nontrivial nodes
+##       parameters: 
+##           test statistic: fisher : joinFun = union</code></pre>
+<pre><code>## 
+##   Level 9:   5 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 8:   9 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 7:   25 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 6:   46 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 5:   54 nodes to be scored.</code></pre>
 <pre><code>## 
 ##   Level 4:   52 nodes to be scored.</code></pre>
 <pre><code>## 
@@ -3542,19 +3700,173 @@ myGOdata_CC &lt;-
 <pre class="r"><code>resGO_CC</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["GO.ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Term"],"name":[2],"type":["chr"],"align":["left"]},{"label":["Significant"],"name":[3],"type":["int"],"align":["right"]},{"label":["Expected"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["fisher"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"GO:0043231","2":"intracellular membrane-bounded organelle","3":"238","4":"217.00","5":"7.40e-16"},{"1":"GO:0043227","2":"membrane-bounded organelle","3":"240","4":"225.93","5":"4.40e-09"},{"1":"GO:0012505","2":"endomembrane system","3":"65","4":"58.04","5":"2.10e-04"},{"1":"GO:0005694","2":"chromosome","3":"35","4":"32.15","5":"2.90e-04"},{"1":"GO:0005737","2":"cytoplasm","3":"168","4":"158.95","5":"1.99e-03"},{"1":"GO:0031090","2":"organelle membrane","3":"57","4":"50.90","5":"3.51e-03"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["GO.ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Term"],"name":[2],"type":["chr"],"align":["left"]},{"label":["Significant"],"name":[3],"type":["int"],"align":["right"]},{"label":["Expected"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["fisher"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"GO:0043231","2":"intracellular membrane-bounded organelle","3":"239","4":"219.89","5":"3.40e-13"},{"1":"GO:0043227","2":"membrane-bounded organelle","3":"241","4":"228.03","5":"2.70e-07"},{"1":"GO:0005737","2":"cytoplasm","3":"170","4":"160.16","5":"2.30e-04"},{"1":"GO:0012505","2":"endomembrane system","3":"65","4":"58.82","5":"3.80e-04"},{"1":"GO:0005694","2":"chromosome","3":"35","4":"32.58","5":"2.33e-03"},{"1":"GO:0031090","2":"organelle membrane","3":"57","4":"51.58","5":"3.33e-03"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <pre class="r"><code>resGO_BP</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["GO.ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Term"],"name":[2],"type":["chr"],"align":["left"]},{"label":["Significant"],"name":[3],"type":["int"],"align":["right"]},{"label":["Expected"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["fisher"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"GO:0006725","2":"cellular aromatic compound metabolic pro...","3":"595","4":"568.42","5":"2.70e-07"},{"1":"GO:0046483","2":"heterocycle metabolic process","3":"602","4":"575.72","5":"4.00e-07"},{"1":"GO:0090304","2":"nucleic acid metabolic process","3":"470","4":"447.99","5":"1.70e-06"},{"1":"GO:0006396","2":"RNA processing","3":"142","4":"130.47","5":"3.60e-06"},{"1":"GO:1901360","2":"organic cyclic compound metabolic proces...","3":"611","4":"583.93","5":"5.70e-06"},{"1":"GO:0006139","2":"nucleobase-containing compound metabolic...","3":"559","4":"535.58","5":"1.10e-04"},{"1":"GO:0016192","2":"vesicle-mediated transport","3":"78","4":"72.08","5":"1.90e-04"},{"1":"GO:0008152","2":"metabolic process","3":"1407","4":"1396.88","5":"3.80e-04"},{"1":"GO:0033554","2":"cellular response to stress","3":"96","4":"90.33","5":"1.66e-03"},{"1":"GO:0005975","2":"carbohydrate metabolic process","3":"97","4":"89.41","5":"2.15e-03"},{"1":"GO:0006418","2":"tRNA aminoacylation for protein translat...","3":"25","4":"22.81","5":"2.53e-03"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["GO.ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Term"],"name":[2],"type":["chr"],"align":["left"]},{"label":["Significant"],"name":[3],"type":["int"],"align":["right"]},{"label":["Expected"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["fisher"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"GO:0006725","2":"cellular aromatic compound metabolic pro...","3":"595","4":"574.59","5":"0.000013"},{"1":"GO:0046483","2":"heterocycle metabolic process","3":"602","4":"581.94","5":"0.000019"},{"1":"GO:0006396","2":"RNA processing","3":"142","4":"131.47","5":"0.000044"},{"1":"GO:0090304","2":"nucleic acid metabolic process","3":"470","4":"451.40","5":"0.000078"},{"1":"GO:0016192","2":"vesicle-mediated transport","3":"78","4":"72.63","5":"0.000220"},{"1":"GO:0008152","2":"metabolic process","3":"1420","4":"1416.70","5":"0.000310"},{"1":"GO:1901360","2":"organic cyclic compound metabolic proces...","3":"611","4":"590.22","5":"0.000320"},{"1":"GO:0006139","2":"nucleobase-containing compound metabolic...","3":"560","4":"541.49","5":"0.002010"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <pre class="r"><code>resGO_MF</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["GO.ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Term"],"name":[2],"type":["chr"],"align":["left"]},{"label":["Significant"],"name":[3],"type":["int"],"align":["right"]},{"label":["Expected"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["fisher"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"GO:0003824","2":"catalytic activity","3":"1591","4":"1557.58","5":"1.80e-09"},{"1":"GO:0140640","2":"catalytic activity, acting on a nucleic ...","3":"211","4":"190.63","5":"1.40e-08"},{"1":"GO:1901363","2":"heterocyclic compound binding","3":"1057","4":"1046.21","5":"1.30e-06"},{"1":"GO:0097159","2":"organic cyclic compound binding","3":"1057","4":"1046.21","5":"1.30e-06"},{"1":"GO:0043168","2":"anion binding","3":"647","4":"644.17","5":"1.60e-04"},{"1":"GO:0003676","2":"nucleic acid binding","3":"465","4":"446.31","5":"1.81e-03"},{"1":"GO:0016779","2":"nucleotidyltransferase activity","3":"45","4":"40.66","5":"2.13e-03"},{"1":"GO:0036094","2":"small molecule binding","3":"686","4":"682.12","5":"2.40e-03"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["GO.ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Term"],"name":[2],"type":["chr"],"align":["left"]},{"label":["Significant"],"name":[3],"type":["int"],"align":["right"]},{"label":["Expected"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["fisher"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"GO:0003824","2":"catalytic activity","3":"1604","4":"1581.50","5":"5.7e-10"},{"1":"GO:1901363","2":"heterocyclic compound binding","3":"1064","4":"1062.56","5":"1.8e-06"},{"1":"GO:0097159","2":"organic cyclic compound binding","3":"1064","4":"1062.56","5":"1.8e-06"},{"1":"GO:0140640","2":"catalytic activity, acting on a nucleic ...","3":"209","4":"192.78","5":"7.0e-06"},{"1":"GO:0043168","2":"anion binding","3":"651","4":"654.16","5":"1.3e-04"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+</div>
+</div>
+<div id="deg-fucus-distichus" class="section level3">
+<h3>DEG Fucus distichus</h3>
+<p>This was added because of the high number of DEGs found between the
+last stages.</p>
+<div id="e6-vs-e5-1" class="section level4">
+<h4>E6 vs E5</h4>
+<pre class="r"><code>contrast = &quot;E6 vs E5&quot;
+genes_for_analysis = dplyr::filter(Fd_DEG_contrasts, contrast == contrast)
+
+myGOdata_CC &lt;-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fd,
+    GO_gene_mapping = GO_Fd_gene_mapping,
+    ontology = &quot;CC&quot;)</code></pre>
+<pre><code>## 
+## Building most specific GOs .....</code></pre>
+<pre><code>##  ( 204 GO terms found. )</code></pre>
+<pre><code>## 
+## Build GO DAG topology ..........</code></pre>
+<pre><code>##  ( 401 GO terms and 712 relations. )</code></pre>
+<pre><code>## 
+## Annotating nodes ...............</code></pre>
+<pre><code>##  ( 963 genes annotated to the GO terms. )</code></pre>
+<pre class="r"><code>myGOdata_BP &lt;-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fd,
+    GO_gene_mapping = GO_Fd_gene_mapping,
+    ontology = &quot;BP&quot;)</code></pre>
+<pre><code>## 
+## Building most specific GOs .....</code></pre>
+<pre><code>##  ( 623 GO terms found. )</code></pre>
+<pre><code>## 
+## Build GO DAG topology ..........</code></pre>
+<pre><code>##  ( 1674 GO terms and 3344 relations. )</code></pre>
+<pre><code>## 
+## Annotating nodes ...............</code></pre>
+<pre><code>##  ( 2148 genes annotated to the GO terms. )</code></pre>
+<pre class="r"><code>myGOdata_MF &lt;-
+  processedGOdata(
+    DEG_contrasts = genes_for_analysis,
+    GO_data = GO_Fd,
+    GO_gene_mapping = GO_Fd_gene_mapping,
+    ontology = &quot;MF&quot;)</code></pre>
+<pre><code>## 
+## Building most specific GOs .....</code></pre>
+<pre><code>##  ( 742 GO terms found. )</code></pre>
+<pre><code>## 
+## Build GO DAG topology ..........</code></pre>
+<pre><code>##  ( 1125 GO terms and 1450 relations. )</code></pre>
+<pre><code>## 
+## Annotating nodes ...............</code></pre>
+<pre><code>##  ( 3411 genes annotated to the GO terms. )</code></pre>
+<pre class="r"><code>resGO_CC &lt;- 
+  resultGO(myGOdata_CC, algorithm = &quot;parentchild&quot;, sig = T)</code></pre>
+<pre><code>## 
+##           -- Parent-Child Algorithm -- 
+## 
+##       the algorithm is scoring 64 nontrivial nodes
+##       parameters: 
+##           test statistic: fisher : joinFun = union</code></pre>
+<pre><code>## 
+##   Level 9:   1 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 8:   7 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 7:   8 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 6:   8 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 5:   12 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 4:   13 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 3:   12 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 2:   2 nodes to be scored.</code></pre>
+<pre class="r"><code>resGO_BP &lt;- 
+  resultGO(myGOdata_BP, algorithm = &quot;parentchild&quot;, sig = T)</code></pre>
+<pre><code>## 
+##           -- Parent-Child Algorithm -- 
+## 
+##       the algorithm is scoring 328 nontrivial nodes
+##       parameters: 
+##           test statistic: fisher : joinFun = union</code></pre>
+<pre><code>## 
+##   Level 13:  1 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 12:  3 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 11:  9 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 10:  13 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 9:   33 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 8:   36 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 7:   39 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 6:   58 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 5:   68 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 4:   36 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 3:   25 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 2:   6 nodes to be scored.</code></pre>
+<pre class="r"><code>resGO_MF &lt;- 
+  resultGO(myGOdata_MF, algorithm = &quot;parentchild&quot;, sig = T)</code></pre>
+<pre><code>## 
+##           -- Parent-Child Algorithm -- 
+## 
+##       the algorithm is scoring 223 nontrivial nodes
+##       parameters: 
+##           test statistic: fisher : joinFun = union</code></pre>
+<pre><code>## 
+##   Level 9:   5 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 8:   9 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 7:   25 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 6:   43 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 5:   51 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 4:   50 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 3:   26 nodes to be scored.</code></pre>
+<pre><code>## 
+##   Level 2:   13 nodes to be scored.</code></pre>
+<pre class="r"><code>resGO_CC</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":["GO.ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Term"],"name":[2],"type":["chr"],"align":["left"]},{"label":["Significant"],"name":[3],"type":["int"],"align":["right"]},{"label":["Expected"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["fisher"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"GO:0043232","2":"intracellular non-membrane-bounded organ...","3":"48","4":"29.18","5":"1.0e-07"},{"1":"GO:0043228","2":"non-membrane-bounded organelle","3":"48","4":"29.18","5":"1.3e-07"},{"1":"GO:0044815","2":"DNA packaging complex","3":"8","4":"1.96","5":"7.5e-05"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+<pre class="r"><code>resGO_BP</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":["GO.ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Term"],"name":[2],"type":["chr"],"align":["left"]},{"label":["Significant"],"name":[3],"type":["int"],"align":["right"]},{"label":["Expected"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["fisher"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"GO:0051276","2":"chromosome organization","3":"16","4":"5.43","5":"1.5e-05"},{"1":"GO:0051252","2":"regulation of RNA metabolic process","3":"24","4":"20.62","5":"3.6e-04"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+<pre class="r"><code>resGO_MF</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":["GO.ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Term"],"name":[2],"type":["chr"],"align":["left"]},{"label":["Significant"],"name":[3],"type":["int"],"align":["right"]},{"label":["Expected"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["fisher"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"GO:0005198","2":"structural molecule activity","3":"32","4":"14.03","5":"2.0e-06"},{"1":"GO:0003677","2":"DNA binding","3":"36","4":"24.09","5":"2.1e-05"},{"1":"GO:0046983","2":"protein dimerization activity","3":"10","4":"3.66","5":"6.4e-04"},{"1":"GO:0016491","2":"oxidoreductase activity","3":"61","4":"41.62","5":"7.5e-04"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <p>Get session info.</p>
@@ -3566,11 +3878,11 @@ myGOdata_CC &lt;-
 ##  system   x86_64, darwin17.0
 ##  ui       X11
 ##  language (EN)
-##  collate  en_GB.UTF-8
-##  ctype    en_GB.UTF-8
+##  collate  en_US.UTF-8
+##  ctype    en_US.UTF-8
 ##  tz       Europe/Berlin
-##  date     2023-08-17
-##  pandoc   2.19.2 @ /Applications/RStudio.app/Contents/MacOS/quarto/bin/tools/ (via rmarkdown)
+##  date     2023-11-23
+##  pandoc   3.1.6.2 @ /usr/local/bin/ (via rmarkdown)
 ## 
 ## ─ Packages ───────────────────────────────────────────────────────────────────
 ##  package              * version    date (UTC) lib source
@@ -3596,10 +3908,10 @@ myGOdata_CC &lt;-
 ##  DESeq2               * 1.38.3     2023-01-19 [1] Bioconductor
 ##  devtools               2.4.5      2022-10-11 [1] CRAN (R 4.2.0)
 ##  digest                 0.6.33     2023-07-07 [1] CRAN (R 4.2.0)
-##  dplyr                * 1.1.2      2023-04-20 [1] CRAN (R 4.2.0)
+##  dplyr                * 1.1.3      2023-09-03 [1] CRAN (R 4.2.0)
 ##  ellipsis               0.3.2      2021-04-29 [1] CRAN (R 4.2.0)
-##  evaluate               0.21       2023-05-05 [1] CRAN (R 4.2.0)
-##  fansi                  1.0.4      2023-01-22 [1] CRAN (R 4.2.0)
+##  evaluate               0.22       2023-09-29 [1] CRAN (R 4.2.2)
+##  fansi                  1.0.5      2023-10-08 [1] CRAN (R 4.2.2)
 ##  fastmap                1.1.1      2023-02-24 [1] CRAN (R 4.2.0)
 ##  forcats              * 1.0.0      2023-01-29 [1] CRAN (R 4.2.0)
 ##  foreach                1.5.2      2022-02-02 [1] CRAN (R 4.2.0)
@@ -3610,14 +3922,14 @@ myGOdata_CC &lt;-
 ##  GenomeInfoDbData       1.2.9      2023-05-04 [1] Bioconductor
 ##  GenomicRanges        * 1.50.2     2022-12-16 [1] Bioconductor
 ##  ggfortify            * 0.4.16     2023-03-20 [1] CRAN (R 4.2.0)
-##  ggplot2              * 3.4.3      2023-08-14 [1] CRAN (R 4.2.0)
+##  ggplot2              * 3.4.4      2023-10-12 [1] CRAN (R 4.2.2)
 ##  glue                   1.6.2      2022-02-24 [1] CRAN (R 4.2.0)
 ##  GO.db                * 3.16.0     2023-08-17 [1] Bioconductor
 ##  graph                * 1.76.0     2022-11-01 [1] Bioconductor
 ##  gridExtra              2.3        2017-09-09 [1] CRAN (R 4.2.0)
-##  gtable                 0.3.3      2023-03-21 [1] CRAN (R 4.2.0)
+##  gtable                 0.3.4      2023-08-21 [1] CRAN (R 4.2.0)
 ##  hms                    1.1.3      2023-03-21 [1] CRAN (R 4.2.0)
-##  htmltools              0.5.6      2023-08-10 [1] CRAN (R 4.2.0)
+##  htmltools              0.5.6.1    2023-10-06 [1] CRAN (R 4.2.2)
 ##  htmlwidgets            1.6.2      2023-03-17 [1] CRAN (R 4.2.0)
 ##  httpuv                 1.6.11     2023-05-11 [1] CRAN (R 4.2.2)
 ##  httr                   1.4.7      2023-08-15 [1] CRAN (R 4.2.0)
@@ -3626,12 +3938,12 @@ myGOdata_CC &lt;-
 ##  jquerylib              0.1.4      2021-04-26 [1] CRAN (R 4.2.0)
 ##  jsonlite               1.8.7      2023-06-29 [1] CRAN (R 4.2.0)
 ##  KEGGREST               1.38.0     2022-11-01 [1] Bioconductor
-##  knitr                  1.43       2023-05-25 [1] CRAN (R 4.2.2)
+##  knitr                  1.44       2023-09-11 [1] CRAN (R 4.2.0)
 ##  later                  1.3.1      2023-05-02 [1] CRAN (R 4.2.2)
-##  lattice                0.21-8     2023-04-05 [1] CRAN (R 4.2.0)
+##  lattice                0.21-9     2023-10-01 [1] CRAN (R 4.2.2)
 ##  lifecycle              1.0.3      2022-10-07 [1] CRAN (R 4.2.0)
 ##  locfit                 1.5-9.8    2023-06-11 [1] CRAN (R 4.2.0)
-##  lubridate            * 1.9.2      2023-02-10 [1] CRAN (R 4.2.0)
+##  lubridate            * 1.9.3      2023-09-27 [1] CRAN (R 4.2.0)
 ##  magrittr               2.0.3      2022-03-30 [1] CRAN (R 4.2.0)
 ##  Matrix                 1.5-4.1    2023-05-18 [1] CRAN (R 4.2.0)
 ##  MatrixGenerics       * 1.10.0     2022-11-01 [1] Bioconductor
@@ -3640,13 +3952,13 @@ myGOdata_CC &lt;-
 ##  mime                   0.12       2021-09-28 [1] CRAN (R 4.2.0)
 ##  miniUI                 0.1.1.1    2018-05-18 [1] CRAN (R 4.2.0)
 ##  munsell                0.5.0      2018-06-12 [1] CRAN (R 4.2.0)
-##  myTAI                * 1.0.1.9000 2023-08-17 [1] Github (drostlab/myTAI@c87ecd0)
+##  myTAI                * 1.0.1.9000 2023-10-03 [1] Github (drostlab/myTAI@e159136)
 ##  pillar                 1.9.0      2023-03-22 [1] CRAN (R 4.2.0)
 ##  pkgbuild               1.4.2      2023-06-26 [1] CRAN (R 4.2.0)
 ##  pkgconfig              2.0.3      2019-09-22 [1] CRAN (R 4.2.0)
-##  pkgload                1.3.2.1    2023-07-08 [1] CRAN (R 4.2.0)
+##  pkgload                1.3.3      2023-09-22 [1] CRAN (R 4.2.0)
 ##  png                    0.1-8      2022-11-29 [1] CRAN (R 4.2.0)
-##  prettyunits            1.1.1      2020-01-24 [1] CRAN (R 4.2.0)
+##  prettyunits            1.2.0      2023-09-24 [1] CRAN (R 4.2.0)
 ##  processx               3.8.2      2023-06-30 [1] CRAN (R 4.2.0)
 ##  profvis                0.3.8      2023-05-02 [1] CRAN (R 4.2.0)
 ##  promises               1.2.1      2023-08-10 [1] CRAN (R 4.2.2)
@@ -3660,14 +3972,14 @@ myGOdata_CC &lt;-
 ##  remotes                2.4.2.1    2023-07-18 [1] CRAN (R 4.2.2)
 ##  Rgraphviz            * 2.42.0     2022-11-01 [1] Bioconductor
 ##  rlang                  1.1.1      2023-04-28 [1] CRAN (R 4.2.0)
-##  rmarkdown              2.24       2023-08-14 [1] CRAN (R 4.2.0)
+##  rmarkdown              2.25       2023-09-18 [1] CRAN (R 4.2.2)
 ##  RSQLite                2.3.1      2023-04-03 [1] CRAN (R 4.2.0)
 ##  rstudioapi             0.15.0     2023-07-07 [1] CRAN (R 4.2.0)
 ##  S4Vectors            * 0.36.2     2023-02-26 [1] Bioconductor
 ##  sass                   0.4.7      2023-07-15 [1] CRAN (R 4.2.0)
 ##  scales                 1.2.1      2022-08-20 [1] CRAN (R 4.2.0)
 ##  sessioninfo            1.2.2      2021-12-06 [1] CRAN (R 4.2.0)
-##  shiny                  1.7.5      2023-08-12 [1] CRAN (R 4.2.0)
+##  shiny                  1.7.5.1    2023-10-14 [1] CRAN (R 4.2.2)
 ##  SparseM              * 1.81       2021-02-18 [1] CRAN (R 4.2.0)
 ##  stringi                1.7.12     2023-01-11 [1] CRAN (R 4.2.0)
 ##  stringr              * 1.5.0      2022-12-02 [1] CRAN (R 4.2.0)
@@ -3683,9 +3995,9 @@ myGOdata_CC &lt;-
 ##  urlchecker             1.0.1      2021-11-30 [1] CRAN (R 4.2.0)
 ##  usethis                2.2.2      2023-07-06 [1] CRAN (R 4.2.0)
 ##  utf8                   1.2.3      2023-01-31 [1] CRAN (R 4.2.0)
-##  vctrs                  0.6.3      2023-06-14 [1] CRAN (R 4.2.0)
-##  vroom                  1.6.3      2023-04-28 [1] CRAN (R 4.2.0)
-##  withr                  2.5.0      2022-03-03 [1] CRAN (R 4.2.0)
+##  vctrs                  0.6.4      2023-10-12 [1] CRAN (R 4.2.2)
+##  vroom                  1.6.4      2023-10-02 [1] CRAN (R 4.2.2)
+##  withr                  2.5.1      2023-09-26 [1] CRAN (R 4.2.0)
 ##  xfun                   0.40       2023-08-09 [1] CRAN (R 4.2.2)
 ##  XML                    3.99-0.14  2023-03-19 [1] CRAN (R 4.2.0)
 ##  xtable                 1.8-4      2019-04-21 [1] CRAN (R 4.2.0)

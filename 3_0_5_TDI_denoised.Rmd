@@ -401,6 +401,153 @@ Fd_TDI.log2 %>%
        subtitle = "log2(TPM+\u03b1)")
 ```
 
+
+## TDI _Fucus_ embryonic stages only
+
+```{r fig.height = 2.5, fig.width = 4.5}
+#Fs
+Fs_TDI %>% 
+  dplyr::filter(Stage %in% c("24H", "48H", "1w", "3w", "4w") & Sex == "Mixed") %>%
+  ggplot2::ggplot(
+    aes(
+      y = TDI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TDI - sd,
+        ymax = TDI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    size = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus serratus",
+       subtitle = "TPM")
+
+Fs_TDI.sqrt %>% 
+  dplyr::filter(Stage %in% c("24H", "48H", "1w", "3w", "4w") & Sex == "Mixed") %>%
+  ggplot2::ggplot(
+    aes(
+      y = TDI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TDI - sd,
+        ymax = TDI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    size = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus serratus",
+       subtitle = "sqrt(TPM)")
+
+Fs_TDI.log2 %>% 
+  dplyr::filter(Stage %in% c("24H", "48H", "1w", "3w", "4w") & Sex == "Mixed") %>%
+  ggplot2::ggplot(
+    aes(
+      y = TDI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TDI - sd,
+        ymax = TDI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    size = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus serratus",
+       subtitle = "log2(TPM+\u03b1)")
+
+
+# Fd
+Fd_TDI %>% 
+  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5", "E6") & Sex == "Mixed") %>%
+  ggplot2::ggplot(
+    aes(
+      y = TDI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TDI - sd,
+        ymax = TDI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    size = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus distichus",
+       subtitle = "TPM")
+
+Fd_TDI.sqrt %>% 
+  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5", "E6") & Sex == "Mixed") %>%
+  ggplot2::ggplot(
+    aes(
+      y = TDI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TDI - sd,
+        ymax = TDI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    size = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus distichus",
+       subtitle = "sqrt(TPM)")
+
+Fd_TDI.log2 %>% 
+  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5", "E6") & Sex == "Mixed") %>%
+  ggplot2::ggplot(
+    aes(
+      y = TDI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TDI - sd,
+        ymax = TDI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    size = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus distichus",
+       subtitle = "log2(TPM+\u03b1)")
+
+```
+
 ## Ectocarpus
 
 ```{r}
@@ -544,7 +691,7 @@ Ec_DES_32m_tS_res <-
 
 Fucus serratus development
 
-```{r}
+```{r fig.height = 2.5, fig.width = 3}
 Fs_DES_tS_res %>%
   ggplot2::ggplot(
     aes(
@@ -558,13 +705,13 @@ Fs_DES_tS_res %>%
     linetype = 'dashed',
     size = 2
     ) +
-  ggplot2::annotate(
-    "label",
-    x = 0.7, 
-    y = max(-log10(Fs_DES_tS_res$pval))/6,
-    label = "pval < 0.05",
-    # angle = 270,
-    colour = "#E64B35FF") +
+  # ggplot2::annotate(
+  #   "label",
+  #   x = 0.7, 
+  #   y = max(-log10(Fs_DES_tS_res$pval))/6,
+  #   label = "pval < 0.05",
+  #   # angle = 270,
+  #   colour = "#E64B35FF") +
   ggplot2::labs(
     title = "Fucus serratus",
     subtitle = "FlatLineTest",
@@ -587,13 +734,13 @@ Fs_DES_tS_res %>%
     linetype = 'dashed',
     size = 2
     ) +
-  ggplot2::annotate(
-    "label",
-    x = 1.5, 
-    y = 0.05 - 0.005,
-    label = "pval < 0.05",
-    # angle = 270,
-    colour = "#E64B35FF") +
+  # ggplot2::annotate(
+  #   "label",
+  #   x = 1.5, 
+  #   y = 0.05 - 0.005,
+  #   label = "pval < 0.05",
+  #   # angle = 270,
+  #   colour = "#E64B35FF") +
   ggplot2::labs(
     title = "Fucus serratus",
     subtitle = "FlatLineTest",
@@ -605,7 +752,7 @@ Fs_DES_tS_res %>%
 
 Fucus distichus development
 
-```{r}
+```{r fig.height = 2.5, fig.width = 3}
 Fd_DES_tS_res %>%
   ggplot2::ggplot(
     aes(
@@ -619,13 +766,13 @@ Fd_DES_tS_res %>%
     linetype = 'dashed',
     size = 2
     ) +
-  ggplot2::annotate(
-    "label",
-    x = 0.7, 
-    y = max(-log10(Fd_DES_tS_res$pval))/6,
-    label = "pval < 0.05",
-    # angle = 270,
-    colour = "#E64B35FF") +
+  # ggplot2::annotate(
+  #   "label",
+  #   x = 0.7, 
+  #   y = max(-log10(Fd_DES_tS_res$pval))/6,
+  #   label = "pval < 0.05",
+  #   # angle = 270,
+  #   colour = "#E64B35FF") +
   ggplot2::labs(
     title = "Fucus distichus",
     subtitle = "FlatLineTest",
@@ -648,13 +795,13 @@ Fd_DES_tS_res %>%
     linetype = 'dashed',
     size = 2
     ) +
-  ggplot2::annotate(
-    "label",
-    x = 1.5, 
-    y = 0.05 - 0.005,
-    label = "pval < 0.05",
-    # angle = 270,
-    colour = "#E64B35FF") +
+  # ggplot2::annotate(
+  #   "label",
+  #   x = 1.5, 
+  #   y = 0.05 - 0.005,
+  #   label = "pval < 0.05",
+  #   # angle = 270,
+  #   colour = "#E64B35FF") +
   ggplot2::labs(
     title = "Fucus distichus",
     subtitle = "FlatLineTest",
@@ -665,7 +812,7 @@ Fd_DES_tS_res %>%
 ```
 
 
-```{r}
+```{r fig.height = 2.5, fig.width = 3}
 Ec_DES_32m_tS_res %>%
   ggplot2::ggplot(
     aes(
@@ -679,13 +826,13 @@ Ec_DES_32m_tS_res %>%
     linetype = 'dashed',
     size = 2
     ) +
-  ggplot2::annotate(
-    "label",
-    x = 0.7, 
-    y = max(-log10(Ec_DES_32m_tS_res$pval))/6,
-    label = "pval < 0.05",
-    # angle = 270,
-    colour = "#E64B35FF") +
+  # ggplot2::annotate(
+  #   "label",
+  #   x = 0.7, 
+  #   y = max(-log10(Ec_DES_32m_tS_res$pval))/6,
+  #   label = "pval < 0.05",
+  #   # angle = 270,
+  #   colour = "#E64B35FF") +
   ggplot2::labs(
     title = "Ectocarpus (male)",
     subtitle = "FlatLineTest",
@@ -707,13 +854,13 @@ Ec_DES_32m_tS_res %>%
     linetype = 'dashed',
     size = 2
     ) +
-  ggplot2::annotate(
-    "label",
-    x = 1.5, 
-    y = 0.05 - 0.005,
-    label = "pval < 0.05",
-    # angle = 270,
-    colour = "#E64B35FF") +
+  # ggplot2::annotate(
+  #   "label",
+  #   x = 1.5, 
+  #   y = 0.05 - 0.005,
+  #   label = "pval < 0.05",
+  #   # angle = 270,
+  #   colour = "#E64B35FF") +
   ggplot2::labs(
     title = "Ectocarpus (male)",
     subtitle = "FlatLineTest",
@@ -735,13 +882,13 @@ Ec_DES_25f_tS_res %>%
     linetype = 'dashed',
     size = 2
     ) +
-  ggplot2::annotate(
-    "label",
-    x = 0.7, 
-    y = max(-log10(Ec_DES_25f_tS_res$pval))/6,
-    label = "pval < 0.05",
-    # angle = 270,
-    colour = "#E64B35FF") +
+  # ggplot2::annotate(
+  #   "label",
+  #   x = 0.7, 
+  #   y = max(-log10(Ec_DES_25f_tS_res$pval))/6,
+  #   label = "pval < 0.05",
+  #   # angle = 270,
+  #   colour = "#E64B35FF") +
   ggplot2::labs(
     title = "Ectocarpus (female)",
     subtitle = "FlatLineTest",
@@ -763,13 +910,13 @@ Ec_DES_25f_tS_res %>%
     linetype = 'dashed',
     size = 2
     ) +
-  ggplot2::annotate(
-    "label",
-    x = 1.5, 
-    y = 0.05 - 0.005,
-    label = "pval < 0.05",
-    # angle = 270,
-    colour = "#E64B35FF") +
+  # ggplot2::annotate(
+  #   "label",
+  #   x = 1.5, 
+  #   y = 0.05 - 0.005,
+  #   label = "pval < 0.05",
+  #   # angle = 270,
+  #   colour = "#E64B35FF") +
   ggplot2::labs(
     title = "Ectocarpus (female)",
     subtitle = "FlatLineTest",
@@ -803,9 +950,9 @@ Fs_DES_tS_res <-
 Fd_DES_tS <- 
   tfStability(
     dplyr::select(Fd_DES, !c(gamete, matSP)),
-    TestStatistic = "LateConservationTest",
+    TestStatistic = "ReductiveHourglassTest",
     transforms = c("none", "sqrt", "log2", "rank"),
-    modules = list(early = 1:2, mid = 3:4, late = 5),
+    modules = list(early = 1:4, mid = 5, late = 6),
     permutations = 50000
     )
 Fd_DES_tS_processed <-
@@ -814,7 +961,7 @@ Fd_DES_tS_processed <-
 Fd_DES_tS_res <- 
   Fd_DES_tS_processed %>%
   dplyr::rename("pval" = value) %>%
-  dplyr::mutate(test = "LateConservationTest")
+  dplyr::mutate(test = "ReductiveHourglassTest")
 ```
 
 
@@ -823,7 +970,7 @@ Fd_DES_tS_res <-
 
 Fucus serratus development
 
-```{r}
+```{r fig.height = 2.5, fig.width = 3}
 Fs_DES_tS_res %>%
   ggplot2::ggplot(
     aes(
@@ -837,13 +984,13 @@ Fs_DES_tS_res %>%
     linetype = 'dashed',
     size = 2
     ) +
-  ggplot2::annotate(
-    "label",
-    x = 0.7, 
-    y = max(-log10(Fs_DES_tS_res$pval))/6,
-    label = "pval < 0.05",
-    # angle = 270,
-    colour = "#E64B35FF") +
+  # ggplot2::annotate(
+  #   "label",
+  #   x = 0.7, 
+  #   y = max(-log10(Fs_DES_tS_res$pval))/6,
+  #   label = "pval < 0.05",
+  #   # angle = 270,
+  #   colour = "#E64B35FF") +
   ggplot2::labs(
     title = "Fucus serratus",
     subtitle = "ReductiveHourglassTest",
@@ -866,13 +1013,13 @@ Fs_DES_tS_res %>%
     linetype = 'dashed',
     size = 2
     ) +
-  ggplot2::annotate(
-    "label",
-    x = 1.5, 
-    y = 0.05 - 0.005,
-    label = "pval < 0.05",
-    # angle = 270,
-    colour = "#E64B35FF") +
+  # ggplot2::annotate(
+  #   "label",
+  #   x = 1.5, 
+  #   y = 0.05 - 0.005,
+  #   label = "pval < 0.05",
+  #   # angle = 270,
+  #   colour = "#E64B35FF") +
   ggplot2::labs(
     title = "Fucus serratus",
     subtitle = "ReductiveHourglassTest",
@@ -884,7 +1031,7 @@ Fs_DES_tS_res %>%
 
 Fucus distichus development
 
-```{r}
+```{r fig.height = 2.5, fig.width = 3}
 Fd_DES_tS_res %>%
   ggplot2::ggplot(
     aes(
@@ -898,16 +1045,16 @@ Fd_DES_tS_res %>%
     linetype = 'dashed',
     size = 2
     ) +
-  ggplot2::annotate(
-    "label",
-    x = 0.7, 
-    y = max(-log10(Fd_DES_tS_res$pval))/6,
-    label = "pval < 0.05",
-    # angle = 270,
-    colour = "#E64B35FF") +
+  # ggplot2::annotate(
+  #   "label",
+  #   x = 0.7, 
+  #   y = max(-log10(Fd_DES_tS_res$pval))/6,
+  #   label = "pval < 0.05",
+  #   # angle = 270,
+  #   colour = "#E64B35FF") +
   ggplot2::labs(
     title = "Fucus distichus",
-    subtitle = "LateConservationTest",
+    subtitle = "ReductiveHourglassTest",
     x = "Transformation"
   ) +
   ggplot2::coord_flip() +
@@ -927,16 +1074,16 @@ Fd_DES_tS_res %>%
     linetype = 'dashed',
     size = 2
     ) +
-  ggplot2::annotate(
-    "label",
-    x = 1.5, 
-    y = 0.05 - 0.005,
-    label = "pval < 0.05",
-    # angle = 270,
-    colour = "#E64B35FF") +
+  # ggplot2::annotate(
+  #   "label",
+  #   x = 1.5, 
+  #   y = 0.05 - 0.005,
+  #   label = "pval < 0.05",
+  #   # angle = 270,
+  #   colour = "#E64B35FF") +
   ggplot2::labs(
     title = "Fucus distichus",
-    subtitle = "LateConservationTest",
+    subtitle = "ReductiveHourglassTest",
     x = "Transformation"
   ) +
   ggplot2::coord_flip() +

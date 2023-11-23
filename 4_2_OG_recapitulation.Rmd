@@ -30,7 +30,7 @@ sample_info_ec <-
 
 sample_info_fd_embryo <-
   sample_info_fd %>%
-  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5")) %>%
+  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5", "E6")) %>%
   dplyr::mutate(LibLab = str_c(Species, "_", Stage, "_", Replicate))
 sample_info_fs_embryo <-
   sample_info_fs %>%
@@ -295,7 +295,7 @@ tmp2 %>% group_by(Fs, Fd) %>% summarise(median_corr = median(value)) %>%
   theme_classic() +
   labs(x = "Fucus serratus stages",
        y = "median(distance with Fd stages)",
-       title = "Manhattan distance (rlog)",
+       title = "Euclidean distance (rlog)",
        colour = "Fd stages")
 
 tmp2 %>% group_by(Fs, Fd) %>% summarise(median_corr = median(value)) %>%
@@ -305,7 +305,7 @@ tmp2 %>% group_by(Fs, Fd) %>% summarise(median_corr = median(value)) %>%
   theme_classic() +
   labs(x = "Fucus distichus stages",
        y = "median(distance with Fs stages)",
-       title = "Manhattan distance (rlog)",
+       title = "Euclidean distance (rlog)",
        colour = "Fs stages")
 ```
 
@@ -512,7 +512,7 @@ tmp2 %>% group_by(Fs, Fd) %>% summarise(median_corr = median(value)) %>%
   theme_classic() +
   labs(x = "Fucus serratus stages",
        y = "median(distance with Fd stages)",
-       title = "Manhattan distance (log2)",
+       title = "Euclidean distance (log2)",
        colour = "Fd stages")
 ```
 
@@ -672,7 +672,7 @@ tmp2 %>% group_by(Fs, Fd) %>% summarise(median_corr = median(value)) %>%
   theme_classic() +
   labs(x = "Fucus serratus stages",
        y = "median(distance with Fd stages)",
-       title = "Manhattan distance (sqrt)",
+       title = "Euclidean distance (sqrt)",
        colour = "Fd stages")
 ```
 
@@ -709,7 +709,7 @@ tmp2 %>% group_by(Fs, Fd) %>% summarise(median_corr = median(value)) %>%
   theme_classic() +
   labs(x = "Fucus serratus stages",
        y = "median(distance with Fd stages)",
-       title = "Manhattan distance (sqrt)",
+       title = "Euclidean distance (sqrt)",
        colour = "Fd stages")
 ```
 
