@@ -1,0 +1,640 @@
+---
+title: "2.2 TAI tissues in Fucus gametes"
+output:
+  html_document:
+    fig_width: 6
+    fig_height: 4
+    df_print: paged
+  html_notebook: default
+editor_options:
+  chunk_output_type: inline
+---
+
+# TAI profiles of gametes
+
+For TAI profiles for the developmental stages, one can find them in `2.0 TAI profiles`.
+
+```{r}
+library(tidyverse)
+library(myTAI)
+```
+
+Non-transformed
+
+```{r}
+# gamete in the matSP
+Fd_PES_M <-
+  readr::read_csv(file = "data/Fd_PES_M.csv")
+Fd_PES_F <-
+  readr::read_csv(file = "data/Fd_PES_F.csv")
+Fs_PES_F <-
+  readr::read_csv(file = "data/Fs_PES_F.csv") %>% dplyr::select(-matSP)
+Fs_PES_M <-
+  readr::read_csv(file = "data/Fs_PES_M.csv") %>% dplyr::select(-matSP)
+```
+
+sqrt-tranformed
+
+```{r}
+# gamete in the matSP
+Fd_PES_M.sqrt <-
+  readr::read_csv(file = "data/Fd_PES_M.sqrt.csv") %>% dplyr::rename(gamete = V1)
+Fd_PES_F.sqrt <-
+  readr::read_csv(file = "data/Fd_PES_F.sqrt.csv") %>% dplyr::rename(gamete = V1)
+Fs_PES_F.sqrt <-
+  readr::read_csv(file = "data/Fs_PES_F.sqrt.csv") %>% dplyr::select(-matSP)
+Fs_PES_M.sqrt <-
+  readr::read_csv(file = "data/Fs_PES_M.sqrt.csv") %>% dplyr::select(-matSP)
+```
+
+log2-tranformed
+
+```{r}
+# gamete in the matSP
+Fd_PES_M.log2 <-
+  readr::read_csv(file = "data/Fd_PES_M.log2.csv") %>% dplyr::rename(gamete = V1)
+Fd_PES_F.log2 <-
+  readr::read_csv(file = "data/Fd_PES_F.log2.csv") %>% dplyr::rename(gamete = V1)
+Fs_PES_F.log2 <-
+  readr::read_csv(file = "data/Fs_PES_F.log2.csv") %>% dplyr::select(-matSP)
+Fs_PES_M.log2 <-
+  readr::read_csv(file = "data/Fs_PES_M.log2.csv") %>% dplyr::select(-matSP)
+```
+
+rank-tranformed
+
+```{r}
+# gamete in the matSP
+Fd_PES_M.rank <-
+  readr::read_csv(file = "data/Fd_PES_M.rank.csv") %>% dplyr::rename(gamete = V1)
+Fd_PES_F.rank <-
+  readr::read_csv(file = "data/Fd_PES_F.rank.csv") %>% dplyr::rename(gamete = V1)
+Fs_PES_F.rank <-
+  readr::read_csv(file = "data/Fs_PES_F.rank.csv") %>% dplyr::select(-matSP)
+Fs_PES_M.rank <-
+  readr::read_csv(file = "data/Fs_PES_M.rank.csv") %>% dplyr::select(-matSP)
+```
+
+rlog-tranformed
+
+```{r}
+# gamete in the matSP
+Fd_PES_M.rlog <-
+  readr::read_csv(file = "data/Fd_PES_M.rlog.csv")
+Fd_PES_F.rlog <-
+  readr::read_csv(file = "data/Fd_PES_F.rlog.csv")
+Fs_PES_F.rlog <-
+  readr::read_csv(file = "data/Fs_PES_F.rlog.csv") %>% dplyr::select(-matSP)
+Fs_PES_M.rlog <-
+  readr::read_csv(file = "data/Fs_PES_M.rlog.csv") %>% dplyr::select(-matSP)
+```
+
+# Gamete-specific TAI
+
+```{r}
+#TI stands for transcriptome index
+TI.preplot <- function(ExpressionSet, permutations = 100){
+  std <- 
+    myTAI::bootMatrix(
+      ExpressionSet = ExpressionSet, 
+      permutations  = permutations) %>% 
+    apply(2, stats::sd)
+  TI.out <- 
+    myTAI::TAI(ExpressionSet) %>%
+    tibble::as_tibble(rownames = "Stage", colnames = c("TAI", "PS")) %>% 
+    dplyr::bind_cols(as_tibble(std)) %>%
+    dplyr::rename(TAI = 2, sd = 3)
+  return(TI.out)
+}
+```
+
+```{r warning=FALSE, message=FALSE}
+Fd_TAI_F <- 
+  TI.preplot(Fd_PES_F) %>%
+  dplyr::mutate(Sex = "F")
+Fd_TAI_M <- 
+  TI.preplot(Fd_PES_M) %>%
+  dplyr::mutate(Sex = "M")
+Fs_TAI_F <- 
+  TI.preplot(Fs_PES_F) %>%
+  dplyr::mutate(Sex = "F")
+Fs_TAI_M <- 
+  TI.preplot(Fs_PES_M) %>%
+  dplyr::mutate(Sex = "M")
+
+# sqrt
+Fd_TAI_F.sqrt <- 
+  TI.preplot(Fd_PES_F.sqrt) %>%
+  dplyr::mutate(Sex = "F")
+Fd_TAI_M.sqrt <- 
+  TI.preplot(Fd_PES_M.sqrt) %>%
+  dplyr::mutate(Sex = "M")
+Fs_TAI_F.sqrt <- 
+  TI.preplot(Fs_PES_F.sqrt) %>%
+  dplyr::mutate(Sex = "F")
+Fs_TAI_M.sqrt <- 
+  TI.preplot(Fs_PES_M.sqrt) %>%
+  dplyr::mutate(Sex = "M")
+
+# log2
+Fd_TAI_F.log2 <- 
+  TI.preplot(Fd_PES_F.log2) %>%
+  dplyr::mutate(Sex = "F")
+Fd_TAI_M.log2 <- 
+  TI.preplot(Fd_PES_M.log2) %>%
+  dplyr::mutate(Sex = "M")
+Fs_TAI_F.log2 <- 
+  TI.preplot(Fs_PES_F.log2) %>%
+  dplyr::mutate(Sex = "F")
+Fs_TAI_M.log2 <- 
+  TI.preplot(Fs_PES_M.log2) %>%
+  dplyr::mutate(Sex = "M")
+
+# rank
+Fd_TAI_F.rank <- 
+  TI.preplot(Fd_PES_F.rank) %>%
+  dplyr::mutate(Sex = "F")
+Fd_TAI_M.rank <- 
+  TI.preplot(Fd_PES_M.rank) %>%
+  dplyr::mutate(Sex = "M")
+Fs_TAI_F.rank <- 
+  TI.preplot(Fs_PES_F.rank) %>%
+  dplyr::mutate(Sex = "F")
+Fs_TAI_M.rank <- 
+  TI.preplot(Fs_PES_M.rank) %>%
+  dplyr::mutate(Sex = "M")
+
+# rlog
+Fd_TAI_F.rlog <- 
+  TI.preplot(Fd_PES_F.rlog) %>%
+  dplyr::mutate(Sex = "F")
+Fd_TAI_M.rlog <- 
+  TI.preplot(Fd_PES_M.rlog) %>%
+  dplyr::mutate(Sex = "M")
+Fs_TAI_F.rlog <- 
+  TI.preplot(Fs_PES_F.rlog) %>%
+  dplyr::mutate(Sex = "F")
+Fs_TAI_M.rlog <- 
+  TI.preplot(Fs_PES_M.rlog) %>%
+  dplyr::mutate(Sex = "M")
+```
+
+```{r}
+# maybe I could use geom text? Yes, it is possible but I cannot add the position jitter correctly.
+plot_gamete_Fd <- function(preplot_out){
+  plot_out <- 
+    preplot_out %>%
+    ggplot2::ggplot(
+      aes(
+        x = Sex,
+        y = TAI,
+        group = Stage,
+        colour = Sex
+        )
+      ) +
+    ggplot2::geom_point(
+      size = 4, 
+      position = ggplot2::position_dodge(width=0.9)) +
+    ggplot2::geom_errorbar(
+      aes(ymin = TAI - sd, ymax = TAI + sd),
+      width = 0.1,
+      position = ggplot2::position_dodge(width=0.9)) +
+    ggplot2::scale_colour_discrete(
+      c("#E64B35FF", "#4DBBD5FF"), 
+      guide = "none") +
+    ggplot2::labs(
+      x = "Sex",
+      title = "Fucus distichus \n(gamete)",
+      colour = NULL
+    ) +
+    ggplot2::theme_classic()
+  return(plot_out)
+}
+
+plot_gamete_Fs <- function(preplot_out){
+  plot_out <- 
+    preplot_out %>%
+    ggplot2::ggplot(
+      aes(
+        x = Sex,
+        y = TAI,
+        group = Stage,
+        colour = Sex
+        )
+      ) +
+    ggplot2::geom_point(
+      size = 4, 
+      position = ggplot2::position_dodge(width=0.9)) +
+    ggplot2::geom_errorbar(
+      aes(ymin = TAI - sd, ymax = TAI + sd),
+      width = 0.1,
+      position = ggplot2::position_dodge(width=0.9)) +
+    ggplot2::scale_colour_discrete(
+      c("#E64B35FF", "#4DBBD5FF"), 
+      guide = "none") +
+    ggplot2::labs(
+      x = "Sex",
+      title = "Fucus serratus \n(gamete)",
+      colour = NULL
+    ) +
+    ggplot2::theme_classic()
+  return(plot_out)
+}
+# https://stackoverflow.com/questions/35654364/ggplot-jitter-geom-errorbar
+# `ggplot2::position_jitter(seed = 1)` can also be used.
+# https://stackoverflow.com/questions/56816072/position-dodge-and-nudge-y-together
+# For colours:
+# scales::show_col(ggsci::pal_npg("nrc")(9))
+```
+
+
+```{r, fig.height = 4, fig.width = 1.5}
+base::rbind(Fd_TAI_F, Fd_TAI_M) %>%
+  plot_gamete_Fd() + 
+  ggplot2::labs(subtitle = "TPM")
+
+base::rbind(Fd_TAI_F.sqrt, Fd_TAI_M.sqrt) %>%
+  plot_gamete_Fd() + 
+  ggplot2::labs(subtitle = "sqrt(TPM)")
+
+base::rbind(Fd_TAI_F.log2, Fd_TAI_M.log2) %>%
+  plot_gamete_Fd() + 
+  ggplot2::labs(subtitle = "log2(TPM)")
+
+base::rbind(Fd_TAI_F.rank, Fd_TAI_M.rank) %>%
+  plot_gamete_Fd() + 
+  ggplot2::labs(subtitle = "rank(TPM)")
+
+base::rbind(Fd_TAI_F.rlog, Fd_TAI_M.rlog) %>%
+  plot_gamete_Fd() + 
+  ggplot2::labs(subtitle = "rlog(TPM)")
+```
+
+```{r, fig.height = 4, fig.width = 1.5}
+base::rbind(Fs_TAI_F, Fs_TAI_M) %>%
+  plot_gamete_Fs() + 
+  ggplot2::labs(subtitle = "TPM")
+
+base::rbind(Fs_TAI_F.sqrt, Fs_TAI_M.sqrt) %>%
+  plot_gamete_Fs() + 
+  ggplot2::labs(subtitle = "sqrt(TPM)")
+
+base::rbind(Fs_TAI_F.log2, Fs_TAI_M.log2) %>%
+  plot_gamete_Fs() + 
+  ggplot2::labs(subtitle = "log2(TPM)")
+
+base::rbind(Fs_TAI_F.rank, Fs_TAI_M.rank) %>%
+  plot_gamete_Fs() + 
+  ggplot2::labs(subtitle = "rank(TPM)")
+
+base::rbind(Fs_TAI_F.rlog, Fs_TAI_M.rlog) %>%
+  plot_gamete_Fs() + 
+  ggplot2::labs(subtitle = "rlog(TPM)")
+```
+
+## Perform `FlatLineTest()`
+
+```{r warning=FALSE, message=FALSE}
+permutations = 100
+Fd_PES_combined <-
+        dplyr::inner_join(
+                Fd_PES_M %>% dplyr::rename(gamete_M = gamete),
+                Fd_PES_F %>% dplyr::rename(gamete_F = gamete)
+        )
+Fd_PES_tS <- 
+  tfStability(
+    Fd_PES_combined,
+    transforms = c("none", "sqrt", "log2", "rank"),
+    permutations = permutations
+    )
+Fd_PES_tS_processed <-
+  tibble::as_tibble(Fd_PES_tS, rownames = "transformation")
+
+Fs_PES_combined <-
+        dplyr::inner_join(
+                Fs_PES_M %>% dplyr::rename(gamete_M = gamete),
+                Fs_PES_F %>% dplyr::rename(gamete_F = gamete)
+        )
+Fs_PES_tS <- 
+  tfStability(
+    Fs_PES_combined,
+    transforms = c("none", "sqrt", "log2", "rank"),
+    permutations = permutations
+    )
+Fs_PES_tS_processed <-
+  tibble::as_tibble(Fs_PES_tS, rownames = "transformation")
+
+# rlog data
+Fd_PES_combined.rlog <-
+        dplyr::inner_join(
+                Fd_PES_M.rlog %>% dplyr::rename(gamete_M = gamete),
+                Fd_PES_F.rlog %>% dplyr::rename(gamete_F = gamete)
+        )
+Fd_PES_tS.rlog <- 
+  tfStability(
+    Fd_PES_combined.rlog,
+    transforms = c("none"), # it is already transformed.
+    permutations = permutations
+    )
+Fd_PES_tS.rlog_processed <-
+  tibble::as_tibble(Fd_PES_tS.rlog, rownames = "transformation") %>%
+  dplyr::mutate(transformation = "rlog")
+
+Fs_PES_combined.rlog <-
+        dplyr::inner_join(
+                Fs_PES_M.rlog %>% dplyr::rename(gamete_M = gamete),
+                Fs_PES_F.rlog %>% dplyr::rename(gamete_F = gamete)
+        )
+Fs_PES_tS.rlog <- 
+  tfStability(
+    Fs_PES_combined.rlog,
+    transforms = c("none"), # it is already transformed.
+    permutations = permutations
+    )
+Fs_PES_tS.rlog_processed <-
+  tibble::as_tibble(Fs_PES_tS.rlog, rownames = "transformation") %>%
+  dplyr::mutate(transformation = "rlog")
+
+
+# combine data
+
+Fd_PES_tS_res <- 
+  dplyr::bind_rows(Fd_PES_tS_processed, Fd_PES_tS.rlog_processed) %>%
+  dplyr::rename("pval" = value) %>%
+  dplyr::mutate(test = "FlatLineTest")
+
+Fs_PES_tS_res <- 
+  dplyr::bind_rows(Fs_PES_tS_processed, Fs_PES_tS.rlog_processed) %>%
+  dplyr::rename("pval" = value) %>%
+  dplyr::mutate(test = "FlatLineTest")
+```
+
+_Fucus distichus_
+
+```{r fig.height = 2.5, fig.width = 3}
+Fd_PES_tS_res %>%
+  ggplot2::ggplot(
+    aes(
+      y = -log10(pval), 
+      x = transformation)) +
+  ggplot2::geom_col(width = 0.05) +
+  ggplot2::geom_point(size = 5) +
+  ggplot2::geom_hline(
+    yintercept = -log10(0.05), 
+    colour = "#E64B35FF",
+    linetype = 'dashed',
+    size = 2
+    ) +
+  ggplot2::labs(
+    title = "Fucus distichus gametes",
+    subtitle = "FlatLineTest",
+    x = "Transformation"
+  ) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_classic()
+```
+
+_Fucus serratus_
+
+```{r fig.height = 2.5, fig.width = 3}
+Fs_PES_tS_res %>%
+  ggplot2::ggplot(
+    aes(
+      y = -log10(pval), 
+      x = transformation)) +
+  ggplot2::geom_col(width = 0.05) +
+  ggplot2::geom_point(size = 5) +
+  ggplot2::geom_hline(
+    yintercept = -log10(0.05), 
+    colour = "#E64B35FF",
+    linetype = 'dashed',
+    size = 2
+    ) +
+  ggplot2::labs(
+    title = "Fucus serratus gametes",
+    subtitle = "FlatLineTest",
+    x = "Transformation"
+  ) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_classic()
+```
+
+# denoised data
+
+Non-transformed
+
+```{r}
+# gamete in the matSP
+Fd_PES_M.denoised <-
+  readr::read_csv(file = "data/Fd_PES_M_denoised.csv")
+Fd_PES_F.denoised <-
+  readr::read_csv(file = "data/Fd_PES_F_denoised.csv")
+Fs_PES_F.denoised <-
+  readr::read_csv(file = "data/Fs_PES_F_denoised.csv") %>% dplyr::select(-matSP)
+Fs_PES_M.denoised <-
+  readr::read_csv(file = "data/Fs_PES_M_denoised.csv") %>% dplyr::select(-matSP)
+```
+
+sqrt-tranformed
+
+```{r}
+# gamete in the matSP
+Fd_PES_M.sqrt.denoised <-
+  readr::read_csv(file = "data/Fd_PES_M.sqrt_denoised.csv") %>% dplyr::rename(gamete = V1)
+Fd_PES_F.sqrt.denoised <-
+  readr::read_csv(file = "data/Fd_PES_F.sqrt_denoised.csv") %>% dplyr::rename(gamete = V1)
+Fs_PES_F.sqrt.denoised <-
+  readr::read_csv(file = "data/Fs_PES_F.sqrt_denoised.csv") %>% dplyr::select(-matSP)
+Fs_PES_M.sqrt.denoised <-
+  readr::read_csv(file = "data/Fs_PES_M.sqrt_denoised.csv") %>% dplyr::select(-matSP)
+```
+
+log2-tranformed
+
+```{r}
+# gamete in the matSP
+Fd_PES_M.log2.denoised <-
+  readr::read_csv(file = "data/Fd_PES_M.log2_denoised.csv") %>% dplyr::rename(gamete = V1)
+Fd_PES_F.log2.denoised <-
+  readr::read_csv(file = "data/Fd_PES_F.log2_denoised.csv") %>% dplyr::rename(gamete = V1)
+Fs_PES_F.log2.denoised <-
+  readr::read_csv(file = "data/Fs_PES_F.log2_denoised.csv") %>% dplyr::select(-matSP)
+Fs_PES_M.log2.denoised <-
+  readr::read_csv(file = "data/Fs_PES_M.log2_denoised.csv") %>% dplyr::select(-matSP)
+```
+
+
+```{r warning=FALSE, message=FALSE}
+Fd_TAI_F.denoised <- 
+  TI.preplot(Fd_PES_F.denoised) %>%
+  dplyr::mutate(Sex = "F")
+Fd_TAI_M.denoised <- 
+  TI.preplot(Fd_PES_M.denoised) %>%
+  dplyr::mutate(Sex = "M")
+Fs_TAI_F.denoised <- 
+  TI.preplot(Fs_PES_F.denoised) %>%
+  dplyr::mutate(Sex = "F")
+Fs_TAI_M.denoised <- 
+  TI.preplot(Fs_PES_M.denoised) %>%
+  dplyr::mutate(Sex = "M")
+
+# sqrt
+Fd_TAI_F.sqrt.denoised <- 
+  TI.preplot(Fd_PES_F.sqrt.denoised) %>%
+  dplyr::mutate(Sex = "F")
+Fd_TAI_M.sqrt.denoised <- 
+  TI.preplot(Fd_PES_M.sqrt.denoised) %>%
+  dplyr::mutate(Sex = "M")
+Fs_TAI_F.sqrt.denoised <- 
+  TI.preplot(Fs_PES_F.sqrt.denoised) %>%
+  dplyr::mutate(Sex = "F")
+Fs_TAI_M.sqrt.denoised <- 
+  TI.preplot(Fs_PES_M.sqrt.denoised) %>%
+  dplyr::mutate(Sex = "M")
+
+# log2
+Fd_TAI_F.log2.denoised <- 
+  TI.preplot(Fd_PES_F.log2.denoised) %>%
+  dplyr::mutate(Sex = "F")
+Fd_TAI_M.log2.denoised <- 
+  TI.preplot(Fd_PES_M.log2.denoised) %>%
+  dplyr::mutate(Sex = "M")
+Fs_TAI_F.log2.denoised <- 
+  TI.preplot(Fs_PES_F.log2.denoised) %>%
+  dplyr::mutate(Sex = "F")
+Fs_TAI_M.log2.denoised <- 
+  TI.preplot(Fs_PES_M.log2.denoised) %>%
+  dplyr::mutate(Sex = "M")
+```
+
+
+```{r, fig.height = 4, fig.width = 1.5}
+base::rbind(Fd_TAI_F.denoised, Fd_TAI_M.denoised) %>%
+  plot_gamete_Fd() + 
+  ggplot2::labs(subtitle = "TPM")
+
+base::rbind(Fd_TAI_F.sqrt.denoised, Fd_TAI_M.sqrt.denoised) %>%
+  plot_gamete_Fd() + 
+  ggplot2::labs(subtitle = "sqrt(TPM)")
+
+base::rbind(Fd_TAI_F.log2.denoised, Fd_TAI_M.log2.denoised) %>%
+  plot_gamete_Fd() + 
+  ggplot2::labs(subtitle = "log2(TPM)")
+```
+
+```{r, fig.height = 4, fig.width = 1.5}
+base::rbind(Fs_TAI_F.denoised, Fs_TAI_M.denoised) %>%
+  plot_gamete_Fs() + 
+  ggplot2::labs(subtitle = "TPM")
+
+base::rbind(Fs_TAI_F.sqrt.denoised, Fs_TAI_M.sqrt.denoised) %>%
+  plot_gamete_Fs() + 
+  ggplot2::labs(subtitle = "sqrt(TPM)")
+
+base::rbind(Fs_TAI_F.log2.denoised, Fs_TAI_M.log2.denoised) %>%
+  plot_gamete_Fs() + 
+  ggplot2::labs(subtitle = "log2(TPM)")
+```
+
+## Perform `FlatLineTest()`
+
+```{r warning=FALSE, message=FALSE}
+permutations = 100
+Fd_PES_combined <-
+        dplyr::inner_join(
+                Fd_PES_M.denoised %>% dplyr::rename(gamete_M = gamete),
+                Fd_PES_F.denoised %>% dplyr::rename(gamete_F = gamete)
+        )
+Fd_PES_tS <- 
+  tfStability(
+    Fd_PES_combined,
+    transforms = c("none", "sqrt", "log2"),
+    permutations = permutations
+    )
+Fd_PES_tS_processed <-
+  tibble::as_tibble(Fd_PES_tS, rownames = "transformation")
+
+Fs_PES_combined <-
+        dplyr::inner_join(
+                Fs_PES_M.denoised %>% dplyr::rename(gamete_M = gamete),
+                Fs_PES_F.denoised %>% dplyr::rename(gamete_F = gamete)
+        )
+Fs_PES_tS <- 
+  tfStability(
+    Fs_PES_combined,
+    transforms = c("none", "sqrt", "log2"),
+    permutations = permutations
+    )
+Fs_PES_tS_processed <-
+  tibble::as_tibble(Fs_PES_tS, rownames = "transformation")
+
+
+# combine data
+
+Fd_PES_tS_res <- 
+  Fd_PES_tS_processed %>%
+  dplyr::rename("pval" = value) %>%
+  dplyr::mutate(test = "FlatLineTest")
+
+Fs_PES_tS_res <- 
+  Fs_PES_tS_processed %>%
+  dplyr::rename("pval" = value) %>%
+  dplyr::mutate(test = "FlatLineTest")
+```
+
+_Fucus distichus_
+
+```{r fig.height = 2.5, fig.width = 3}
+Fd_PES_tS_res %>%
+  ggplot2::ggplot(
+    aes(
+      y = -log10(pval), 
+      x = transformation)) +
+  ggplot2::geom_col(width = 0.05) +
+  ggplot2::geom_point(size = 5) +
+  ggplot2::geom_hline(
+    yintercept = -log10(0.05), 
+    colour = "#E64B35FF",
+    linetype = 'dashed',
+    size = 2
+    ) +
+  ggplot2::labs(
+    title = "Fucus distichus gametes [denoised]",
+    subtitle = "FlatLineTest",
+    x = "Transformation"
+  ) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_classic()
+```
+
+_Fucus serratus_
+
+```{r fig.height = 2.5, fig.width = 3}
+Fs_PES_tS_res %>%
+  ggplot2::ggplot(
+    aes(
+      y = -log10(pval), 
+      x = transformation)) +
+  ggplot2::geom_col(width = 0.05) +
+  ggplot2::geom_point(size = 5) +
+  ggplot2::geom_hline(
+    yintercept = -log10(0.05), 
+    colour = "#E64B35FF",
+    linetype = 'dashed',
+    size = 2
+    ) +
+  ggplot2::labs(
+    title = "Fucus serratus gametes [denoised]",
+    subtitle = "FlatLineTest",
+    x = "Transformation"
+  ) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_classic()
+```
+
+
+Get session info.
+
+```{r}
+devtools::session_info()
+```

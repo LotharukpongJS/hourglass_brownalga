@@ -1,0 +1,1057 @@
+---
+title: "5.4 TF expression"
+output:
+  html_document:
+    fig_width: 6
+    fig_height: 4
+    df_print: paged
+editor_options: 
+  chunk_output_type: inline
+---
+
+# Expression level of putative TFs
+
+Putative TFs are determined by genes with GO terms
+
+```{r}
+library(tidyverse)
+```
+
+## Load data
+
+```{r}
+Fs_LRT.1000 <-
+  readr::read_csv("data/Fs_LRT_1000.csv")
+Fd_LRT.1000 <-
+  readr::read_csv("data/Fd_LRT_1000.csv")
+```
+
+### Load PES
+
+Non-transformed
+
+```{r}
+Fd_PES <-
+  readr::read_csv(file = "data/Fd_PES.csv")
+# Fd_PES_F <-
+#   readr::read_csv(file = "data/Fd_PES_F.csv")
+# Fd_PES_M <-
+#   readr::read_csv(file = "data/Fd_PES_M.csv")
+Fs_PES <-
+  readr::read_csv(file = "data/Fs_PES.csv")
+# Fs_PES_F <-
+#   readr::read_csv(file = "data/Fs_PES_F.csv")
+# Fs_PES_M <-
+#   readr::read_csv(file = "data/Fs_PES_M.csv")
+Ec_PES_32m <-
+  readr::read_csv(file = "data/Ec_PES_32m.csv")
+Ec_PES_25f <-
+  readr::read_csv(file = "data/Ec_PES_25f.csv")
+```
+
+sqrt-tranformed
+
+```{r}
+Fd_PES.sqrt <-
+  readr::read_csv(file = "data/Fd_PES.sqrt.csv")
+# Fd_PES_F.sqrt <-
+#   readr::read_csv(file = "data/Fd_PES_F.sqrt.csv")
+# Fd_PES_M.sqrt <-
+#   readr::read_csv(file = "data/Fd_PES_M.sqrt.csv")
+Fs_PES.sqrt <-
+  readr::read_csv(file = "data/Fs_PES.sqrt.csv")
+# Fs_PES_F.sqrt <-
+#   readr::read_csv(file = "data/Fs_PES_F.sqrt.csv")
+# Fs_PES_M.sqrt <-
+#   readr::read_csv(file = "data/Fs_PES_M.sqrt.csv")
+Ec_PES_32m.sqrt <-
+  readr::read_csv(file = "data/Ec_PES_32m.sqrt.csv")
+Ec_PES_25f.sqrt <-
+  readr::read_csv(file = "data/Ec_PES_25f.sqrt.csv")
+```
+
+log2-tranformed
+
+```{r}
+Fd_PES.log2 <-
+  readr::read_csv(file = "data/Fd_PES.log2.csv")
+# Fd_PES_F.log2 <-
+#   readr::read_csv(file = "data/Fd_PES_F.log2.csv")
+# Fd_PES_M.log2 <-
+#   readr::read_csv(file = "data/Fd_PES_M.log2.csv")
+Fs_PES.log2 <-
+  readr::read_csv(file = "data/Fs_PES.log2.csv")
+# Fs_PES_F.log2 <-
+#   readr::read_csv(file = "data/Fs_PES_F.log2.csv")
+# Fs_PES_M.log2 <-
+#   readr::read_csv(file = "data/Fs_PES_M.log2.csv")
+Ec_PES_32m.log2 <-
+  readr::read_csv(file = "data/Ec_PES_32m.log2.csv")
+Ec_PES_25f.log2 <-
+  readr::read_csv(file = "data/Ec_PES_25f.log2.csv")
+```
+
+To avoid 
+`Error in vroom_(file, delim = delim %||% col_types$delim, col_names = col_names,  :  bad value`
+, I load the packages later.
+
+```{r}
+library(ggfortify)
+library(tximport)
+library(myTAI)
+```
+
+
+```{r}
+IPS_Fs <- 
+        read_delim("data/Interproscan/Fs_ips/F_serratus_pep.filt.processed.faa.tsv",
+                    delim = "\t", col_select = c(1,4,12:14)) %>%
+        separate_rows(GO_term, sep = "\\|") %>% 
+        dplyr::mutate(GeneID = str_remove(GeneID, "\\.[^.]+$")) %>%
+        distinct()
+
+IPS_Fd <- 
+        read_delim("data/Interproscan/Fd_ips/F_distichus_pep.filt.processed.faa.tsv",
+                    delim = "\t", col_select = c(1,4,12:14)) %>%
+        separate_rows(GO_term, sep = "\\|") %>% 
+        dplyr::mutate(GeneID = str_remove(GeneID, "\\.[^.]+$")) %>%
+        distinct()
+
+IPS_Ec <- 
+        read_delim("data/Interproscan//Ec_ips/Ectocarpus-sp7.filt.processed.faa.tsv",
+                    delim = "\t", col_select = c(1,4,12:14)) %>%
+        separate_rows(GO_term, sep = "\\|") %>% 
+        dplyr::mutate(GeneID = str_remove(GeneID, "\\.[^.]+$")) %>%
+        distinct()
+
+IPS_Ec_full <- 
+        read_delim("data/Interproscan//Ec_ips/Ectocarpus-sp7.filt.processed.faa.tsv",
+                    delim = "\t", col_select = c(1,4,12:14)) %>%
+        separate_rows(GO_term, sep = "\\|") %>% 
+        # dplyr::mutate(GeneID = str_remove(GeneID, "\\.[^.]+$")) %>%
+        distinct()
+```
+
+Naive analysis of GO terms for transcription factors.
+
+* GO:0006355 (regulation of DNA-templated transcription)
+* GO:0003700 (DNA-binding transcription factor activity)
+* GO:0140110 (transcription regulator activity)
+* GO:0006351 (DNA-templated transcription)
+* GO:0051090 (regulation of DNA-binding transcription factor activity)
+* GO:0001217 (DNA-binding transcription repressor activity)
+* GO:0051091 (positive regulation of DNA-binding transcription factor activity)
+* GO:0043433 (negative regulation of DNA-binding transcription factor activity)
+
+
+```{r}
+# ECTOCARPUS
+# 248 genes selected
+Ec_TF_list <- IPS_Ec %>% select(GeneID, GO_term) %>% dplyr::filter(grepl("GO:0006355|GO:0003700|GO:0140110|GO:0006351|GO:0006351|GO:0051090|GO:0001217|GO:0051091|GO:0043433",GO_term)) %>% select(GeneID) %>% distinct()
+# For full gene name (315 genes selected)
+Ec_TF_full_list <- IPS_Ec_full %>% select(GeneID, GO_term) %>% dplyr::filter(grepl("GO:0006355|GO:0003700|GO:0140110|GO:0006351|GO:0006351|GO:0051090|GO:0001217|GO:0051091|GO:0043433",GO_term)) %>% select(GeneID) %>% distinct()
+
+# FUCUS
+# 269 genes selected
+Fs_TF_list <- IPS_Fs %>% select(GeneID, GO_term) %>% dplyr::filter(grepl("GO:0006355|GO:0003700|GO:0140110|GO:0006351|GO:0006351|GO:0051090|GO:0001217|GO:0051091|GO:0043433",GO_term)) %>% select(GeneID) %>% distinct()
+# 199 genes selected
+Fd_TF_list <- IPS_Fd %>% select(GeneID, GO_term) %>% dplyr::filter(grepl("GO:0006355|GO:0003700|GO:0140110|GO:0006351|GO:0006351|GO:0051090|GO:0001217|GO:0051091|GO:0043433",GO_term)) %>% select(GeneID) %>% distinct()
+```
+
+# Q1: how many of the putative TFs are in the DEG.LRT list in Fucus?
+
+```{r fig.height = 2, fig.width = 4.5}
+Fs_TF_list %>%
+        dplyr::mutate(LRT = GeneID %in% Fs_LRT.1000$GeneID) %>%
+        ggplot2::ggplot(aes(x = "Putative TFs",fill = LRT)) +
+        ggplot2::geom_bar(position = position_stack(), colour = "black") +
+        ggplot2::scale_fill_manual(values = c("#DC0000FF", "white")) +
+        ggplot2::theme_classic() +
+        ggplot2::labs(x = "", title = "Most putative TFs are not part of LRT",
+                      subtitle = "Fucus serratus") +
+        ggplot2::coord_flip()
+Fd_TF_list %>%
+        dplyr::mutate(LRT = GeneID %in% Fd_LRT.1000$GeneID) %>%
+        ggplot2::ggplot(aes(x = "Putative TFs",fill = LRT)) +
+        ggplot2::geom_bar(position = position_stack(), colour = "black") +
+        ggplot2::scale_fill_manual(values = c("#DC0000FF", "white")) +
+        ggplot2::theme_classic() +
+        ggplot2::labs(x = "", title = "Most putative TFs are not part of LRT",
+                      subtitle = "Fucus distichus") +
+        ggplot2::coord_flip()
+```
+
+What else may the LRT.1000 genes be?
+
+```{r}
+IPS_Ec %>%
+        dplyr::filter(GeneID %in% Ec_TF_list$GeneID) %>% 
+        dplyr::select(-c(Analysis, InterPro_accession,GO_term))
+IPS_Fs %>%
+        dplyr::filter(GeneID %in% Fs_TF_list$GeneID) %>% 
+        dplyr::select(-c(Analysis, InterPro_accession,GO_term))
+IPS_Fd %>%
+        dplyr::filter(GeneID %in% Fd_TF_list$GeneID) %>% 
+        dplyr::select(-c(Analysis, InterPro_accession,GO_term))
+```
+
+```{r}
+Fs_PES %>%
+        dplyr::select(-c(gamete,matSP)) %>%
+        myTAI::CollapseReplicates(nrep = 5, FUN = mean, stage.names = "MeanExpression") %>%
+        dplyr::mutate(PutativeTF = GeneID %in% Fs_TF_list$GeneID) %>%
+        ggplot2::ggplot(aes(MeanExpression, fill = PutativeTF)) +
+        ggplot2::scale_fill_manual(values = c("#DC0000FF", "white")) +
+        ggplot2::geom_histogram() +
+        ggplot2::labs(title = "Putative TFs expression (both axes sqrt-scaled)",
+                      subtitle = "Fucus serratus") +
+        ggplot2::scale_x_sqrt() +
+        ggplot2::scale_y_sqrt()
+
+Fd_PES %>%
+        dplyr::select(-c(gamete,matSP)) %>%
+        myTAI::CollapseReplicates(nrep = 6, FUN = mean, stage.names = "MeanExpression") %>%
+        dplyr::mutate(PutativeTF = GeneID %in% Fd_TF_list$GeneID) %>%
+        ggplot2::ggplot(aes(MeanExpression, fill = PutativeTF)) +
+        ggplot2::scale_fill_manual(values = c("#DC0000FF", "white")) +
+        ggplot2::geom_histogram() +
+        ggplot2::labs(title = "Putative TFs expression (both axes sqrt-scaled)",
+                      subtitle = "Fucus distichus") +
+        ggplot2::scale_x_sqrt() +
+        ggplot2::scale_y_sqrt()
+
+Ec_PES_25f %>%
+        myTAI::CollapseReplicates(nrep = 9, FUN = mean, stage.names = "MeanExpression") %>%
+        dplyr::mutate(PutativeTF = GeneID %in% Ec_TF_full_list$GeneID) %>%
+        ggplot2::ggplot(aes(MeanExpression, fill = PutativeTF)) +
+        ggplot2::scale_fill_manual(values = c("#DC0000FF", "white")) +
+        ggplot2::geom_histogram() +
+        ggplot2::labs(title = "Putative TFs expression (both axes sqrt-scaled)",
+                      subtitle = "Ectocarpus female") +
+        ggplot2::scale_x_sqrt() +
+        ggplot2::scale_y_sqrt()
+
+Ec_PES_32m %>%
+        myTAI::CollapseReplicates(nrep = 9, FUN = mean, stage.names = "MeanExpression") %>%
+        dplyr::mutate(PutativeTF = GeneID %in% Ec_TF_full_list$GeneID) %>%
+        ggplot2::ggplot(aes(MeanExpression, fill = PutativeTF)) +
+        ggplot2::scale_fill_manual(values = c("#DC0000FF", "white")) +
+        ggplot2::geom_histogram() +
+        ggplot2::labs(title = "Putative TFs expression (both axes sqrt-scaled)",
+                      subtitle = "Ectocarpus male") +
+        ggplot2::scale_x_sqrt() +
+        ggplot2::scale_y_sqrt()
+```
+
+# Q2: What about with a more restricted list?
+
+
+Naive analysis of GO terms for transcription factors.
+
+* GO:0006355 (regulation of DNA-templated transcription)
+
+This is used in [Piasecka et al. 2013](https://journals.plos.org/plosgenetics/article?id=10.1371/journal.pgen.1003476)
+
+
+```{r}
+# ECTOCARPUS
+# 209 genes selected
+Ec_TF_list <- IPS_Ec %>% select(GeneID, GO_term) %>% dplyr::filter(grepl("GO:0006355",GO_term)) %>% select(GeneID) %>% distinct()
+# For full gene name (269 genes selected)
+Ec_TF_full_list <- IPS_Ec_full %>% select(GeneID, GO_term) %>% dplyr::filter(grepl("GO:0006355",GO_term)) %>% select(GeneID) %>% distinct()
+
+# FUCUS
+# 213 genes selected
+Fs_TF_list <- IPS_Fs %>% select(GeneID, GO_term) %>% dplyr::filter(grepl("GO:0006355",GO_term)) %>% select(GeneID) %>% distinct()
+# 162 genes selected
+Fd_TF_list <- IPS_Fd %>% select(GeneID, GO_term) %>% dplyr::filter(grepl("GO:0006355",GO_term)) %>% select(GeneID) %>% distinct()
+```
+
+```{r fig.height = 2, fig.width = 4.5}
+Fs_TF_list %>%
+        dplyr::mutate(LRT = GeneID %in% Fs_LRT.1000$GeneID) %>%
+        ggplot2::ggplot(aes(x = "Putative TFs",fill = LRT)) +
+        ggplot2::geom_bar(position = position_stack(), colour = "black") +
+        ggplot2::scale_fill_manual(values = c("#DC0000FF", "white")) +
+        ggplot2::theme_classic() +
+        ggplot2::labs(x = "", title = "Most putative TFs are not part of LRT",
+                      subtitle = "Fucus serratus") +
+        ggplot2::coord_flip()
+Fd_TF_list %>%
+        dplyr::mutate(LRT = GeneID %in% Fd_LRT.1000$GeneID) %>%
+        ggplot2::ggplot(aes(x = "Putative TFs",fill = LRT)) +
+        ggplot2::geom_bar(position = position_stack(), colour = "black") +
+        ggplot2::scale_fill_manual(values = c("#DC0000FF", "white")) +
+        ggplot2::theme_classic() +
+        ggplot2::labs(x = "", title = "Most putative TFs are not part of LRT",
+                      subtitle = "Fucus distichus") +
+        ggplot2::coord_flip()
+```
+
+What else may the LRT.1000 genes be?
+
+```{r}
+IPS_Ec %>%
+        dplyr::filter(GeneID %in% Ec_TF_list$GeneID) %>% 
+        dplyr::select(-c(Analysis, InterPro_accession,GO_term))
+IPS_Fs %>%
+        dplyr::filter(GeneID %in% Fs_TF_list$GeneID) %>% 
+        dplyr::select(-c(Analysis, InterPro_accession,GO_term))
+IPS_Fd %>%
+        dplyr::filter(GeneID %in% Fd_TF_list$GeneID) %>% 
+        dplyr::select(-c(Analysis, InterPro_accession,GO_term))
+```
+
+```{r}
+Fs_PES %>%
+        dplyr::select(-c(gamete,matSP)) %>%
+        myTAI::CollapseReplicates(nrep = 5, FUN = mean, stage.names = "MeanExpression") %>%
+        dplyr::mutate(PutativeTF = GeneID %in% Fs_TF_list$GeneID) %>%
+        ggplot2::ggplot(aes(MeanExpression, fill = PutativeTF)) +
+        ggplot2::scale_fill_manual(values = c("#DC0000FF", "white")) +
+        ggplot2::geom_histogram() +
+        ggplot2::labs(title = "Putative TFs expression (both axes sqrt-scaled)",
+                      subtitle = "Fucus serratus") +
+        ggplot2::scale_x_sqrt() +
+        ggplot2::scale_y_sqrt()
+
+Fd_PES %>%
+        dplyr::select(-c(gamete,matSP)) %>%
+        myTAI::CollapseReplicates(nrep = 6, FUN = mean, stage.names = "MeanExpression") %>%
+        dplyr::mutate(PutativeTF = GeneID %in% Fd_TF_list$GeneID) %>%
+        ggplot2::ggplot(aes(MeanExpression, fill = PutativeTF)) +
+        ggplot2::scale_fill_manual(values = c("#DC0000FF", "white")) +
+        ggplot2::geom_histogram() +
+        ggplot2::labs(title = "Putative TFs expression (both axes sqrt-scaled)",
+                      subtitle = "Fucus distichus") +
+        ggplot2::scale_x_sqrt() +
+        ggplot2::scale_y_sqrt()
+
+Ec_PES_25f %>%
+        myTAI::CollapseReplicates(nrep = 9, FUN = mean, stage.names = "MeanExpression") %>%
+        dplyr::mutate(PutativeTF = GeneID %in% Ec_TF_full_list$GeneID) %>%
+        ggplot2::ggplot(aes(MeanExpression, fill = PutativeTF)) +
+        ggplot2::scale_fill_manual(values = c("#DC0000FF", "white")) +
+        ggplot2::geom_histogram() +
+        ggplot2::labs(title = "Putative TFs expression (both axes sqrt-scaled)",
+                      subtitle = "Ectocarpus female") +
+        ggplot2::scale_x_sqrt() +
+        ggplot2::scale_y_sqrt()
+
+Ec_PES_32m %>%
+        myTAI::CollapseReplicates(nrep = 9, FUN = mean, stage.names = "MeanExpression") %>%
+        dplyr::mutate(PutativeTF = GeneID %in% Ec_TF_full_list$GeneID) %>%
+        ggplot2::ggplot(aes(MeanExpression, fill = PutativeTF)) +
+        ggplot2::scale_fill_manual(values = c("#DC0000FF", "white")) +
+        ggplot2::geom_histogram() +
+        ggplot2::labs(title = "Putative TFs expression (both axes sqrt-scaled)",
+                      subtitle = "Ectocarpus male") +
+        ggplot2::scale_x_sqrt() +
+        ggplot2::scale_y_sqrt()
+```
+
+This leads to essentially the same results.
+
+# Q3: how does the TAI now look like once these genes are filtered out?
+
+```{r warning=FALSE,message=FALSE}
+Fs_pval_TFs <-
+        Fs_PES %>%
+        dplyr::select(-c(gamete,matSP)) %>%
+        dplyr::filter(GeneID %in% Fs_TF_list$GeneID) %>%
+        myTAI::tfStability(transforms = c("none", "sqrt", "log2", "rank"),
+                           permutations = 1000)
+Fd_pval_TFs <-
+        Fd_PES %>%
+        dplyr::select(-c(gamete,matSP)) %>%
+        dplyr::filter(GeneID %in% Fd_TF_list$GeneID) %>%
+        myTAI::tfStability(transforms = c("none", "sqrt", "log2", "rank"),
+                           permutations = 1000)
+```
+
+```{r fig.height = 2.5, fig.width = 3}
+Fs_PES_tS_res <- 
+        Fs_pval_TFs %>%
+        tibble::as_tibble(rownames = "transformation") %>%
+        dplyr::rename("pval" = value) %>%
+        dplyr::mutate(test = "FlatLineTest")
+Fd_PES_tS_res <- 
+        Fd_pval_TFs %>%
+        tibble::as_tibble(rownames = "transformation") %>%
+        dplyr::rename("pval" = value) %>%
+        dplyr::mutate(test = "FlatLineTest")
+
+Fs_PES_tS_res %>%
+  ggplot2::ggplot(
+    aes(
+      y = -log10(pval), 
+      x = transformation)) +
+  ggplot2::geom_col(width = 0.05) +
+  ggplot2::geom_point(size = 5) +
+  ggplot2::geom_hline(
+    yintercept = -log10(0.05), 
+    colour = "#E64B35FF",
+    linetype = 'dashed',
+    size = 2
+    ) +
+  ggplot2::labs(
+    title = "Fucus serratus",
+    subtitle = "FlatLineTest",
+    x = "Transformation"
+  ) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_classic()
+
+Fd_PES_tS_res %>%
+  ggplot2::ggplot(
+    aes(
+      y = -log10(pval), 
+      x = transformation)) +
+  ggplot2::geom_col(width = 0.05) +
+  ggplot2::geom_point(size = 5) +
+  ggplot2::geom_hline(
+    yintercept = -log10(0.05), 
+    colour = "#E64B35FF",
+    linetype = 'dashed',
+    size = 2
+    ) +
+  ggplot2::labs(
+    title = "Fucus distichus",
+    subtitle = "FlatLineTest",
+    x = "Transformation"
+  ) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_classic()
+```
+
+```{r warning=FALSE,message=FALSE, fig.height = 4, fig.width = 4}
+Fs_PES %>%
+        dplyr::select(-c(gamete,matSP)) %>%
+        dplyr::filter(GeneID %in% Fs_TF_list$GeneID) %>%
+        myTAI::PlotSignature(main = "Fucus distichus",measure = "TAI",xlab = "TAI")
+Fd_PES %>%
+        dplyr::select(-c(gamete,matSP)) %>%
+        dplyr::filter(GeneID %in% Fd_TF_list$GeneID) %>%
+        myTAI::PlotSignature(main = "Fucus distichus",measure = "TAI",xlab = "TAI")
+Fs_PES.sqrt %>%
+        dplyr::select(-c(gamete,matSP)) %>%
+        dplyr::filter(GeneID %in% Fs_TF_list$GeneID) %>%
+        myTAI::PlotSignature(main = "Fucus distichus",measure = "TAI",xlab = "TAI")
+Fd_PES.sqrt %>%
+        dplyr::select(-c(gamete,matSP)) %>%
+        dplyr::filter(GeneID %in% Fd_TF_list$GeneID) %>%
+        myTAI::PlotSignature(main = "Fucus distichus",measure = "TAI",xlab = "TAI")
+```
+
+Damn... Only 96 genes are retained in _F. serratus_ (~1.2%) and 108 in _F. distichus_ (~1.4%).
+
+The flat line is not such an issue for Ectocarpus
+
+```{r warning=FALSE,message=FALSE}
+Ec_M_pval_TFs <-
+        Ec_PES_32m %>%
+        dplyr::filter(GeneID %in% Ec_TF_full_list$GeneID) %>%
+        myTAI::tfStability(transforms = c("none", "sqrt", "log2", "rank"),
+                           permutations = 1000)
+Ec_F_pval_TFs <-
+        Ec_PES_25f %>%
+        dplyr::filter(GeneID %in% Ec_TF_full_list$GeneID) %>%
+        myTAI::tfStability(transforms = c("none", "sqrt", "log2", "rank"),
+                           permutations = 1000)
+```
+
+```{r fig.height = 2.5, fig.width = 3}
+Ec_F_PES_tS_res <- 
+        Ec_F_pval_TFs %>%
+        tibble::as_tibble(rownames = "transformation") %>%
+        dplyr::rename("pval" = value) %>%
+        dplyr::mutate(test = "FlatLineTest")
+Ec_M_PES_tS_res <- 
+        Ec_M_pval_TFs %>%
+        tibble::as_tibble(rownames = "transformation") %>%
+        dplyr::rename("pval" = value) %>%
+        dplyr::mutate(test = "FlatLineTest")
+
+Ec_F_PES_tS_res %>%
+  ggplot2::ggplot(
+    aes(
+      y = -log10(pval), 
+      x = transformation)) +
+  ggplot2::geom_col(width = 0.05) +
+  ggplot2::geom_point(size = 5) +
+  ggplot2::geom_hline(
+    yintercept = -log10(0.05), 
+    colour = "#E64B35FF",
+    linetype = 'dashed',
+    size = 2
+    ) +
+  ggplot2::labs(
+    title = "Ectocarpus female",
+    subtitle = "FlatLineTest",
+    x = "Transformation"
+  ) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_classic()
+
+Ec_M_PES_tS_res %>%
+  ggplot2::ggplot(
+    aes(
+      y = -log10(pval), 
+      x = transformation)) +
+  ggplot2::geom_col(width = 0.05) +
+  ggplot2::geom_point(size = 5) +
+  ggplot2::geom_hline(
+    yintercept = -log10(0.05), 
+    colour = "#E64B35FF",
+    linetype = 'dashed',
+    size = 2
+    ) +
+  ggplot2::labs(
+    title = "Ectocarpus male",
+    subtitle = "FlatLineTest",
+    x = "Transformation"
+  ) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_classic()
+```
+
+```{r warning=FALSE,message=FALSE, fig.height = 5, fig.width = 5}
+Ec_PES_32m %>%
+        dplyr::filter(GeneID %in% Ec_TF_full_list$GeneID) %>%
+        myTAI::PlotSignature(main = "Ectocarpus male",measure = "TAI",xlab = "TAI")
+Ec_PES_25f %>%
+        dplyr::filter(GeneID %in% Ec_TF_full_list$GeneID) %>%
+        myTAI::PlotSignature(main = "Ectocarpus female",measure = "TAI",xlab = "TAI")
+
+Ec_PES_32m.sqrt %>%
+        dplyr::filter(GeneID %in% Ec_TF_full_list$GeneID) %>%
+        myTAI::PlotSignature(main = "Ectocarpus male",measure = "TAI",xlab = "TAI")
+Ec_PES_25f.sqrt %>%
+        dplyr::filter(GeneID %in% Ec_TF_full_list$GeneID) %>%
+        myTAI::PlotSignature(main = "Ectocarpus female",measure = "TAI",xlab = "TAI")
+
+Ec_PES_32m.log2 %>%
+        dplyr::filter(GeneID %in% Ec_TF_full_list$GeneID) %>%
+        myTAI::PlotSignature(main = "Ectocarpus male",measure = "TAI",xlab = "TAI")
+Ec_PES_25f.log2 %>%
+        dplyr::filter(GeneID %in% Ec_TF_full_list$GeneID) %>%
+        myTAI::PlotSignature(main = "Ectocarpus female",measure = "TAI",xlab = "TAI")
+```
+
+I think these patterns are interesting but the interpretability is undermined by the fact that only ~168 genes are employed here. This less than 5% of genes, woefully ignoring the entire transcriptome.
+
+# Q4: what is the PS of putative TFs?
+
+```{r}
+Fs_PES %>%
+        dplyr::select(PS,GeneID) %>%
+        dplyr::mutate(PutativeTF = GeneID %in% Fs_TF_list$GeneID) %>%
+        ggplot2::ggplot(aes(as.factor(PS), fill = PutativeTF)) +
+        ggplot2::scale_fill_manual(values = c("#DC0000FF", "white")) +
+        ggplot2::geom_bar() +
+        ggplot2::labs(title = "Putative TFs PS",
+                      subtitle = "Fucus serratus",
+                      x = "PS", y = "Number of genes (log-scaled)") +
+        ggplot2::scale_y_log10()
+        
+
+Fd_PES %>%
+        dplyr::select(PS,GeneID) %>%
+        dplyr::mutate(PutativeTF = GeneID %in% Fd_TF_list$GeneID) %>%
+        ggplot2::ggplot(aes(as.factor(PS), fill = PutativeTF)) +
+        ggplot2::scale_fill_manual(values = c("#DC0000FF", "white")) +
+        ggplot2::geom_bar() +
+        ggplot2::labs(title = "Putative TFs PS",
+                      subtitle = "Fucus distichus",
+                      x = "PS", y = "Number of genes (log-scaled)") +
+        ggplot2::scale_y_log10()
+
+Ec_PES_25f %>%
+        dplyr::select(PS,GeneID) %>%
+        dplyr::mutate(PutativeTF = GeneID %in% Ec_TF_full_list$GeneID) %>%
+        ggplot2::ggplot(aes(as.factor(PS), fill = PutativeTF)) +
+        ggplot2::scale_fill_manual(values = c("#DC0000FF", "white")) +
+        ggplot2::geom_bar() +
+        ggplot2::labs(title = "Putative TFs PS",
+                      subtitle = "Ectocarpus",
+                      x = "PS", y = "Number of genes (log-scaled)") +
+        ggplot2::scale_y_log10()
+```
+
+Putative TFs are distributed across several PS.
+
+
+```{r}
+Fs_PES %>%
+    dplyr::select(PS,GeneID) %>%
+    dplyr::mutate(PutativeTF = GeneID %in% Fs_TF_list$GeneID) %>%
+    dplyr::group_by(PutativeTF) %>%
+    dplyr::summarise(mean(PS))
+Fs_PES_true <- Fs_PES %>%
+    dplyr::filter(GeneID %in% Fs_TF_list$GeneID)
+Fs_PES_false <- Fs_PES %>%
+    dplyr::filter(!GeneID %in% Fs_TF_list$GeneID)
+ks.test(Fs_PES_true$PS,Fs_PES_false$PS)
+
+Fd_PES %>%
+    dplyr::select(PS,GeneID) %>%
+    dplyr::mutate(PutativeTF = GeneID %in% Fd_TF_list$GeneID) %>%
+    dplyr::group_by(PutativeTF) %>%
+    dplyr::summarise(mean(PS))
+Fd_PES_true <- Fd_PES %>%
+    dplyr::filter(GeneID %in% Fd_TF_list$GeneID)
+Fd_PES_false <- Fd_PES %>%
+    dplyr::filter(!GeneID %in% Fd_TF_list$GeneID)
+ks.test(Fd_PES_true$PS,Fd_PES_false$PS)
+
+Ec_PES_25f %>%
+    dplyr::select(PS,GeneID) %>%
+    dplyr::mutate(PutativeTF = GeneID %in% Ec_TF_full_list$GeneID) %>%
+    dplyr::group_by(PutativeTF) %>%
+    dplyr::summarise(mean(PS))
+Ec_PES_true <- Ec_PES_25f %>%
+    dplyr::filter(GeneID %in% Ec_TF_full_list$GeneID)
+Ec_PES_false <- Ec_PES_25f %>%
+    dplyr::filter(!GeneID %in% Ec_TF_full_list$GeneID)
+ks.test(Ec_PES_true$PS,Ec_PES_false$PS)
+```
+
+PS is higher in putative TFs but it is not significantly so.
+
+# Q5: what is the expression level of putative TFs?
+
+Since so little genes are considered, I can look at the expression profile of each one! Perhaps the ones with the most variance?
+
+```{r}
+Fs_TF <- 
+        Fs_PES %>%
+        dplyr::select(-c(gamete,matSP)) %>%
+        dplyr::filter(GeneID %in% Fs_TF_list$GeneID) %>%
+        tidyr::pivot_longer(!c(PS,GeneID), names_to = "Stage", values_to = "TPM")
+Fs_TF$Stage <- base::factor(Fs_TF$Stage, unique(Fs_TF$Stage))
+Fd_TF <- 
+        Fd_PES %>%
+        dplyr::select(-c(gamete,matSP)) %>%
+        dplyr::filter(GeneID %in% Fd_TF_list$GeneID) %>%
+        tidyr::pivot_longer(!c(PS,GeneID), names_to = "Stage", values_to = "TPM")
+Fd_TF$Stage <- base::factor(Fd_TF$Stage, unique(Fd_TF$Stage))
+```
+
+We filter for genes with mean TPM below 0.5 and CV (coefficient of variance) over 1. This is fair since we are selecting the genes with the most expression variance.
+
+```{r fig.height = 3, fig.width = 4}
+Fs_TF_highCV <-
+        Fs_TF %>% 
+        dplyr::group_by(GeneID) %>%
+        dplyr::summarise(variance = var(TPM), 
+                         mean_TPM = mean(TPM)) %>%
+        dplyr::filter(mean_TPM > 0.5) %>%
+        dplyr::group_by(GeneID) %>%
+        dplyr::summarise(CV = sqrt(variance)/mean_TPM) %>%
+        dplyr::filter(CV > 1)
+Fs_TF %>% 
+        dplyr::filter(GeneID %in% Fs_TF_highCV$GeneID) %>%
+        ggplot2::ggplot(aes(x = Stage, 
+                            y = log2(TPM+1), 
+                            group = GeneID,
+                            colour = GeneID)) +
+        ggplot2::geom_line(size = 2, alpha = 0.5) +
+        ggplot2::labs(title = "Fucus serratus") +
+        scale_colour_viridis_d()
+
+Fd_TF_highCV <-
+        Fd_TF %>% 
+        dplyr::group_by(GeneID) %>%
+        dplyr::summarise(variance = var(TPM), 
+                         mean_TPM = mean(TPM)) %>%
+        dplyr::filter(mean_TPM > 0.5) %>%
+        dplyr::group_by(GeneID) %>%
+        dplyr::summarise(CV = sqrt(variance)/mean_TPM) %>%
+        dplyr::filter(CV > 1)
+Fd_TF %>% 
+        dplyr::filter(GeneID %in% Fd_TF_highCV$GeneID) %>%
+        ggplot2::ggplot(aes(x = Stage, 
+                            y = log2(TPM+1), 
+                            group = GeneID,
+                            colour = GeneID)) +
+        ggplot2::geom_line(size = 2, alpha = 0.5) +
+        ggplot2::labs(title = "Fucus distichus") +
+        scale_colour_viridis_d()
+```
+
+```r
+> Fs_TF_highCV$GeneID
+[1] "ser_TRINITY_DN11159_c0_g1" "ser_TRINITY_DN11241_c0_g2"
+[3] "ser_TRINITY_DN16240_c0_g2" "ser_TRINITY_DN46003_c0_g1"
+> Fd_TF_highCV$GeneID
+[1] "dis_TRINITY_DN1365_c0_g3" "dis_TRINITY_DN329_c0_g1" 
+[3] "dis_TRINITY_DN3687_c0_g2" "dis_TRINITY_DN7838_c0_g3"
+[5] "dis_TRINITY_DN8105_c0_g3"
+```
+It appears `dis_TRINITY_DN329_c0_g1` and `dis_TRINITY_DN8105_c0_g3` share a similar expression profile to 
+
+```{r}
+source("functions/parse_orthogroups.R")
+
+OG_tx2gene <- 
+  parse_orthogroups("data/Results_Nov29/Orthogroups/Orthogroups.tsv") %>% 
+  stack() %>% 
+  tidyr::as_tibble() %>% 
+  dplyr::rename(GeneID = values) %>% 
+  dplyr::rename(OG = ind) %>%
+  dplyr::relocate(GeneID) %>%
+  dplyr::mutate(GeneID = str_remove(GeneID, "\\.p[0-9].*"))
+```
+
+```r
+> OG_tx2gene %>% 
++     dplyr::filter(GeneID %in% c(Fd_TF_highCV$GeneID, Fs_TF_highCV$GeneID))
+# A tibble: 8 × 2
+  GeneID                    OG       
+  <chr>                     <fct>    
+1 dis_TRINITY_DN329_c0_g1   OG0003154
+2 dis_TRINITY_DN3687_c0_g2  OG0003246
+3 dis_TRINITY_DN3687_c0_g3  OG0003246
+4 ser_TRINITY_DN11159_c0_g1 OG0003687
+5 dis_TRINITY_DN8105_c0_g3  OG0003946
+6 ser_TRINITY_DN16240_c0_g2 OG0005153
+7 dis_TRINITY_DN1365_c0_g3  OG0005332
+8 ser_TRINITY_DN11241_c0_g2 OG0007518
+```
+
+These genes are not related... It is simply not easy to compare the expression of orthogroup genes.
+
+# Q5: what is the expression correlation when examining just putative TFs?
+
+```{r}
+OG_filt <- 
+        OG_tx2gene %>%
+        dplyr::filter(GeneID %in% c(Fs_TF_list$GeneID, Fd_TF_list$GeneID))
+Fs_abundance_filt <-
+        readr::read_csv(file = "data/Fs_OG_abundance.csv") %>%
+        dplyr::filter(OG %in% OG_filt$OG)
+Fd_abundance_filt <-
+        readr::read_csv(file = "data/Fd_OG_abundance.csv") %>%
+        dplyr::filter(OG %in% OG_filt$OG)
+```
+
+Many OGs are lost this way. We have 78 OGs in Fd (from 5410) and 77 in Fs (from 5596). By applying inner_join, we obtain just 59 OGs. 
+
+```{r}
+sample_info_fd <-
+  readr::read_csv("data/sample_info_fd.csv")
+sample_info_fs <-
+  readr::read_csv("data/sample_info_fs.csv")
+
+sample_info_fd_embryo <-
+  sample_info_fd %>%
+  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5", "E6")) %>%
+  dplyr::mutate(LibLab = str_c(Species, "_", Stage, "_", Replicate))
+sample_info_fs_embryo <-
+  sample_info_fs %>%
+  dplyr::filter(Stage %in% c("24H", "48H", "1w", "3w", "4w")) %>%
+  dplyr::mutate(Replicate = case_when(
+    LibName == "Fs_X_zygotes_48h_1" ~ 4,
+    LibName == "Fs_X_zygotes_48h_2" ~ 5,
+    LibName == "Fs_X_zygotes_48h_3" ~ 6,
+    TRUE ~ Replicate
+  )) %>%
+  mutate(LibLab = str_c(Species, "_", Stage, "_", Replicate))
+```
+
+## PCA using OGs
+
+```{r}
+selectGenes <- function(counts, min.count=2){
+  keep <-
+    counts[rowMeans(counts)>min.count, ]
+  return(keep)
+}
+```
+
+To minimise differences between species, I remove OGs with low counts.
+
+```{r}
+combined_metatable <- 
+  rbind(sample_info_fs_embryo, sample_info_fd_embryo) %>%
+  relocate(LibName)
+```
+
+```{r}
+merged_TPM_pre <- 
+  merge(Fs_abundance_filt, Fd_abundance_filt, by = "OG") %>%
+  dplyr::select(1, combined_metatable$LibName)
+merged_TPM <- 
+  data.frame(row.names = merged_TPM_pre[,1], merged_TPM_pre[,-1], check.names = FALSE)
+merged_TPM.filt <-
+  as.matrix(merged_TPM) %>%
+  selectGenes(min.count=10)
+```
+
+10 OGs are lost after the TPM 10 filter (from 59 to 49).
+
+```{r}
+log2_TPM <- log2(merged_TPM.filt+1)
+sqrt_TPM <- sqrt(merged_TPM.filt)
+tpm10_TPM <- (merged_TPM.filt > 10) * 1
+```
+
+```{r fig.height = 8, fig.width = 5.5}
+combined_metatable$Stage <- factor(combined_metatable$Stage, levels = unique(combined_metatable$Stage))
+
+myPCAfunction <- function(pcDat, data, x, y, ...){
+  OUT <- 
+    ggplot2::autoplot(
+      pcDat,
+      data = data,
+      frame.colour = "Stage",
+      colour = "Stage",
+      shape = "Species",
+      x = x,
+      y = y,
+      size = 3,
+      frame = TRUE,
+      alpha = 0.5,
+      ...)
+  return(OUT)
+}
+```
+
+```{r fig.height = 3, fig.width = 5.5}
+pcDat <- prcomp(t(log2_TPM), scale = TRUE)
+
+PC1_2 <- myPCAfunction(pcDat, data = combined_metatable, x = 1, y = 2) +
+  labs(title = "PC1 and PC2") +
+  theme_grey()
+
+PC1_3 <- myPCAfunction(pcDat, data = combined_metatable, x = 1, y = 3) +
+  labs(title = "PC1 and PC3") +
+  theme_grey()
+
+log2_plot <- ggpubr::ggarrange(PC1_2, PC1_3, common.legend = T)
+ggpubr::annotate_figure(log2_plot, top = ggpubr::text_grob("log2", 
+                                                   face = "bold", size = 14))
+
+pcDat <- prcomp(t(sqrt_TPM), scale = TRUE)
+# pcDat <- prcomp(t(rlog_TPM))
+
+PC1_2 <- myPCAfunction(pcDat, data = combined_metatable, x = 1, y = 2) +
+  labs(title = "PC1 and PC2") +
+  theme_grey()
+
+PC1_3 <- myPCAfunction(pcDat, data = combined_metatable, x = 1, y = 3) +
+  labs(title = "PC1 and PC3") +
+  theme_grey()
+
+sqrt_plot <- ggpubr::ggarrange(PC1_2, PC1_3, common.legend = T)
+ggpubr::annotate_figure(sqrt_plot, top = ggpubr::text_grob("sqrt", 
+                                                   face = "bold", size = 14))
+
+# pcDat <- prcomp(t(tpm10_TPM)) # too many zeros to do a scale = TRUE
+# 
+# PC1_2 <- myPCAfunction(pcDat, data = combined_metatable, x = 1, y = 2) +
+#   labs(title = "PC1 and PC2") +
+#   theme_grey()
+# 
+# PC1_3 <- myPCAfunction(pcDat, data = combined_metatable, x = 1, y = 3) +
+#   labs(title = "PC1 and PC3") +
+#   theme_grey()
+# 
+# rlog_plot <- ggpubr::ggarrange(PC1_2, PC1_3, common.legend = T)
+# ggpubr::annotate_figure(rlog_plot, top = ggpubr::text_grob("tpm10 threshold", 
+#                                                    face = "bold", size = 14))
+```
+
+### Plot with loadings
+
+```{r fig.height = 5, fig.width = 7}
+# with loading
+pcDat <- prcomp(t(log2_TPM), scale = TRUE)
+
+myPCAfunction(pcDat, data = combined_metatable, x = 1, y = 2, loadings = TRUE, loadings.colour = 'black', loadings.label.colour="black", loadings.label = TRUE, loadings.label.size = 2, loadings.label.repel=TRUE) +
+  labs(title = "PC1 and PC2", subtitle = "log2 with loading") +
+  theme_grey()
+myPCAfunction(pcDat, data = combined_metatable, x = 1, y = 3, loadings = TRUE, loadings.colour = 'black', loadings.label.colour="black", loadings.label = TRUE, loadings.label.size = 2, loadings.label.repel=TRUE) +
+  labs(title = "PC1 and PC3", subtitle = "log2 with loading") +
+  theme_grey()
+```
+
+The general structure of the embryogenesis PCA is maintained when using putative TFs. Unfortunately, the expression level of only 49 OGs are captured here. The TPM10 threshold performs very poorly here so I have removed it.
+
+# Distance metrics
+
+Here, we use distance metrics to quantify how distant the stages are from each other across _Fucus_ species and maybe even in _Ectocarpus_.
+
+```{r}
+library(philentropy)
+```
+
+```{r}
+ncol_Fs <- grep( "Fs" , colnames( log2_TPM ) )
+ncol_Fd <- grep( "Fd" , colnames( log2_TPM ) )
+```
+
+## Using log2(TPM+1)
+
+```{r}
+log2_TPM_renamed <- log2_TPM
+base::colnames(log2_TPM_renamed) <- combined_metatable$LibLab
+```
+
+### Pearson correlation
+
+```{r fig.height = 4, fig.width = 5}
+M = cor(x = log2_TPM_renamed[,ncol_Fs], 
+        y = log2_TPM_renamed[,ncol_Fd], 
+        method = "pearson")
+
+M_melt <- reshape2::melt(M)
+```
+
+```{r fig.height = 3, fig.width = 4.5}
+tmp1 <- sample_info_fd_embryo %>% 
+  select(Var2 = LibLab, Stage) %>% 
+  full_join(M_melt, multiple = "all") %>%
+  dplyr::rename(Fd = Stage)
+
+tmp2 <- sample_info_fs_embryo %>% 
+  select(Var1 = LibLab, Stage) %>% 
+  full_join(tmp1, multiple = "all") %>%
+  dplyr::rename(Fs = Stage)
+
+tmp2$Fs <- factor(tmp2$Fs, levels = unique(tmp2$Fs))
+tmp2$Fd <- factor(tmp2$Fd, levels = unique(tmp2$Fd))
+tmp2 %>% group_by(Fs, Fd) %>% summarise(median_corr = median(value)) %>%
+  ggplot(aes(x = Fs, y = Fd, fill = median_corr)) +
+  geom_tile() +
+  geom_text(aes(label = paste0(round(median_corr,3))), color = "black") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  scale_fill_gradient(low = "white", high = "#DC0000FF") +
+  labs(x = "Fucus serratus samples",
+       y = "Fucus distichus samples",
+       title = "Pearson correlation (log2)",
+       fill = "median(correlation)")
+```
+
+### Spearman correlation
+
+Monotonic relationship
+
+```{r fig.height = 4, fig.width = 5}
+log2_TPM_renamed <- log2_TPM
+base::colnames(log2_TPM_renamed) <- combined_metatable$LibLab
+
+M = cor(x = log2_TPM_renamed[,ncol_Fs], 
+        y = log2_TPM_renamed[,ncol_Fd], 
+        method = "spearman")
+
+M_melt <- reshape2::melt(M)
+```
+
+```{r fig.height = 3, fig.width = 4.5}
+tmp1 <- sample_info_fd_embryo %>% 
+  select(Var2 = LibLab, Stage) %>% 
+  full_join(M_melt, multiple = "all") %>%
+  dplyr::rename(Fd = Stage)
+
+tmp2 <- sample_info_fs_embryo %>% 
+  select(Var1 = LibLab, Stage) %>% 
+  full_join(tmp1, multiple = "all") %>%
+  dplyr::rename(Fs = Stage)
+
+tmp2$Fs <- factor(tmp2$Fs, levels = unique(tmp2$Fs))
+tmp2$Fd <- factor(tmp2$Fd, levels = unique(tmp2$Fd))
+tmp2 %>% group_by(Fs, Fd) %>% summarise(median_corr = median(value)) %>%
+  ggplot(aes(x = Fs, y = Fd, fill = median_corr)) +
+  geom_tile() +
+  geom_text(aes(label = paste0(round(median_corr,3))), color = "black") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  scale_fill_gradient(low = "white", high = "#DC0000FF") +
+  labs(x = "Fucus serratus samples",
+       y = "Fucus distichus samples",
+       title = "Spearman correlation (log2)",
+       fill = "median(correlation)")
+```
+
+### Manhattan distance
+
+
+```{r fig.height = 4, fig.width = 5}
+DM <- philentropy::distance(t(log2_TPM_renamed), use.row.names = TRUE, method = "manhattan")
+DM2 <- DM[ncol_Fs, ncol_Fd]
+
+M_melt <- reshape2::melt(DM2)
+```
+
+```{r fig.height = 3, fig.width = 4.5}
+tmp1 <- sample_info_fd_embryo %>% 
+  select(Var2 = LibLab, Stage) %>% 
+  full_join(M_melt, multiple = "all") %>%
+  dplyr::rename(Fd = Stage)
+
+tmp2 <- sample_info_fs_embryo %>% 
+  select(Var1 = LibLab, Stage) %>% 
+  full_join(tmp1, multiple = "all") %>%
+  dplyr::rename(Fs = Stage)
+
+tmp2$Fs <- factor(tmp2$Fs, levels = unique(tmp2$Fs))
+tmp2$Fd <- factor(tmp2$Fd, levels = unique(tmp2$Fd))
+tmp2 %>% group_by(Fs, Fd) %>% summarise(median_corr = median(value)) %>%
+  ggplot(aes(x = Fs, y = Fd, fill = median_corr)) +
+  geom_tile() +
+  geom_text(aes(label = paste0(round(median_corr,0))), color = "black") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  scale_fill_gradient(low = "white", high = "#3C5488FF") +
+  labs(x = "Fucus serratus samples",
+       y = "Fucus distichus samples",
+       title = "Manhattan distance (log2)",
+       fill = "median(distance)")
+```
+
+### JSD metric
+
+```{r fig.height = 4, fig.width = 5}
+mat_normalized <- apply(log2_TPM_renamed, 2, function(x) x/sum(x)) %>% as.data.frame()
+# colSums(mat_normalized)
+DM <- philentropy::distance(t(mat_normalized), use.row.names = TRUE, method = "jensen-shannon")
+DM2 <- DM[ncol_Fs, ncol_Fd]
+DM3 <- sqrt(DM2)
+
+M_melt <- reshape2::melt(DM3)
+```
+
+
+```{r fig.height = 3, fig.width = 4.5}
+tmp1 <- sample_info_fd_embryo %>% 
+  select(Var2 = LibLab, Stage) %>% 
+  full_join(M_melt, multiple = "all") %>%
+  dplyr::rename(Fd = Stage)
+
+tmp2 <- sample_info_fs_embryo %>% 
+  select(Var1 = LibLab, Stage) %>% 
+  full_join(tmp1, multiple = "all") %>%
+  dplyr::rename(Fs = Stage)
+
+tmp2$Fs <- factor(tmp2$Fs, levels = unique(tmp2$Fs))
+tmp2$Fd <- factor(tmp2$Fd, levels = unique(tmp2$Fd))
+tmp2 %>% group_by(Fs, Fd) %>% summarise(median_corr = median(value)) %>%
+  ggplot(aes(x = Fs, y = Fd, fill = median_corr)) +
+  geom_tile() +
+  geom_text(aes(label = paste0(round(median_corr,3))), color = "black") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  scale_fill_gradient(low = "white", high = "#3C5488FF") +
+  labs(x = "Fucus serratus samples",
+       y = "Fucus distichus samples",
+       title = "JSD metric (norm. log2)",
+       fill = "median(distance)")
+```
+
+It is only the very early stages that have the most correlated expression putative TF marker. This is seen with the Pearson and Spearman correlations and can be analogously identified with distance-based approaches.
+
+```{r}
+devtools::session_info()
+```
