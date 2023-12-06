@@ -1,5 +1,5 @@
 ---
-title: "2.2 TAI tissues in Fucus gametes"
+title: "3.2 TDI tissues in Fucus gametes"
 output:
   html_document:
     fig_width: 6
@@ -9,9 +9,9 @@ editor_options:
   chunk_output_type: inline
 ---
 
-# TAI profiles of gametes
+# TDI profiles of gametes
 
-For TAI profiles for the developmental stages, one can find them in `2.0 TAI profiles`.
+For TDI profiles for the developmental stages, one can find them in `3.0 TDI profiles`.
 
 ```{r}
 library(tidyverse)
@@ -88,7 +88,7 @@ Fs_PES_M.rlog <-
   readr::read_csv(file = "data/Fs_PES_M.rlog.csv") %>% dplyr::select(-matSP)
 ```
 
-# Gamete-specific TAI
+# Gamete-specific TDI
 
 ```{r}
 #TI stands for transcriptome index
@@ -99,81 +99,81 @@ TI.preplot <- function(ExpressionSet, permutations = 50000){
       permutations  = permutations) %>% 
     apply(2, stats::sd)
   TI.out <- 
-    myTAI::TAI(ExpressionSet) %>%
-    tibble::as_tibble(rownames = "Stage", colnames = c("TAI", "PS")) %>% 
+    myTAI::TDI(ExpressionSet) %>%
+    tibble::as_tibble(rownames = "Stage", colnames = c("TDI", "PS")) %>% 
     dplyr::bind_cols(as_tibble(std)) %>%
-    dplyr::rename(TAI = 2, sd = 3)
+    dplyr::rename(TDI = 2, sd = 3)
   return(TI.out)
 }
 ```
 
 ```{r warning=FALSE, message=FALSE}
-Fd_TAI_F <- 
+Fd_TDI_F <- 
   TI.preplot(Fd_PES_F) %>%
   dplyr::mutate(Sex = "F")
-Fd_TAI_M <- 
+Fd_TDI_M <- 
   TI.preplot(Fd_PES_M) %>%
   dplyr::mutate(Sex = "M")
-Fs_TAI_F <- 
+Fs_TDI_F <- 
   TI.preplot(Fs_PES_F) %>%
   dplyr::mutate(Sex = "F")
-Fs_TAI_M <- 
+Fs_TDI_M <- 
   TI.preplot(Fs_PES_M) %>%
   dplyr::mutate(Sex = "M")
 
 # sqrt
-Fd_TAI_F.sqrt <- 
+Fd_TDI_F.sqrt <- 
   TI.preplot(Fd_PES_F.sqrt) %>%
   dplyr::mutate(Sex = "F")
-Fd_TAI_M.sqrt <- 
+Fd_TDI_M.sqrt <- 
   TI.preplot(Fd_PES_M.sqrt) %>%
   dplyr::mutate(Sex = "M")
-Fs_TAI_F.sqrt <- 
+Fs_TDI_F.sqrt <- 
   TI.preplot(Fs_PES_F.sqrt) %>%
   dplyr::mutate(Sex = "F")
-Fs_TAI_M.sqrt <- 
+Fs_TDI_M.sqrt <- 
   TI.preplot(Fs_PES_M.sqrt) %>%
   dplyr::mutate(Sex = "M")
 
 # log2
-Fd_TAI_F.log2 <- 
+Fd_TDI_F.log2 <- 
   TI.preplot(Fd_PES_F.log2) %>%
   dplyr::mutate(Sex = "F")
-Fd_TAI_M.log2 <- 
+Fd_TDI_M.log2 <- 
   TI.preplot(Fd_PES_M.log2) %>%
   dplyr::mutate(Sex = "M")
-Fs_TAI_F.log2 <- 
+Fs_TDI_F.log2 <- 
   TI.preplot(Fs_PES_F.log2) %>%
   dplyr::mutate(Sex = "F")
-Fs_TAI_M.log2 <- 
+Fs_TDI_M.log2 <- 
   TI.preplot(Fs_PES_M.log2) %>%
   dplyr::mutate(Sex = "M")
 
 # rank
-Fd_TAI_F.rank <- 
+Fd_TDI_F.rank <- 
   TI.preplot(Fd_PES_F.rank) %>%
   dplyr::mutate(Sex = "F")
-Fd_TAI_M.rank <- 
+Fd_TDI_M.rank <- 
   TI.preplot(Fd_PES_M.rank) %>%
   dplyr::mutate(Sex = "M")
-Fs_TAI_F.rank <- 
+Fs_TDI_F.rank <- 
   TI.preplot(Fs_PES_F.rank) %>%
   dplyr::mutate(Sex = "F")
-Fs_TAI_M.rank <- 
+Fs_TDI_M.rank <- 
   TI.preplot(Fs_PES_M.rank) %>%
   dplyr::mutate(Sex = "M")
 
 # rlog
-Fd_TAI_F.rlog <- 
+Fd_TDI_F.rlog <- 
   TI.preplot(Fd_PES_F.rlog) %>%
   dplyr::mutate(Sex = "F")
-Fd_TAI_M.rlog <- 
+Fd_TDI_M.rlog <- 
   TI.preplot(Fd_PES_M.rlog) %>%
   dplyr::mutate(Sex = "M")
-Fs_TAI_F.rlog <- 
+Fs_TDI_F.rlog <- 
   TI.preplot(Fs_PES_F.rlog) %>%
   dplyr::mutate(Sex = "F")
-Fs_TAI_M.rlog <- 
+Fs_TDI_M.rlog <- 
   TI.preplot(Fs_PES_M.rlog) %>%
   dplyr::mutate(Sex = "M")
 ```
@@ -186,7 +186,7 @@ plot_gamete_Fd <- function(preplot_out){
     ggplot2::ggplot(
       aes(
         x = Sex,
-        y = TAI,
+        y = TDI,
         group = Stage,
         colour = Sex
         )
@@ -195,7 +195,7 @@ plot_gamete_Fd <- function(preplot_out){
       size = 4, 
       position = ggplot2::position_dodge(width=0.9)) +
     ggplot2::geom_errorbar(
-      aes(ymin = TAI - sd, ymax = TAI + sd),
+      aes(ymin = TDI - sd, ymax = TDI + sd),
       width = 0.1,
       position = ggplot2::position_dodge(width=0.9)) +
     ggplot2::scale_colour_discrete(
@@ -216,7 +216,7 @@ plot_gamete_Fs <- function(preplot_out){
     ggplot2::ggplot(
       aes(
         x = Sex,
-        y = TAI,
+        y = TDI,
         group = Stage,
         colour = Sex
         )
@@ -225,7 +225,7 @@ plot_gamete_Fs <- function(preplot_out){
       size = 4, 
       position = ggplot2::position_dodge(width=0.9)) +
     ggplot2::geom_errorbar(
-      aes(ymin = TAI - sd, ymax = TAI + sd),
+      aes(ymin = TDI - sd, ymax = TDI + sd),
       width = 0.1,
       position = ggplot2::position_dodge(width=0.9)) +
     ggplot2::scale_colour_discrete(
@@ -248,45 +248,45 @@ plot_gamete_Fs <- function(preplot_out){
 
 
 ```{r, fig.height = 4, fig.width = 1.5}
-base::rbind(Fd_TAI_F, Fd_TAI_M) %>%
+base::rbind(Fd_TDI_F, Fd_TDI_M) %>%
   plot_gamete_Fd() + 
   ggplot2::labs(subtitle = "TPM")
 
-base::rbind(Fd_TAI_F.sqrt, Fd_TAI_M.sqrt) %>%
+base::rbind(Fd_TDI_F.sqrt, Fd_TDI_M.sqrt) %>%
   plot_gamete_Fd() + 
   ggplot2::labs(subtitle = "sqrt(TPM)")
 
-base::rbind(Fd_TAI_F.log2, Fd_TAI_M.log2) %>%
+base::rbind(Fd_TDI_F.log2, Fd_TDI_M.log2) %>%
   plot_gamete_Fd() + 
   ggplot2::labs(subtitle = "log2(TPM)")
 
-base::rbind(Fd_TAI_F.rank, Fd_TAI_M.rank) %>%
+base::rbind(Fd_TDI_F.rank, Fd_TDI_M.rank) %>%
   plot_gamete_Fd() + 
   ggplot2::labs(subtitle = "rank(TPM)")
 
-base::rbind(Fd_TAI_F.rlog, Fd_TAI_M.rlog) %>%
+base::rbind(Fd_TDI_F.rlog, Fd_TDI_M.rlog) %>%
   plot_gamete_Fd() + 
   ggplot2::labs(subtitle = "rlog(TPM)")
 ```
 
 ```{r, fig.height = 4, fig.width = 1.5}
-base::rbind(Fs_TAI_F, Fs_TAI_M) %>%
+base::rbind(Fs_TDI_F, Fs_TDI_M) %>%
   plot_gamete_Fs() + 
   ggplot2::labs(subtitle = "TPM")
 
-base::rbind(Fs_TAI_F.sqrt, Fs_TAI_M.sqrt) %>%
+base::rbind(Fs_TDI_F.sqrt, Fs_TDI_M.sqrt) %>%
   plot_gamete_Fs() + 
   ggplot2::labs(subtitle = "sqrt(TPM)")
 
-base::rbind(Fs_TAI_F.log2, Fs_TAI_M.log2) %>%
+base::rbind(Fs_TDI_F.log2, Fs_TDI_M.log2) %>%
   plot_gamete_Fs() + 
   ggplot2::labs(subtitle = "log2(TPM)")
 
-base::rbind(Fs_TAI_F.rank, Fs_TAI_M.rank) %>%
+base::rbind(Fs_TDI_F.rank, Fs_TDI_M.rank) %>%
   plot_gamete_Fs() + 
   ggplot2::labs(subtitle = "rank(TPM)")
 
-base::rbind(Fs_TAI_F.rlog, Fs_TAI_M.rlog) %>%
+base::rbind(Fs_TDI_F.rlog, Fs_TDI_M.rlog) %>%
   plot_gamete_Fs() + 
   ggplot2::labs(subtitle = "rlog(TPM)")
 ```
@@ -464,73 +464,73 @@ Fs_PES_M.log2.denoised <-
 
 
 ```{r warning=FALSE, message=FALSE}
-Fd_TAI_F.denoised <- 
+Fd_TDI_F.denoised <- 
   TI.preplot(Fd_PES_F.denoised) %>%
   dplyr::mutate(Sex = "F")
-Fd_TAI_M.denoised <- 
+Fd_TDI_M.denoised <- 
   TI.preplot(Fd_PES_M.denoised) %>%
   dplyr::mutate(Sex = "M")
-Fs_TAI_F.denoised <- 
+Fs_TDI_F.denoised <- 
   TI.preplot(Fs_PES_F.denoised) %>%
   dplyr::mutate(Sex = "F")
-Fs_TAI_M.denoised <- 
+Fs_TDI_M.denoised <- 
   TI.preplot(Fs_PES_M.denoised) %>%
   dplyr::mutate(Sex = "M")
 
 # sqrt
-Fd_TAI_F.sqrt.denoised <- 
+Fd_TDI_F.sqrt.denoised <- 
   TI.preplot(Fd_PES_F.sqrt.denoised) %>%
   dplyr::mutate(Sex = "F")
-Fd_TAI_M.sqrt.denoised <- 
+Fd_TDI_M.sqrt.denoised <- 
   TI.preplot(Fd_PES_M.sqrt.denoised) %>%
   dplyr::mutate(Sex = "M")
-Fs_TAI_F.sqrt.denoised <- 
+Fs_TDI_F.sqrt.denoised <- 
   TI.preplot(Fs_PES_F.sqrt.denoised) %>%
   dplyr::mutate(Sex = "F")
-Fs_TAI_M.sqrt.denoised <- 
+Fs_TDI_M.sqrt.denoised <- 
   TI.preplot(Fs_PES_M.sqrt.denoised) %>%
   dplyr::mutate(Sex = "M")
 
 # log2
-Fd_TAI_F.log2.denoised <- 
+Fd_TDI_F.log2.denoised <- 
   TI.preplot(Fd_PES_F.log2.denoised) %>%
   dplyr::mutate(Sex = "F")
-Fd_TAI_M.log2.denoised <- 
+Fd_TDI_M.log2.denoised <- 
   TI.preplot(Fd_PES_M.log2.denoised) %>%
   dplyr::mutate(Sex = "M")
-Fs_TAI_F.log2.denoised <- 
+Fs_TDI_F.log2.denoised <- 
   TI.preplot(Fs_PES_F.log2.denoised) %>%
   dplyr::mutate(Sex = "F")
-Fs_TAI_M.log2.denoised <- 
+Fs_TDI_M.log2.denoised <- 
   TI.preplot(Fs_PES_M.log2.denoised) %>%
   dplyr::mutate(Sex = "M")
 ```
 
 
 ```{r, fig.height = 4, fig.width = 1.5}
-base::rbind(Fd_TAI_F.denoised, Fd_TAI_M.denoised) %>%
+base::rbind(Fd_TDI_F.denoised, Fd_TDI_M.denoised) %>%
   plot_gamete_Fd() + 
   ggplot2::labs(subtitle = "TPM")
 
-base::rbind(Fd_TAI_F.sqrt.denoised, Fd_TAI_M.sqrt.denoised) %>%
+base::rbind(Fd_TDI_F.sqrt.denoised, Fd_TDI_M.sqrt.denoised) %>%
   plot_gamete_Fd() + 
   ggplot2::labs(subtitle = "sqrt(TPM)")
 
-base::rbind(Fd_TAI_F.log2.denoised, Fd_TAI_M.log2.denoised) %>%
+base::rbind(Fd_TDI_F.log2.denoised, Fd_TDI_M.log2.denoised) %>%
   plot_gamete_Fd() + 
   ggplot2::labs(subtitle = "log2(TPM)")
 ```
 
 ```{r, fig.height = 4, fig.width = 1.5}
-base::rbind(Fs_TAI_F.denoised, Fs_TAI_M.denoised) %>%
+base::rbind(Fs_TDI_F.denoised, Fs_TDI_M.denoised) %>%
   plot_gamete_Fs() + 
   ggplot2::labs(subtitle = "TPM")
 
-base::rbind(Fs_TAI_F.sqrt.denoised, Fs_TAI_M.sqrt.denoised) %>%
+base::rbind(Fs_TDI_F.sqrt.denoised, Fs_TDI_M.sqrt.denoised) %>%
   plot_gamete_Fs() + 
   ggplot2::labs(subtitle = "sqrt(TPM)")
 
-base::rbind(Fs_TAI_F.log2.denoised, Fs_TAI_M.log2.denoised) %>%
+base::rbind(Fs_TDI_F.log2.denoised, Fs_TDI_M.log2.denoised) %>%
   plot_gamete_Fs() + 
   ggplot2::labs(subtitle = "log2(TPM)")
 ```
