@@ -1,0 +1,408 @@
+---
+title: "1.6 Cumulative distance between Fucus embryogenesis stages"
+output:
+  html_document:
+    fig_width: 6
+    fig_height: 4
+    df_print: paged
+editor_options: 
+  chunk_output_type: inline
+---
+
+# Orthogroup expression analysis
+
+We first check the transcriptome distances between stages.
+
+```{r}
+library(tidyverse)
+library(ggfortify)
+```
+
+```{r}
+sample_info_fd <-
+  readr::read_csv("data/sample_info_fd.csv")
+sample_info_fs <-
+  readr::read_csv("data/sample_info_fs.csv")
+sample_info_ec <-
+  readr::read_csv("data/sample_info_ec.csv")
+
+sample_info_fd_embryo <-
+  sample_info_fd %>%
+  dplyr::filter(Stage %in% c("E1", "E2", "E3", "E4", "E5", "E6")) %>%
+  dplyr::mutate(LibLab = str_c(Species, "_", Stage, "_", Replicate))
+sample_info_fs_embryo <-
+  sample_info_fs %>%
+  dplyr::filter(Stage %in% c("24H", "48H", "1w", "3w", "4w")) %>%
+  dplyr::mutate(Replicate = case_when(
+    LibName == "Fs_X_zygotes_48h_1" ~ 4,
+    LibName == "Fs_X_zygotes_48h_2" ~ 5,
+    LibName == "Fs_X_zygotes_48h_3" ~ 6,
+    TRUE ~ Replicate
+  )) %>%
+  mutate(LibLab = str_c(Species, "_", Stage, "_", Replicate))
+```
+
+Commented out: Instead of loading the abundance data, I will use the transformed median abundance from the PES/DES tables.
+
+```{r}
+# Fs_abundance <-
+#   readr::read_csv(file = "data/Fs_abundance.csv") %>%
+#   dplyr::select(!dplyr::contains(c("gamete","matSP")))
+# Fs_abundance <-
+#   data.frame(row.names = Fs_abundance$GeneID, Fs_abundance[,-1], check.names = FALSE) %>%
+#   dplyr::select(!dplyr::contains(c("gamete","matSP")))
+# Fd_abundance <-
+#   readr::read_csv(file = "data/Fd_abundance.csv") %>%
+#   dplyr::select(!dplyr::contains(c("gamete","matSP")))
+# Fd_abundance <-
+#   data.frame(row.names = Fd_abundance$GeneID, Fd_abundance[,-1], check.names = FALSE) %>%
+#   dplyr::select(!dplyr::contains(c("gamete","matSP")))
+# 
+# Fs_abundance_denoised <-
+#   readr::read_csv(file = "data/Fs_abundance_denoised.csv") %>%
+#   dplyr::select(!dplyr::contains(c("gamete","matSP")))
+# Fs_abundance_denoised <-
+#   data.frame(row.names = Fs_abundance_denoised$GeneID, Fs_abundance_denoised[,-1], check.names = FALSE) %>%
+#   dplyr::select(!dplyr::contains(c("gamete","matSP")))
+# Fd_abundance_denoised <-
+#   readr::read_csv(file = "data/Fd_abundance_denoised.csv") %>%
+#   dplyr::select(!dplyr::contains(c("gamete","matSP")))
+# Fd_abundance_denoised <-
+#   data.frame(row.names = Fd_abundance_denoised$GeneID, Fd_abundance_denoised[,-1], check.names = FALSE) %>%
+#   dplyr::select(!dplyr::contains(c("gamete","matSP")))
+```
+
+```{r}
+# Fs_abundance.rlog <- DESeq2::rlog(round(Fs_abundance,0) %>% as.matrix())
+# Fs_abundance.log2 <- log2(Fs_abundance + 1)
+# Fs_abundance_denoised.log2 <- log2(Fs_abundance_denoised + 1)
+# 
+# Fd_abundance.rlog <- DESeq2::rlog(round(Fd_abundance,0) %>% as.matrix())
+# Fd_abundance.log2 <- log2(Fd_abundance + 1)
+# Fd_abundance_denoised.log2 <- log2(Fd_abundance_denoised + 1)
+```
+
+```{r}
+Fs.rlog <- readr::read_csv(file = "data/Fs_PES.rlog.csv") %>%
+  tibble::column_to_rownames(var = "GeneID") %>% 
+  dplyr::select(-PS, -dplyr::contains(c("gamete","matSP")))
+Fs.log2 <- readr::read_csv(file = "data/Fs_PES.log2.csv") %>%
+  tibble::column_to_rownames(var = "GeneID") %>% 
+  dplyr::select(-PS, -dplyr::contains(c("gamete","matSP")))
+Fs_denoised.log2 <- readr::read_csv(file = "data/Fs_PES.log2_denoised.csv") %>%
+  tibble::column_to_rownames(var = "GeneID") %>% 
+  dplyr::select(-PS, -dplyr::contains(c("gamete","matSP")))
+
+Fd.rlog <- readr::read_csv(file = "data/Fd_PES.rlog.csv") %>%
+  tibble::column_to_rownames(var = "GeneID") %>% 
+  dplyr::select(-PS, -dplyr::contains(c("gamete","matSP")))
+Fd.log2 <- readr::read_csv(file = "data/Fd_PES.log2.csv") %>%
+  tibble::column_to_rownames(var = "GeneID") %>% 
+  dplyr::select(-PS, -dplyr::contains(c("gamete","matSP")))
+Fd_denoised.log2 <- readr::read_csv(file = "data/Fd_PES.log2_denoised.csv") %>%
+  tibble::column_to_rownames(var = "GeneID") %>% 
+  dplyr::select(-PS, -dplyr::contains(c("gamete","matSP")))
+```
+
+Remove genes with negative values from rlog
+
+```{r}
+Fs.rlog[Fs.rlog < 0] <- NA
+Fs.rlog <- tidyr::drop_na(Fs.rlog)
+Fd.rlog[Fd.rlog < 0] <- NA
+Fd.rlog <- tidyr::drop_na(Fd.rlog)
+```
+
+# Distance metrics
+
+Here, we use distance metrics to quantify how distant the stages are from each other across _Fucus_ species and maybe even in _Ectocarpus_.
+
+```{r}
+library(philentropy)
+```
+
+## Using log2(TPM+1)
+
+### F. serratus
+
+#### Manhattan distance
+
+```{r fig.height = 3.5, fig.width = 3.5}
+DM <- philentropy::distance(t(Fs.log2), use.row.names = TRUE, method = "manhattan")
+
+M_melt <- reshape2::melt(DM)
+
+ggplot(M_melt, aes(x = Var2, y = Var1, fill = value)) +
+  geom_tile() +
+  geom_text(aes(label = paste0(round(value,0))), color = "black") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        legend.position = "") +
+  scale_fill_gradient(low = "white", high = "#3C5488FF") +
+  labs(x = "",
+       y = "",
+       title = "Manhattan distance (log2)",
+       subtitle = "Fucus serratus",
+       fill = "distance")
+```
+
+#### JSD metric
+
+```{r fig.height = 3.5, fig.width = 3.5}
+mat_normalized <- apply(Fs.log2, 2, function(x) x/sum(x)) %>% as.data.frame()
+# colSums(mat_normalized)
+DM <- philentropy::distance(t(mat_normalized), use.row.names = TRUE, method = "jensen-shannon")
+
+M_melt <- reshape2::melt(DM)
+
+ggplot(M_melt, aes(x = Var2, y = Var1, fill = value)) +
+  geom_tile() +
+  geom_text(aes(label = paste0(round(value,3))), color = "black") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        legend.position = "") +
+  scale_fill_gradient(low = "white", high = "#3C5488FF") +
+  labs(x = "",
+       y = "",
+       title = "JSD metric (log2)",
+       subtitle = "Fucus serratus",
+       fill = "distance")
+```
+
+### F. distichus
+
+#### Manhattan distance
+
+```{r fig.height = 3.5, fig.width = 3.5}
+DM <- philentropy::distance(t(Fd.log2), use.row.names = TRUE, method = "manhattan")
+
+M_melt <- reshape2::melt(DM)
+
+ggplot(M_melt, aes(x = Var2, y = Var1, fill = value)) +
+  geom_tile() +
+  geom_text(aes(label = paste0(round(value,0))), color = "black") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        legend.position = "") +
+  scale_fill_gradient(low = "white", high = "#3C5488FF") +
+  labs(x = "",
+       y = "",
+       title = "Manhattan distance (log2)",
+       subtitle = "Fucus serratus",
+       fill = "distance")
+```
+
+#### JSD metric
+
+```{r fig.height = 3.5, fig.width = 3.5}
+mat_normalized <- apply(Fd.log2, 2, function(x) x/sum(x)) %>% as.data.frame()
+# colSums(mat_normalized)
+DM <- philentropy::distance(t(mat_normalized), use.row.names = TRUE, method = "jensen-shannon")
+
+M_melt <- reshape2::melt(DM)
+
+ggplot(M_melt, aes(x = Var2, y = Var1, fill = value)) +
+  geom_tile() +
+  geom_text(aes(label = paste0(round(value,3))), color = "black") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        legend.position = "") +
+  scale_fill_gradient(low = "white", high = "#3C5488FF") +
+  labs(x = "",
+       y = "",
+       title = "JSD metric (log2)",
+       subtitle = "Fucus serratus",
+       fill = "distance")
+```
+
+## Using rlog(TPM)
+
+### F. serratus
+
+#### Manhattan distance
+
+```{r fig.height = 3.5, fig.width = 3.5}
+DM <- philentropy::distance(t(Fs.rlog), use.row.names = TRUE, method = "manhattan")
+
+M_melt <- reshape2::melt(DM)
+
+ggplot(M_melt, aes(x = Var2, y = Var1, fill = value)) +
+  geom_tile() +
+  geom_text(aes(label = paste0(round(value,0))), color = "black") +
+  theme_minimal() +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        legend.position = "") +
+  scale_fill_gradient(low = "white", high = "#3C5488FF") +
+  labs(x = "",
+       y = "",
+       title = "Manhattan distance (log2)",
+       subtitle = "Fucus serratus",
+       fill = "distance")
+```
+
+#### JSD metric
+
+```{r fig.height = 3.5, fig.width = 3.5}
+mat_normalized <- apply(Fs.rlog, 2, function(x) x/sum(x)) %>% as.data.frame()
+# colSums(mat_normalized)
+DM <- philentropy::distance(t(mat_normalized), use.row.names = TRUE, method = "jensen-shannon")
+
+M_melt <- reshape2::melt(DM)
+
+ggplot(M_melt, aes(x = Var2, y = Var1, fill = value)) +
+  geom_tile() +
+  geom_text(aes(label = paste0(round(value,3))), color = "black") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        legend.position = "") +
+  scale_fill_gradient(low = "white", high = "#3C5488FF") +
+  labs(x = "",
+       y = "",
+       title = "JSD metric (log2)",
+       subtitle = "Fucus serratus",
+       fill = "distance")
+```
+
+### F. distichus
+
+#### Manhattan distance
+
+```{r fig.height = 3.5, fig.width = 3.5}
+DM <- philentropy::distance(t(Fd.rlog), use.row.names = TRUE, method = "manhattan")
+
+M_melt <- reshape2::melt(DM)
+
+ggplot(M_melt, aes(x = Var2, y = Var1, fill = value)) +
+  geom_tile() +
+  geom_text(aes(label = paste0(round(value,0))), color = "black") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        legend.position = "") +
+  scale_fill_gradient(low = "white", high = "#3C5488FF") +
+  labs(x = "",
+       y = "",
+       title = "Manhattan distance (log2)",
+       subtitle = "Fucus serratus",
+       fill = "distance")
+```
+
+#### JSD metric
+
+```{r fig.height = 3.5, fig.width = 3.5}
+mat_normalized <- apply(Fd.rlog, 2, function(x) x/sum(x)) %>% as.data.frame()
+# colSums(mat_normalized)
+DM <- philentropy::distance(t(mat_normalized), use.row.names = TRUE, method = "jensen-shannon")
+
+M_melt <- reshape2::melt(DM)
+
+ggplot(M_melt, aes(x = Var2, y = Var1, fill = value)) +
+  geom_tile() +
+  geom_text(aes(label = paste0(round(value,3))), color = "black") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        legend.position = "") +
+  scale_fill_gradient(low = "white", high = "#3C5488FF") +
+  labs(x = "",
+       y = "",
+       title = "JSD metric (log2)",
+       subtitle = "Fucus serratus",
+       fill = "distance")
+```
+
+
+# denoised data
+
+
+## Using log2(TPM+1)
+
+### F. serratus
+
+#### Manhattan distance
+
+```{r fig.height = 3.5, fig.width = 3.5}
+DM <- philentropy::distance(t(Fs_denoised.log2), use.row.names = TRUE, method = "manhattan")
+
+M_melt <- reshape2::melt(DM)
+
+ggplot(M_melt, aes(x = Var2, y = Var1, fill = value)) +
+  geom_tile() +
+  geom_text(aes(label = paste0(round(value,0))), color = "black") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        legend.position = "") +
+  scale_fill_gradient(low = "white", high = "#3C5488FF") +
+  labs(x = "",
+       y = "",
+       title = "Manhattan distance (log2)",
+       subtitle = "Fucus serratus",
+       fill = "distance")
+```
+
+#### JSD metric
+
+```{r fig.height = 3.5, fig.width = 5}
+mat_normalized <- apply(Fs_denoised.log2, 2, function(x) x/sum(x)) %>% as.data.frame()
+# colSums(mat_normalized)
+DM <- philentropy::distance(t(mat_normalized), use.row.names = TRUE, method = "jensen-shannon")
+
+M_melt <- reshape2::melt(DM)
+
+ggplot(M_melt, aes(x = Var2, y = Var1, fill = value)) +
+  geom_tile() +
+  geom_text(aes(label = paste0(round(value,5))), color = "black") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        legend.position = "") +
+  scale_fill_gradient(low = "white", high = "#3C5488FF") +
+  labs(x = "",
+       y = "",
+       title = "JSD metric (log2)",
+       subtitle = "Fucus serratus",
+       fill = "distance")
+```
+
+### F. distichus
+
+#### Manhattan distance
+
+```{r fig.height = 3.5, fig.width = 3.5}
+DM <- philentropy::distance(t(Fd_denoised.log2), use.row.names = TRUE, method = "manhattan")
+
+M_melt <- reshape2::melt(DM)
+
+ggplot(M_melt, aes(x = Var2, y = Var1, fill = value)) +
+  geom_tile() +
+  geom_text(aes(label = paste0(round(value,0))), color = "black") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        legend.position = "") +
+  scale_fill_gradient(low = "white", high = "#3C5488FF") +
+  labs(x = "",
+       y = "",
+       title = "Manhattan distance (log2)",
+       subtitle = "Fucus serratus",
+       fill = "distance")
+```
+
+#### JSD metric
+
+```{r fig.height = 3.5, fig.width = 5}
+mat_normalized <- apply(Fd_denoised.log2, 2, function(x) x/sum(x)) %>% as.data.frame()
+# colSums(mat_normalized)
+DM <- philentropy::distance(t(mat_normalized), use.row.names = TRUE, method = "jensen-shannon")
+
+M_melt <- reshape2::melt(DM)
+
+ggplot(M_melt, aes(x = Var2, y = Var1, fill = value)) +
+  geom_tile() +
+  geom_text(aes(label = paste0(round(value,5))), color = "black") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        legend.position = "") +
+  scale_fill_gradient(low = "white", high = "#3C5488FF") +
+  labs(x = "",
+       y = "",
+       title = "JSD metric (log2)",
+       subtitle = "Fucus serratus",
+       fill = "distance")
+```

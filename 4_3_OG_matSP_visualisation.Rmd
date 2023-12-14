@@ -1,0 +1,314 @@
+---
+title: "4.3 OG (matSP) visualisation"
+output:
+  html_document:
+    fig_width: 6
+    fig_height: 4
+    df_print: paged
+editor_options: 
+  chunk_output_type: inline
+---
+
+# Orthogroup expression analysis
+
+This is similar to `4.0 OG visualisation`.
+
+```{r}
+library(tidyverse)
+library(ggfortify)
+```
+
+### matSP
+
+```{r}
+sample_info_fd <-
+  readr::read_csv("data/sample_info_fd.csv")
+sample_info_fs <-
+  readr::read_csv("data/sample_info_fs.csv")
+# sample_info_ec <-
+#   readr::read_csv("data/sample_info_ec.csv")
+
+sample_info_fd_matSP <-
+  sample_info_fd %>%
+  dplyr::filter(Stage %in% c("matSP")) %>%
+  dplyr::mutate(LibLab = str_c(Species, "_", Stage, "_", Replicate)) %>%
+  dplyr::mutate(Sample = str_remove(str_c(Species, "_", Sex), "_X"))
+sample_info_fs_matSP <-
+  sample_info_fs %>%
+  dplyr::filter(Stage %in% c("matSP")) %>%
+  mutate(LibLab = str_c(Species, "_", Stage, "_", Replicate)) %>%
+  dplyr::mutate(Sample = str_remove(str_c(Species, "_", Sex), "_X"))
+```
+
+```{r}
+Fs_abundance <-
+  readr::read_csv(file = "data/Fs_OG_abundance.csv")
+# Fs_counts <-
+#   readr::read_csv(file = "data/Fs_OG_counts.csv")
+Fd_abundance <-
+  readr::read_csv(file = "data/Fd_OG_abundance.csv")
+# Fd_counts <-
+#   readr::read_csv(file = "data/Fd_OG_counts.csv")
+# Ec_abundance <-
+#   readr::read_csv(file = "data/Ec_OG_abundance.csv")
+# Ec_counts <-
+#   readr::read_csv(file = "data/Ec_OG_counts.csv")
+```
+
+
+# PCA using OGs
+
+```{r}
+selectGenes <- function(counts, min.count=2){
+  keep <-
+    counts[rowMeans(counts)>min.count, ]
+  return(keep)
+}
+```
+
+To minimise differences between species, I remove OGs with low counts.
+
+```{r}
+combined_metatable <- 
+  rbind(sample_info_fs_matSP, sample_info_fd_matSP) %>%
+  relocate(LibName)
+```
+
+```{r}
+merged_TPM_pre <- 
+  merge(Fs_abundance, Fd_abundance, by = "OG") %>%
+  dplyr::select(1, combined_metatable$LibName)
+merged_TPM <- 
+  data.frame(row.names = merged_TPM_pre[,1], merged_TPM_pre[,-1], check.names = FALSE)
+merged_TPM.filt <-
+  as.matrix(merged_TPM) %>%
+  selectGenes(min.count=10)
+```
+
+Through the filtering function, I retain 2478 / 3723 OGs
+
+```{r}
+rlog_TPM <- DESeq2::rlog(merged_TPM.filt %>% round(0))
+log2_TPM <- log2(merged_TPM.filt+1)
+sqrt_TPM <- sqrt(merged_TPM.filt)
+tpm10_TPM <- (merged_TPM.filt > 10) * 1
+```
+
+```{r fig.height = 8, fig.width = 5.5}
+combined_metatable$Stage <- factor(combined_metatable$Stage, levels = unique(combined_metatable$Stage))
+
+myPCAfunction <- function(pcDat, data, x, y){
+  OUT <- 
+    ggplot2::autoplot(
+      pcDat,
+      data = data,
+      frame.colour = "Tissue",
+      colour = "Tissue",
+      shape = "Sample",
+      x = x,
+      y = y,
+      size = 3,
+      frame = TRUE,
+      alpha = 0.5)
+  return(OUT)
+}
+
+pcDat <- prcomp(t(rlog_TPM), scale = TRUE)
+# pcDat <- prcomp(t(rlog_TPM))
+
+PC1_2 <- 
+  myPCAfunction(pcDat, data = combined_metatable, x = 1, y = 2) +
+  labs(title = "PC1 and PC2") +
+  theme_grey()
+
+PC1_3 <- 
+  myPCAfunction(pcDat, data = combined_metatable, x = 1, y = 3) +
+  labs(title = "PC1 and PC3") +
+  theme_grey()
+
+PC2_3 <- 
+  myPCAfunction(pcDat, data = combined_metatable, x = 2, y = 3) +
+  labs(title = "PC2 and PC3") +
+  theme_grey()
+
+rlog_plot <- ggpubr::ggarrange(PC1_2, PC1_3, common.legend = T, ncol = 1, nrow = 2)
+ggpubr::annotate_figure(rlog_plot, top = ggpubr::text_grob("rlog", 
+                                                   face = "bold", size = 14))
+```
+
+```{r fig.height = 3, fig.width = 5.5}
+
+pcDat <- prcomp(t(log2_TPM), scale = TRUE)
+
+PC1_2 <- myPCAfunction(pcDat, data = combined_metatable, x = 1, y = 2) +
+  labs(title = "PC1 and PC2") +
+  theme_grey()
+
+PC1_3 <- myPCAfunction(pcDat, data = combined_metatable, x = 1, y = 3) +
+  labs(title = "PC1 and PC3") +
+  theme_grey()
+
+log2_plot <- ggpubr::ggarrange(PC1_2, PC1_3, common.legend = T)
+ggpubr::annotate_figure(log2_plot, top = ggpubr::text_grob("log2", 
+                                                   face = "bold", size = 14))
+
+pcDat <- prcomp(t(sqrt_TPM), scale = TRUE)
+# pcDat <- prcomp(t(rlog_TPM))
+
+PC1_2 <- myPCAfunction(pcDat, data = combined_metatable, x = 1, y = 2) +
+  labs(title = "PC1 and PC2") +
+  theme_grey()
+
+PC1_3 <- myPCAfunction(pcDat, data = combined_metatable, x = 1, y = 3) +
+  labs(title = "PC1 and PC3") +
+  theme_grey()
+
+sqrt_plot <- ggpubr::ggarrange(PC1_2, PC1_3, common.legend = T)
+ggpubr::annotate_figure(sqrt_plot, top = ggpubr::text_grob("sqrt", 
+                                                   face = "bold", size = 14))
+
+pcDat <- prcomp(t(tpm10_TPM)) # too many zeros to do a scale = TRUE
+
+PC1_2 <- myPCAfunction(pcDat, data = combined_metatable, x = 1, y = 2) +
+  labs(title = "PC1 and PC2") +
+  theme_grey()
+
+PC1_3 <- myPCAfunction(pcDat, data = combined_metatable, x = 1, y = 3) +
+  labs(title = "PC1 and PC3") +
+  theme_grey()
+
+rlog_plot <- ggpubr::ggarrange(PC1_2, PC1_3, common.legend = T)
+ggpubr::annotate_figure(rlog_plot, top = ggpubr::text_grob("tpm10 threshold", 
+                                                   face = "bold", size = 14))
+```
+
+### Gametes
+
+```{r}
+sample_info_fd_gamete <-
+  sample_info_fd %>%
+  dplyr::filter(Stage %in% c("gamete")) %>%
+  dplyr::mutate(LibLab = str_c(Species, "_", Stage, "_", Replicate))
+sample_info_fs_gamete <-
+  sample_info_fs %>%
+  dplyr::filter(Stage %in% c("gamete")) %>%
+  mutate(LibLab = str_c(Species, "_", Stage, "_", Replicate))
+```
+
+# PCA using OGs
+
+To minimise differences between species, I remove OGs with low counts.
+
+```{r}
+combined_metatable <- 
+  rbind(sample_info_fs_gamete, sample_info_fd_gamete) %>%
+  relocate(LibName)
+```
+
+```{r}
+merged_TPM_pre <- 
+  merge(Fs_abundance, Fd_abundance, by = "OG") %>%
+  dplyr::select(1, combined_metatable$LibName)
+merged_TPM <- 
+  data.frame(row.names = merged_TPM_pre[,1], merged_TPM_pre[,-1], check.names = FALSE)
+merged_TPM.filt <-
+  as.matrix(merged_TPM) %>%
+  selectGenes(min.count=10)
+```
+
+Through the filtering function, I retain 2478 / 3723 OGs
+
+```{r}
+rlog_TPM <- DESeq2::rlog(merged_TPM.filt %>% round(0))
+log2_TPM <- log2(merged_TPM.filt+1)
+sqrt_TPM <- sqrt(merged_TPM.filt)
+tpm10_TPM <- (merged_TPM.filt > 10) * 1
+```
+
+```{r fig.height = 8, fig.width = 5.5}
+combined_metatable$Stage <- factor(combined_metatable$Stage, levels = unique(combined_metatable$Stage))
+
+myPCAfunction <- function(pcDat, data, x, y){
+  OUT <- 
+    ggplot2::autoplot(
+      pcDat,
+      data = data,
+      frame.colour = "Sex",
+      colour = "Sex",
+      shape = "Species",
+      x = x,
+      y = y,
+      size = 3,
+      frame = TRUE,
+      alpha = 0.5)
+  return(OUT)
+}
+
+pcDat <- prcomp(t(rlog_TPM), scale = TRUE)
+# pcDat <- prcomp(t(rlog_TPM))
+
+PC1_2 <- 
+  myPCAfunction(pcDat, data = combined_metatable, x = 1, y = 2) +
+  labs(title = "PC1 and PC2") +
+  theme_grey()
+
+PC1_3 <- 
+  myPCAfunction(pcDat, data = combined_metatable, x = 1, y = 3) +
+  labs(title = "PC1 and PC3") +
+  theme_grey()
+
+PC2_3 <- 
+  myPCAfunction(pcDat, data = combined_metatable, x = 2, y = 3) +
+  labs(title = "PC2 and PC3") +
+  theme_grey()
+
+rlog_plot <- ggpubr::ggarrange(PC1_2, PC1_3, common.legend = T, ncol = 1, nrow = 2)
+ggpubr::annotate_figure(rlog_plot, top = ggpubr::text_grob("rlog", 
+                                                   face = "bold", size = 14))
+```
+
+```{r fig.height = 3, fig.width = 5.5}
+
+pcDat <- prcomp(t(log2_TPM), scale = TRUE)
+
+PC1_2 <- myPCAfunction(pcDat, data = combined_metatable, x = 1, y = 2) +
+  labs(title = "PC1 and PC2") +
+  theme_grey()
+
+PC1_3 <- myPCAfunction(pcDat, data = combined_metatable, x = 1, y = 3) +
+  labs(title = "PC1 and PC3") +
+  theme_grey()
+
+log2_plot <- ggpubr::ggarrange(PC1_2, PC1_3, common.legend = T)
+ggpubr::annotate_figure(log2_plot, top = ggpubr::text_grob("log2", 
+                                                   face = "bold", size = 14))
+
+pcDat <- prcomp(t(sqrt_TPM), scale = TRUE)
+# pcDat <- prcomp(t(rlog_TPM))
+
+PC1_2 <- myPCAfunction(pcDat, data = combined_metatable, x = 1, y = 2) +
+  labs(title = "PC1 and PC2") +
+  theme_grey()
+
+PC1_3 <- myPCAfunction(pcDat, data = combined_metatable, x = 1, y = 3) +
+  labs(title = "PC1 and PC3") +
+  theme_grey()
+
+sqrt_plot <- ggpubr::ggarrange(PC1_2, PC1_3, common.legend = T)
+ggpubr::annotate_figure(sqrt_plot, top = ggpubr::text_grob("sqrt", 
+                                                   face = "bold", size = 14))
+
+pcDat <- prcomp(t(tpm10_TPM)) # too many zeros to do a scale = TRUE
+
+PC1_2 <- myPCAfunction(pcDat, data = combined_metatable, x = 1, y = 2) +
+  labs(title = "PC1 and PC2") +
+  theme_grey()
+
+PC1_3 <- myPCAfunction(pcDat, data = combined_metatable, x = 1, y = 3) +
+  labs(title = "PC1 and PC3") +
+  theme_grey()
+
+rlog_plot <- ggpubr::ggarrange(PC1_2, PC1_3, common.legend = T)
+ggpubr::annotate_figure(rlog_plot, top = ggpubr::text_grob("tpm10 threshold", 
+                                                   face = "bold", size = 14))
+```
