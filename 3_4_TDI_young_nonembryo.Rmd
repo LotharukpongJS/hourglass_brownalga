@@ -1,0 +1,663 @@
+---
+title: "3.4 TDI of embryo vs other stages"
+output:
+  html_document:
+    fig_width: 6
+    fig_height: 4
+    df_print: paged
+  pdf_document: default
+editor_options:
+  chunk_output_type: inline
+---
+
+# Contrast embryo with non-embryo TDI
+
+```{r}
+library(tidyverse)
+library(myTAI)
+#  myTAI v1.0.1.9000 2023-07-12 Github (drostlab/myTAI@46eb927)
+```
+
+## Load DES
+
+Non-transformed
+
+```{r}
+# Fd
+Fd_DES <-
+  readr::read_csv(file = "data/Fd_DES.csv") %>%
+  dplyr::select(-c(matSP,gamete))
+Fd_DES_F <-
+  readr::read_csv(file = "data/Fd_DES_F.csv") %>%
+  dplyr::rename(F_gamete = gamete)
+Fd_DES_M <-
+  readr::read_csv(file = "data/Fd_DES_M.csv") %>%
+  dplyr::rename(M_gamete = gamete)
+Fd_DES_matSP <-
+  readr::read_csv(file = "data/Fd_DES_matSP.csv")
+
+Fd_DES_all <-
+  Fd_DES %>%
+  dplyr::inner_join(Fd_DES_F) %>%
+  dplyr::inner_join(Fd_DES_M) %>%
+  dplyr::inner_join(Fd_DES_matSP)
+
+# Fs
+Fs_DES <-
+  readr::read_csv(file = "data/Fs_DES.csv") %>%
+  dplyr::select(-c(matSP,gamete))
+Fs_DES_F <-
+  readr::read_csv(file = "data/Fs_DES_F.csv") %>%
+  dplyr::select(-matSP) %>%
+  dplyr::rename(F_gamete = gamete)
+Fs_DES_M <-
+  readr::read_csv(file = "data/Fs_DES_M.csv") %>%
+  dplyr::select(-matSP) %>%
+  dplyr::rename(M_gamete = gamete)
+Fs_DES_F_matSP <-
+  readr::read_csv(file = "data/Fs_DES_F_matSP.csv") %>%
+  rename_with(-c(1,2), .fn = ~ paste0("F_", .x))
+Fs_DES_M_matSP <-
+  readr::read_csv(file = "data/Fs_DES_M_matSP.csv") %>%
+  rename_with(-c(1,2), .fn = ~ paste0("M_", .x))
+
+Fs_DES_all <-
+  Fs_DES %>%
+  dplyr::left_join(Fs_DES_F) %>%
+  dplyr::left_join(Fs_DES_M) %>%
+  dplyr::left_join(Fs_DES_F_matSP) %>%
+  dplyr::left_join(Fs_DES_M_matSP)
+```
+
+sqrt-tranformed
+
+```{r}
+# replace DES with DES.sqrt, though not for DES_... followed by sex
+# Fd
+Fd_DES.sqrt <-
+  readr::read_csv(file = "data/Fd_DES.sqrt.csv") %>%
+  dplyr::select(-c(matSP,gamete))
+Fd_DES.sqrt_F <-
+  readr::read_csv(file = "data/Fd_DES_F.sqrt.csv") %>%
+  dplyr::rename(F_gamete = V1)
+Fd_DES.sqrt_M <-
+  readr::read_csv(file = "data/Fd_DES_M.sqrt.csv") %>%
+  dplyr::rename(M_gamete = V1)
+Fd_DES.sqrt_matSP <-
+  readr::read_csv(file = "data/Fd_DES_matSP.sqrt.csv")
+
+Fd_DES.sqrt_all <-
+  Fd_DES.sqrt %>%
+  dplyr::inner_join(Fd_DES.sqrt_F) %>%
+  dplyr::inner_join(Fd_DES.sqrt_M) %>%
+  dplyr::inner_join(Fd_DES.sqrt_matSP)
+
+# Fs
+Fs_DES.sqrt <-
+  readr::read_csv(file = "data/Fs_DES.sqrt.csv") %>%
+  dplyr::select(-c(matSP,gamete))
+Fs_DES.sqrt_F <-
+  readr::read_csv(file = "data/Fs_DES_F.sqrt.csv") %>%
+  dplyr::select(-matSP) %>%
+  dplyr::rename(F_gamete = gamete)
+Fs_DES.sqrt_M <-
+  readr::read_csv(file = "data/Fs_DES_M.sqrt.csv") %>%
+  dplyr::select(-matSP) %>%
+  dplyr::rename(M_gamete = gamete)
+Fs_DES.sqrt_F_matSP <-
+  readr::read_csv(file = "data/Fs_DES_F_matSP.sqrt.csv") %>%
+  rename_with(-c(1,2), .fn = ~ paste0("F_", .x))
+Fs_DES.sqrt_M_matSP <-
+  readr::read_csv(file = "data/Fs_DES_M_matSP.sqrt.csv") %>%
+  rename_with(-c(1,2), .fn = ~ paste0("M_", .x))
+
+Fs_DES.sqrt_all <-
+  Fs_DES.sqrt %>%
+  dplyr::left_join(Fs_DES.sqrt_F) %>%
+  dplyr::left_join(Fs_DES.sqrt_M) %>%
+  dplyr::left_join(Fs_DES.sqrt_F_matSP) %>%
+  dplyr::left_join(Fs_DES.sqrt_M_matSP)
+```
+
+log2-tranformed
+
+```{r}
+# Fd
+Fd_DES.log2 <-
+  readr::read_csv(file = "data/Fd_DES.log2.csv") %>%
+  dplyr::select(-c(matSP,gamete))
+Fd_DES.log2_F <-
+  readr::read_csv(file = "data/Fd_DES_F.log2.csv") %>%
+  dplyr::rename(F_gamete = V1)
+Fd_DES.log2_M <-
+  readr::read_csv(file = "data/Fd_DES_M.log2.csv") %>%
+  dplyr::rename(M_gamete = V1)
+Fd_DES.log2_matSP <-
+  readr::read_csv(file = "data/Fd_DES_matSP.log2.csv")
+
+Fd_DES.log2_all <-
+  Fd_DES.log2 %>%
+  dplyr::inner_join(Fd_DES.log2_F) %>%
+  dplyr::inner_join(Fd_DES.log2_M) %>%
+  dplyr::inner_join(Fd_DES.log2_matSP)
+
+# Fs
+Fs_DES.log2 <-
+  readr::read_csv(file = "data/Fs_DES.log2.csv") %>%
+  dplyr::select(-c(matSP,gamete))
+Fs_DES.log2_F <-
+  readr::read_csv(file = "data/Fs_DES_F.log2.csv") %>%
+  dplyr::select(-matSP) %>%
+  dplyr::rename(F_gamete = gamete)
+Fs_DES.log2_M <-
+  readr::read_csv(file = "data/Fs_DES_M.log2.csv") %>%
+  dplyr::select(-matSP) %>%
+  dplyr::rename(M_gamete = gamete)
+Fs_DES.log2_F_matSP <-
+  readr::read_csv(file = "data/Fs_DES_F_matSP.log2.csv") %>%
+  rename_with(-c(1,2), .fn = ~ paste0("F_", .x))
+Fs_DES.log2_M_matSP <-
+  readr::read_csv(file = "data/Fs_DES_M_matSP.log2.csv") %>%
+  rename_with(-c(1,2), .fn = ~ paste0("M_", .x))
+
+Fs_DES.log2_all <-
+  Fs_DES.log2 %>%
+  dplyr::left_join(Fs_DES.log2_F) %>%
+  dplyr::left_join(Fs_DES.log2_M) %>%
+  dplyr::left_join(Fs_DES.log2_F_matSP) %>%
+  dplyr::left_join(Fs_DES.log2_M_matSP)
+```
+
+rank-tranformed
+
+```{r}
+# Fd
+Fd_DES.rank <-
+  readr::read_csv(file = "data/Fd_DES.rank.csv") %>%
+  dplyr::select(-c(matSP,gamete))
+Fd_DES.rank_F <-
+  readr::read_csv(file = "data/Fd_DES_F.rank.csv") %>%
+  dplyr::rename(F_gamete = V1)
+Fd_DES.rank_M <-
+  readr::read_csv(file = "data/Fd_DES_M.rank.csv") %>%
+  dplyr::rename(M_gamete = V1)
+Fd_DES.rank_matSP <-
+  readr::read_csv(file = "data/Fd_DES_matSP.rank.csv")
+
+Fd_DES.rank_all <-
+  Fd_DES.rank %>%
+  dplyr::inner_join(Fd_DES.rank_F) %>%
+  dplyr::inner_join(Fd_DES.rank_M) %>%
+  dplyr::inner_join(Fd_DES.rank_matSP)
+
+# Fs
+Fs_DES.rank <-
+  readr::read_csv(file = "data/Fs_DES.rank.csv") %>%
+  dplyr::select(-c(matSP,gamete))
+Fs_DES.rank_F <-
+  readr::read_csv(file = "data/Fs_DES_F.rank.csv") %>%
+  dplyr::select(-matSP) %>%
+  dplyr::rename(F_gamete = gamete)
+Fs_DES.rank_M <-
+  readr::read_csv(file = "data/Fs_DES_M.rank.csv") %>%
+  dplyr::select(-matSP) %>%
+  dplyr::rename(M_gamete = gamete)
+Fs_DES.rank_F_matSP <-
+  readr::read_csv(file = "data/Fs_DES_F_matSP.rank.csv") %>%
+  rename_with(-c(1,2), .fn = ~ paste0("F_", .x))
+Fs_DES.rank_M_matSP <-
+  readr::read_csv(file = "data/Fs_DES_M_matSP.rank.csv") %>%
+  rename_with(-c(1,2), .fn = ~ paste0("M_", .x))
+
+Fs_DES.rank_all <-
+  Fs_DES.rank %>%
+  dplyr::left_join(Fs_DES.rank_F) %>%
+  dplyr::left_join(Fs_DES.rank_M) %>%
+  dplyr::left_join(Fs_DES.rank_F_matSP) %>%
+  dplyr::left_join(Fs_DES.rank_M_matSP)
+```
+
+rlog-tranformed
+
+```{r}
+# Fd
+Fd_DES.rlog <-
+  readr::read_csv(file = "data/Fd_DES.rlog.csv") %>%
+  dplyr::select(-c(matSP,gamete))
+Fd_DES.rlog_F <-
+  readr::read_csv(file = "data/Fd_DES_F.rlog.csv") %>%
+  dplyr::rename(F_gamete = gamete)
+Fd_DES.rlog_M <-
+  readr::read_csv(file = "data/Fd_DES_M.rlog.csv") %>%
+  dplyr::rename(M_gamete = gamete)
+Fd_DES.rlog_matSP <-
+  readr::read_csv(file = "data/Fd_DES_matSP.rlog.csv")
+
+Fd_DES.rlog_all <-
+  Fd_DES.rlog %>%
+  dplyr::inner_join(Fd_DES.rlog_F) %>%
+  dplyr::inner_join(Fd_DES.rlog_M) %>%
+  dplyr::inner_join(Fd_DES.rlog_matSP)
+
+# Fs
+Fs_DES.rlog <-
+  readr::read_csv(file = "data/Fs_DES.rlog.csv") %>%
+  dplyr::select(-c(matSP,gamete))
+Fs_DES.rlog_F <-
+  readr::read_csv(file = "data/Fs_DES_F.rlog.csv") %>%
+  dplyr::select(-matSP) %>%
+  dplyr::rename(F_gamete = gamete)
+Fs_DES.rlog_M <-
+  readr::read_csv(file = "data/Fs_DES_M.rlog.csv") %>%
+  dplyr::select(-matSP) %>%
+  dplyr::rename(M_gamete = gamete)
+Fs_DES.rlog_F_matSP <-
+  readr::read_csv(file = "data/Fs_DES_F_matSP.rlog.csv") %>%
+  rename_with(-c(1,2), .fn = ~ paste0("F_", .x))
+Fs_DES.rlog_M_matSP <-
+  readr::read_csv(file = "data/Fs_DES_M_matSP.rlog.csv") %>%
+  rename_with(-c(1,2), .fn = ~ paste0("M_", .x))
+
+Fs_DES.rlog_all <-
+  Fs_DES.rlog %>%
+  dplyr::left_join(Fs_DES.rlog_F) %>%
+  dplyr::left_join(Fs_DES.rlog_M) %>%
+  dplyr::left_join(Fs_DES.rlog_F_matSP) %>%
+  dplyr::left_join(Fs_DES.rlog_M_matSP)
+```
+
+# TDI calculation
+
+I had previously used a function to combine males and females into one TDI plot.
+
+```{r}
+#TI stands for transcriptome index
+TI.preplot <- function(ExpressionSet, permutations = 500){
+  std <- 
+    myTAI::bootMatrix(
+      ExpressionSet = ExpressionSet, 
+      permutations  = permutations) %>% 
+    apply(2, stats::sd)
+  TI.out <- 
+    myTAI::TDI(ExpressionSet) %>%
+    tibble::as_tibble(rownames = "Stage", colnames = c("TDI", "PS")) %>% 
+    dplyr::bind_cols(as_tibble(std)) %>%
+    dplyr::rename(TDI = 2, sd = 3)
+  return(TI.out)
+}
+```
+
+```{r}
+TI.preplot(Fd_DES.rlog_all)
+```
+
+### Fucus distichus
+
+```{r}
+# function to process Fd. This will be changed to accommodate more seq data.
+get_TDI_Fd <- function(DES_all){
+  TDI_b <- 
+    TI.preplot(
+      DES_all) %>%
+    dplyr::mutate(Category = case_when(
+      stringr::str_detect(Stage, "E") ~ "embryo",
+      TRUE ~ "non-embryo"
+    )) %>%
+    dplyr::mutate(Sex = case_when(
+      stringr::str_detect(Stage, "M_") ~ "male",
+      stringr::str_detect(Stage, "F_") ~ "female",
+      TRUE ~ NA
+    )) 
+  TDI_b$Stage <- base::factor(TDI_b$Stage, unique(TDI_b$Stage))
+  return(TDI_b)
+}
+```
+
+```{r}
+Fd_TDI <- 
+  get_TDI_Fd(
+    DES_all = Fd_DES_all)
+Fd_TDI.log2 <- 
+  get_TDI_Fd(
+    DES_all = Fd_DES.log2_all)
+Fd_TDI.sqrt <- 
+  get_TDI_Fd(
+    DES_all = Fd_DES.sqrt_all)
+Fd_TDI.rank <- 
+  get_TDI_Fd(
+    DES_all = Fd_DES.rank_all)
+Fd_TDI.rlog <- 
+  get_TDI_Fd(
+    DES_all = Fd_DES.rlog_all)
+```
+
+As I previously noted `dplyr::rename()` is used due to a bug I found in myTAI.
+
+### Fucus serratus
+
+```{r}
+get_TDI_Fs <- function(DES_all){
+  TDI_b <- 
+    TI.preplot(
+      DES_all) %>%
+    dplyr::mutate(Category = case_when(
+      stringr::str_detect(Stage, ".*[0-9].*") ~ "embryo",
+      TRUE ~ "non-embryo"
+    )) %>%
+    dplyr::mutate(Sex = case_when(
+      stringr::str_detect(Stage, "M_") ~ "male",
+      stringr::str_detect(Stage, "F_") ~ "female",
+      TRUE ~ NA
+    )) 
+  TDI_b$Stage <- base::factor(TDI_b$Stage, unique(TDI_b$Stage))
+  return(TDI_b)
+}
+```
+
+```{r}
+Fs_TDI <- 
+  get_TDI_Fs(
+    DES_all = Fs_DES_all)
+Fs_TDI.log2 <- 
+  get_TDI_Fs(
+    DES_all = Fs_DES.log2_all)
+Fs_TDI.sqrt <- 
+  get_TDI_Fs(
+    DES_all = Fs_DES.sqrt_all)
+Fs_TDI.rank <- 
+  get_TDI_Fs(
+    DES_all = Fs_DES.rank_all)
+Fs_TDI.rlog <- 
+  get_TDI_Fs(
+    DES_all = Fs_DES.rlog_all)
+```
+
+As I previously noted `dplyr::rename()` is used due to a bug I found in myTAI.
+
+# TDI profiles
+
+```{r}
+plot_Fucus <- function(preplot_out){
+  plot_out <- 
+    preplot_out %>%
+    ggplot2::ggplot(
+      aes(
+        x = Category,
+        y = TDI,
+        group = Stage,
+        colour = Sex
+        )
+      ) +
+    ggplot2::geom_point(
+      size = 4, 
+      position = ggplot2::position_dodge(width=0.9)) +
+    ggplot2::geom_errorbar(
+      aes(ymin = TDI - sd, ymax = TDI + sd),
+      width = 0.1,
+      position = ggplot2::position_dodge(width=0.9)) +
+    # ggplot2::geom_text(
+    #   aes(label = Stage),
+    #   vjust = -0.9,
+    #   angle = 90,
+    #   position = ggplot2::position_dodge(width = 0.9),
+    #   colour = "black") +
+    ggplot2::scale_colour_discrete(
+      c("#E64B35FF", "#4DBBD5FF"), 
+      guide = "none") +
+    ggplot2::labs(
+      x = "Life stage",
+      colour = NULL
+    ) +
+    ggplot2::theme_classic()
+  return(plot_out)
+}
+```
+
+```{r fig.height = 3, fig.width = 4}
+plot_Fucus(Fd_TDI) +
+    ggplot2::labs(
+      title = "Fucus distichus",
+      subtitle = "TPM"
+    )
+plot_Fucus(Fd_TDI.sqrt) +
+    ggplot2::labs(
+      title = "Fucus distichus",
+      subtitle = "sqrt(TPM)"
+    )
+plot_Fucus(Fd_TDI.log2) +
+    ggplot2::labs(
+      title = "Fucus distichus",
+      subtitle = "log2(TPM)"
+    )
+plot_Fucus(Fd_TDI.rlog) +
+    ggplot2::labs(
+      title = "Fucus distichus",
+      subtitle = "rlog(TPM)"
+    )
+plot_Fucus(Fd_TDI.rank) +
+    ggplot2::labs(
+      title = "Fucus distichus",
+      subtitle = "rank(TPM)"
+    )
+
+plot_Fucus(Fs_TDI) +
+    ggplot2::labs(
+      title = "Fucus serratus",
+      subtitle = "TPM"
+    )
+plot_Fucus(Fs_TDI.sqrt) +
+    ggplot2::labs(
+      title = "Fucus serratus",
+      subtitle = "sqrt(TPM)"
+    )
+plot_Fucus(Fs_TDI.log2) +
+    ggplot2::labs(
+      title = "Fucus serratus",
+      subtitle = "log2(TPM)"
+    )
+plot_Fucus(Fs_TDI.rlog) +
+    ggplot2::labs(
+      title = "Fucus serratus",
+      subtitle = "rlog(TPM)"
+    )
+plot_Fucus(Fs_TDI.rank) +
+    ggplot2::labs(
+      title = "Fucus serratus",
+      subtitle = "rank(TPM)"
+    )
+```
+
+## Another method is to combine all adult stages and then compared embryo vs adults
+
+```{r}
+Fd_TDI_embryo <- 
+  myTAI::CollapseReplicates(Fd_DES_all, nrep = 6, FUN = mean,stage.names = c("embryo", "non-embryo")) %>%
+  TI.preplot()
+Fd_TDI_embryo.sqrt <- 
+  myTAI::CollapseReplicates(Fd_DES.sqrt_all, nrep = 6, FUN = mean,stage.names = c("embryo", "non-embryo")) %>%
+  TI.preplot()
+Fd_TDI_embryo.log2 <- 
+  myTAI::CollapseReplicates(Fd_DES.log2_all, nrep = 6, FUN = mean,stage.names = c("embryo", "non-embryo")) %>%
+  TI.preplot()
+Fd_TDI_embryo.rlog <- 
+  myTAI::CollapseReplicates(Fd_DES.rlog_all, nrep = 6, FUN = mean,stage.names = c("embryo", "non-embryo")) %>%
+  TI.preplot()
+Fd_TDI_embryo.rank <- 
+  myTAI::CollapseReplicates(Fd_DES.rank_all, nrep = 6, FUN = mean,stage.names = c("embryo", "non-embryo")) %>%
+  TI.preplot()
+```
+
+```{r}
+Fs_TDI_embryo <- 
+  myTAI::CollapseReplicates(Fs_DES_all, nrep = c(5,10), FUN = mean,stage.names = c("embryo", "non-embryo")) %>%
+  TI.preplot()
+Fs_TDI_embryo.sqrt <- 
+  myTAI::CollapseReplicates(Fs_DES.sqrt_all, nrep = c(5,10), FUN = mean,stage.names = c("embryo", "non-embryo")) %>%
+  TI.preplot()
+Fs_TDI_embryo.log2 <- 
+  myTAI::CollapseReplicates(Fs_DES.log2_all, nrep = c(5,10), FUN = mean,stage.names = c("embryo", "non-embryo")) %>%
+  TI.preplot()
+Fs_TDI_embryo.rlog <- 
+  myTAI::CollapseReplicates(Fs_DES.rlog_all, nrep = c(5,10), FUN = mean,stage.names = c("embryo", "non-embryo")) %>%
+  TI.preplot()
+Fs_TDI_embryo.rank <- 
+  myTAI::CollapseReplicates(Fs_DES.rank_all, nrep = c(5,10), FUN = mean,stage.names = c("embryo", "non-embryo")) %>%
+  TI.preplot()
+```
+
+```{r}
+# created a function to perform t.test from summary statistics (mean and sd and number of permutations)
+# This avoids recomputations.
+# from https://stackoverflow.com/questions/63056742/independent-sample-t-test-in-r-using-test-statistics-mean-std-dev-count
+
+welch_t_test_from_summary <- function(TDI, permutations, alternative = "greater") {
+  TDI_embryo <- 
+    TDI %>%
+    dplyr::filter(Stage == "embryo")
+  TDI_nonembryo <- 
+    TDI %>%
+    dplyr::filter(Stage == "non-embryo")
+
+  mean1 = TDI_nonembryo$TDI
+  sd1 = TDI_nonembryo$sd
+  n1 = permutations
+  mean2 = TDI_embryo$TDI
+  sd2 = TDI_embryo$sd
+  n2 = permutations
+  
+  # Calculate the standard error for each group
+  se1 <- sd1 / sqrt(n1)
+  se2 <- sd2 / sqrt(n2)
+  
+  # Calculate the degrees of freedom using the Welch-Satterthwaite formula
+  df <- ((sd1^2 / n1 + sd2^2 / n2)^2) / ((sd1^2 / n1)^2 / (n1 - 1) + (sd2^2 / n2)^2 / (n2 - 1))
+  # Simplify since n1 and n2 are equal
+  # df <- (n1 - 1) * (sd1^2 + sd2^2)^2 / (sd1^4 + sd2^4)
+  # df <- sum(n1 + n2)-2
+  # Calculate the t-statistic
+  t_stat <- (mean1 - mean2) / sqrt(se1^2 + se2^2)
+  
+  # Calculate the p-value based on the alternative hypothesis
+  if (alternative == "two.sided") {
+    p_value <- 2 * pt(abs(t_stat), df = df, lower.tail = FALSE)
+  } else if (alternative == "greater") {
+    p_value <- pt(t_stat, df = df, lower.tail = FALSE)
+  } else if (alternative == "less") {
+    p_value <- pt(t_stat, df = df, lower.tail = TRUE)
+  } else {
+    stop("Invalid alternative hypothesis. Use 'two.sided', 'greater', or 'less'.")
+  }
+  
+  # Return a list containing the t-statistic, degrees of freedom, and p-value
+  result <- list(t_statistic = t_stat, degrees_of_freedom = df, p_value = p_value, alternative = alternative)
+  return(result)
+}
+```
+
+```{r}
+permutations = 500
+
+Fd_DES_ttest <-
+  tibble::tibble(
+    transformation = c("none", "sqrt", "log2", "rlog", "rank"),
+    value = c(
+            welch_t_test_from_summary(Fd_TDI_embryo,
+                                      permutations = permutations,alternative = "greater")$p_value,
+            welch_t_test_from_summary(Fd_TDI_embryo.sqrt,
+                                      permutations = permutations,alternative = "greater")$p_value,
+            welch_t_test_from_summary(Fd_TDI_embryo.log2,
+                                      permutations = permutations,alternative = "greater")$p_value,
+            welch_t_test_from_summary(Fd_TDI_embryo.rlog,
+                                      permutations = permutations,alternative = "greater")$p_value,
+            welch_t_test_from_summary(Fd_TDI_embryo.rank,
+                                      permutations = permutations,alternative = "greater")$p_value
+    )
+    ) %>%
+  dplyr::rename("pval" = value) %>%
+  dplyr::mutate(test = "welch_t_test")
+
+Fs_DES_ttest <-
+  tibble::tibble(
+    transformation = c("none", "sqrt", "log2", "rlog", "rank"),
+    value = c(
+            welch_t_test_from_summary(Fs_TDI_embryo,
+                                      permutations = permutations,alternative = "greater")$p_value,
+            welch_t_test_from_summary(Fs_TDI_embryo.sqrt,
+                                      permutations = permutations,alternative = "greater")$p_value,
+            welch_t_test_from_summary(Fs_TDI_embryo.log2,
+                                      permutations = permutations,alternative = "greater")$p_value,
+            welch_t_test_from_summary(Fs_TDI_embryo.rlog,
+                                      permutations = permutations,alternative = "greater")$p_value,
+            welch_t_test_from_summary(Fs_TDI_embryo.rank,
+                                      permutations = permutations,alternative = "greater")$p_value
+    )
+    ) %>%
+  dplyr::rename("pval" = value) %>%
+  dplyr::mutate(test = "welch_t_test")
+
+```
+
+```{r fig.height = 2, fig.width = 1.5}
+alpha = 2.22e-16
+Fd_DES_ttest %>%
+  dplyr::mutate(
+    pval_label = case_when(
+      pval > 0.05 ~ "ns",
+      pval <= 0.05 & pval > 0.01 ~ "*",
+      pval <= 0.01 & pval > 0.001 ~ "**",
+      pval <= 0.001 ~ "***",
+      .default = NA
+    )
+  ) %>%
+  ggplot2::ggplot(
+    aes(
+      y = "",
+      label = pval_label,
+      x = transformation,
+      fill = -log10(pval + alpha))) +
+  ggplot2::geom_tile(colour = "black", size = 1) +
+  ggplot2::geom_text() +
+  ggplot2::theme_void() +
+  ggplot2::theme(legend.position = "",
+        axis.title.y = element_text(angle = 90),
+        axis.text.y = element_text()) +
+  ggplot2::coord_flip() +
+  ggplot2::scale_fill_steps2(limits = c(0,3),
+                             low = "white", high = "#E64B35FF") +
+  ggplot2::labs(title = "Fucus distichus")
+
+alpha = 2.22e-16
+Fs_DES_ttest %>%
+  dplyr::mutate(
+    pval_label = case_when(
+      pval > 0.05 ~ "ns",
+      pval <= 0.05 & pval > 0.01 ~ "*",
+      pval <= 0.01 & pval > 0.001 ~ "**",
+      pval <= 0.001 ~ "***",
+      .default = NA
+    )
+  ) %>%
+  ggplot2::ggplot(
+    aes(
+      y = "",
+      label = pval_label,
+      x = transformation,
+      fill = -log10(pval + alpha))) +
+  ggplot2::geom_tile(colour = "black", size = 1) +
+  ggplot2::geom_text() +
+  ggplot2::theme_void() +
+  ggplot2::theme(legend.position = "",
+        axis.title.y = element_text(angle = 90),
+        axis.text.y = element_text()) +
+  ggplot2::coord_flip() +
+  ggplot2::scale_fill_steps2(limits = c(0,3),
+                             low = "white", high = "#E64B35FF") +
+  ggplot2::labs(title = "Fucus serratus")
+
+```
+
+Get session info.
+
+```{r}
+devtools::session_info()
+```

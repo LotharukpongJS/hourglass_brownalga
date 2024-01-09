@@ -84,29 +84,34 @@ resnonDEG_3w4w <- Fs_ddsObj.wald_nonDEGlist[[4]] %>%
         dplyr::mutate(test = "nonDEG") %>%
         dplyr::mutate(species = "Fs")
 
-resnonDEG_24H48H_Fd <- Fd_ddsObj.wald_nonDEGlist[[1]] %>% 
+resnonDEG_E1E2_Fd <- Fd_ddsObj.wald_nonDEGlist[[1]] %>% 
         tibble::as_tibble(rownames = "GeneID") %>% 
         dplyr::mutate(stage = "1E_to_2E") %>% 
         dplyr::mutate(test = "nonDEG") %>%
         dplyr::mutate(species = "Fd")
-resnonDEG_48H1w_Fd <- Fd_ddsObj.wald_nonDEGlist[[2]] %>% 
+resnonDEG_E2E3_Fd <- Fd_ddsObj.wald_nonDEGlist[[2]] %>% 
         tibble::as_tibble(rownames = "GeneID") %>% 
         dplyr::mutate(stage = "2E_to_3E") %>% 
         dplyr::mutate(test = "nonDEG") %>%
         dplyr::mutate(species = "Fd")
-resnonDEG_1w3w_Fd <- Fd_ddsObj.wald_nonDEGlist[[3]] %>% 
+resnonDEG_E3E4_Fd <- Fd_ddsObj.wald_nonDEGlist[[3]] %>% 
         tibble::as_tibble(rownames = "GeneID") %>% 
         dplyr::mutate(stage = "3E_to_4E") %>% 
         dplyr::mutate(test = "nonDEG") %>%
         dplyr::mutate(species = "Fd")
-resnonDEG_3w4w_Fd <- Fd_ddsObj.wald_nonDEGlist[[4]] %>% 
+resnonDEG_E4E5_Fd <- Fd_ddsObj.wald_nonDEGlist[[4]] %>% 
         tibble::as_tibble(rownames = "GeneID") %>% 
         dplyr::mutate(stage = "4E_to_5E") %>% 
         dplyr::mutate(test = "nonDEG") %>%
         dplyr::mutate(species = "Fd")
+resnonDEG_E5E6_Fd <- Fd_ddsObj.wald_nonDEGlist[[5]] %>% 
+        tibble::as_tibble(rownames = "GeneID") %>% 
+        dplyr::mutate(stage = "5E_to_6E") %>% 
+        dplyr::mutate(test = "nonDEG") %>%
+        dplyr::mutate(species = "Fd")
 
 combined_table <- rbind(resnonDEG_24H48H, resnonDEG_48H1w, resnonDEG_1w3w, resnonDEG_3w4w,
-                        resnonDEG_24H48H_Fd, resnonDEG_48H1w_Fd, resnonDEG_1w3w_Fd, resnonDEG_3w4w_Fd)
+                        resnonDEG_E1E2_Fd, resnonDEG_E2E3_Fd, resnonDEG_E3E4_Fd, resnonDEG_E4E5_Fd, resnonDEG_E5E6_Fd)
 ```
 
 ```{r}
@@ -144,13 +149,13 @@ GO_GeneList_Fs <- make_list_UpSet(combined_table, padj_threshold = 0.1, DEG_type
   pivot_wider(names_from = stage, values_from = seen) %>%
   drop_na() %>% 
   dplyr::select(GeneID)
-````
+```
 
 ```{r}
 GeneList <- make_list_UpSet(combined_table, padj_threshold = 0.1, DEG_type = "nonDEG", species_name = "Fd")
 upsetting_input_distinct <- ComplexHeatmap::make_comb_mat(GeneList, mode = "distinct")
 ComplexHeatmap::UpSet(upsetting_input_distinct,
-                      set_order = c(1,2,3,4),
+                      set_order = c(1,2,3,4,5),
                       row_title = "Stage transitions")
 GO_GeneList_Fd <- make_list_UpSet(combined_table, padj_threshold = 0.1, DEG_type = "nonDEG", species_name = "Fd", make_list = F) %>%
   dplyr::mutate(seen = 1) %>%
