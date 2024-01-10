@@ -760,6 +760,7 @@ Here we use JSD metric.
 sample_info_ec_proc <-
   sample_info_ec %>%
   dplyr::relocate(LibName) %>%
+  dplyr::filter(Sex %in% c("F", "M")) %>% # This can be commented to add Ec17
   dplyr::mutate(LibLab = str_c(Species, "_", Sex, "_", Stage, "_", Replicate))
 
 # duplicated(sample_info_ec_proc$LibLab)

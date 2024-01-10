@@ -1236,6 +1236,32 @@ ggplot2::ggplot(M_melt_processed, aes(x = Stage, y = 1, fill = median_corr, labe
                 fill = "Correlation")
 ```
 
+```{r fig.height = 5, fig.width = 5}
+reshape2::melt(M) %>%
+        dplyr::group_by(Var1, Var2) %>% 
+        dplyr::summarise(median_corr = median(value)) %>%
+        ggplot2::ggplot(aes(x = Var1, y = Var2, fill = median_corr, label = round(median_corr,2))) +
+        ggplot2::geom_tile() +
+        ggplot2::geom_text() +
+        ggplot2::theme_minimal() +
+        ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+                       legend.position = "") +
+        ggplot2::scale_fill_gradient(low = "white", high = "#DC0000FF") +
+        ggplot2::labs(
+                x = "Female stages",
+                y = "Male stages",
+                title = "Pearson correlation")
+```
+
+```{r}
+# save this for a final plot at the end with all measures
+M_melt_sex <- 
+  M_melt %>%
+  dplyr::mutate(metric = "Pearson") %>%
+  dplyr::mutate(denoised = FALSE) %>%
+  dplyr::mutate(transformation = "rlog")
+```
+
 #### Spearman correlation
 
 ```{r fig.height = 1.5, fig.width = 5}
@@ -1263,6 +1289,16 @@ ggplot2::ggplot(M_melt_processed, aes(x = Stage, y = 1, fill = median_corr, labe
                 x = "Ectocarpus stages",
                 y = "Spearman",
                 fill = "Correlation")
+```
+
+```{r}
+# save this for a final plot at the end with all measures
+M_melt_sex <- 
+  M_melt %>%
+  dplyr::mutate(metric = "Spearman") %>%
+  dplyr::mutate(denoised = FALSE) %>%
+  dplyr::mutate(transformation = "rlog") %>%
+  base::rbind(M_melt_sex)
 ```
 
 #### JSD metric
@@ -1300,6 +1336,16 @@ ggplot2::ggplot(M_melt_processed, aes(x = Stage, y = 1, fill = median_corr, labe
                 y = "JSD")
 ```
 
+```{r}
+# save this for a final plot at the end with all measures
+M_melt_sex <- 
+  M_melt %>%
+  dplyr::mutate(metric = "JSD") %>%
+  dplyr::mutate(denoised = FALSE) %>%
+  dplyr::mutate(transformation = "rlog") %>%
+  base::rbind(M_melt_sex)
+```
+
 #### Manhattan
 
 ```{r}
@@ -1326,6 +1372,16 @@ ggplot2::ggplot(M_melt_processed, aes(x = Stage, y = 1, fill = median_corr, labe
         ggplot2::labs(
                 x = "Ectocarpus stages",
                 y = "Manhattan")
+```
+
+```{r}
+# save this for a final plot at the end with all measures
+M_melt_sex <- 
+  M_melt %>%
+  dplyr::mutate(metric = "Manhattan") %>%
+  dplyr::mutate(denoised = FALSE) %>%
+  dplyr::mutate(transformation = "rlog") %>%
+  base::rbind(M_melt_sex)
 ```
 
 ## log2(x+1) transform
@@ -1358,6 +1414,7 @@ ncol_Female <- grep( "F_" , colnames( log2_TPM_renamed ) )
 ncol_Male <- grep( "M_" , colnames( log2_TPM_renamed ) )
 ```
 
+
 #### Pearson correlation
 
 ```{r fig.height = 1.5, fig.width = 5}
@@ -1384,6 +1441,16 @@ ggplot2::ggplot(M_melt_processed, aes(x = Stage, y = 1, fill = median_corr, labe
         ggplot2::labs(
                 x = "Ectocarpus stages",
                 y = "Pearson")
+```
+
+```{r}
+# save this for a final plot at the end with all measures
+M_melt_sex <- 
+  M_melt %>%
+  dplyr::mutate(metric = "Pearson") %>%
+  dplyr::mutate(denoised = FALSE) %>%
+  dplyr::mutate(transformation = "log2") %>%
+  base::rbind(M_melt_sex)
 ```
 
 
@@ -1415,6 +1482,15 @@ ggplot2::ggplot(M_melt_processed, aes(x = Stage, y = 1, fill = median_corr, labe
                 y = "Spearman")
 ```
 
+```{r}
+# save this for a final plot at the end with all measures
+M_melt_sex <- 
+  M_melt %>%
+  dplyr::mutate(metric = "Spearman") %>%
+  dplyr::mutate(denoised = FALSE) %>%
+  dplyr::mutate(transformation = "log2") %>%
+  base::rbind(M_melt_sex)
+```
 
 #### JSD metric
 
@@ -1446,6 +1522,16 @@ ggplot2::ggplot(M_melt_processed, aes(x = Stage, y = 1, fill = median_corr, labe
                 y = "JSD")
 ```
 
+```{r}
+# save this for a final plot at the end with all measures
+M_melt_sex <- 
+  M_melt %>%
+  dplyr::mutate(metric = "JSD") %>%
+  dplyr::mutate(denoised = FALSE) %>%
+  dplyr::mutate(transformation = "log2") %>%
+  base::rbind(M_melt_sex)
+```
+
 #### Manhattan distance
 
 ```{r}
@@ -1472,6 +1558,16 @@ ggplot2::ggplot(M_melt_processed, aes(x = Stage, y = 1, fill = median_corr, labe
         ggplot2::labs(
                 x = "Ectocarpus stages",
                 y = "Manhattan")
+```
+
+```{r}
+# save this for a final plot at the end with all measures
+M_melt_sex <- 
+  M_melt %>%
+  dplyr::mutate(metric = "Manhattan") %>%
+  dplyr::mutate(denoised = FALSE) %>%
+  dplyr::mutate(transformation = "log2") %>%
+  base::rbind(M_melt_sex)
 ```
 
 ## denoised data
@@ -1545,6 +1641,18 @@ ggplot2::ggplot(M_melt_processed, aes(x = Stage, y = 1, fill = median_corr, labe
                 fill = "Correlation")
 ```
 
+
+```{r}
+# save this for a final plot at the end with all measures
+M_melt_sex <- 
+  M_melt %>%
+  dplyr::mutate(metric = "Pearson") %>%
+  dplyr::mutate(denoised = TRUE) %>%
+  dplyr::mutate(transformation = "log2") %>%
+  base::rbind(M_melt_sex)
+```
+
+
 #### Spearman correlation
 
 ```{r fig.height = 5, fig.width = 5}
@@ -1592,6 +1700,16 @@ ggplot2::ggplot(M_melt_processed, aes(x = Stage, y = 1, fill = median_corr, labe
                 fill = "Correlation")
 ```
 
+```{r}
+# save this for a final plot at the end with all measures
+M_melt_sex <- 
+  M_melt %>%
+  dplyr::mutate(metric = "Spearman") %>%
+  dplyr::mutate(denoised = TRUE) %>%
+  dplyr::mutate(transformation = "log2") %>%
+  base::rbind(M_melt_sex)
+```
+
 #### JSD metric
 
 ```{r}
@@ -1622,6 +1740,16 @@ ggplot2::ggplot(M_melt_processed, aes(x = Stage, y = 1, fill = median_corr, labe
                 y = "JSD")
 ```
 
+```{r}
+# save this for a final plot at the end with all measures
+M_melt_sex <- 
+  M_melt %>%
+  dplyr::mutate(metric = "JSD") %>%
+  dplyr::mutate(denoised = TRUE) %>%
+  dplyr::mutate(transformation = "log2") %>%
+  base::rbind(M_melt_sex)
+```
+
 #### Manhattan distance
 
 ```{r}
@@ -1648,6 +1776,78 @@ ggplot2::ggplot(M_melt_processed, aes(x = Stage, y = 1, fill = median_corr, labe
         ggplot2::labs(
                 x = "Ectocarpus stages",
                 y = "Manhattan")
+```
+
+```{r}
+# save this for a final plot at the end with all measures
+M_melt_sex <- 
+  M_melt %>%
+  dplyr::mutate(metric = "Manhattan") %>%
+  dplyr::mutate(denoised = TRUE) %>%
+  dplyr::mutate(transformation = "log2") %>%
+  base::rbind(M_melt_sex)
+```
+
+```{r fig.height = 3.5, fig.width = 5}
+normalit<-function(m){
+   (m - min(m))/(max(m)-min(m))
+ }
+
+M_melt_sex_processed <-
+  M_melt_sex %>% 
+  mutate(Stage = stringr::str_remove(Var2, "M_"))
+M_melt_sex_processed$Stage <- factor(M_melt_sex_processed$Stage, levels = unique(M_melt_sex_processed$Stage))
+
+metrics = c("Pearson", "Spearman")
+
+M_melt_sex_processed_norm <-
+  M_melt_sex_processed %>%
+  dplyr::group_by(metric, denoised, transformation) %>%
+  mutate(norm = normalit(median_corr))
+
+M_melt_sex_processed %>%
+  dplyr::filter(metric %in% metrics) %>%
+  ggplot2::ggplot(aes(x = Stage, 
+                      y = 1- median_corr, 
+                      shape = denoised,
+                      colour = transformation,
+                      group = interaction(metric, denoised, transformation)
+                      )) +
+  ggplot2::geom_line() +
+  ggplot2::geom_point(size = 3) +
+  ggplot2::coord_flip() +
+  ggplot2::facet_grid(. ~ metric) +
+  # ggplot2::theme_classic() +
+  ggplot2::labs(
+          x = "Stage",
+          y = "1 - correlation"
+  ) +
+  ggsci::scale_colour_npg() +
+  ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+M_melt_sex_processed_norm %>%
+  dplyr::filter(!metric %in% metrics) %>%
+  ggplot2::ggplot(aes(x = Stage, 
+                      y = norm, 
+                      shape = denoised,
+                      colour = transformation,
+                      group = interaction(metric, denoised, transformation)
+                      )) +
+  ggplot2::geom_line() +
+  ggplot2::geom_point(size = 3) +
+  ggplot2::scale_y_continuous(breaks = scales::pretty_breaks(n = 2)) +
+  # ggplot2::scale_y_log10() +
+  # ggplot2::annotation_logticks(sides = "b") +
+  ggplot2::coord_flip() +
+  ggplot2::facet_grid(. ~ metric) +
+  # ggplot2::theme_classic() +
+  ggplot2::labs(
+          x = "Stage",
+          y = "Relative distance between sexes"
+  ) +
+  ggsci::scale_colour_npg() +
+  ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
 ```
 
 ```{r}
