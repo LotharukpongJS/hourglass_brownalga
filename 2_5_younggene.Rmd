@@ -1,0 +1,182 @@
+---
+title: "2.5 Young gene expression"
+output:
+  html_document:
+    fig_width: 3.5
+    fig_height: 4
+    df_print: paged
+  pdf_document: default
+editor_options:
+  chunk_output_type: inline
+---
+
+# Mean expression of young genes.
+
+We check whether newer genes are restricted in expression during the 'hourglass' stage.
+
+```{r}
+library(tidyverse)
+library(myTAI)
+```
+
+## Load PES
+
+Non-transformed
+
+```{r}
+Fd_PES <-
+  readr::read_csv(file = "data/Fd_PES.csv") %>%
+  dplyr::select(-c("gamete", "matSP"))
+Fs_PES <-
+  readr::read_csv(file = "data/Fs_PES.csv") %>%
+  dplyr::select(-c("gamete", "matSP"))
+```
+
+sqrt-tranformed
+
+```{r}
+Fd_PES.sqrt <-
+  readr::read_csv(file = "data/Fd_PES.sqrt.csv") %>%
+  dplyr::select(-c("gamete", "matSP"))
+Fs_PES.sqrt <-
+  readr::read_csv(file = "data/Fs_PES.sqrt.csv") %>%
+  dplyr::select(-c("gamete", "matSP"))
+```
+
+log2-tranformed
+
+```{r}
+Fd_PES.log2 <-
+  readr::read_csv(file = "data/Fd_PES.log2.csv") %>%
+  dplyr::select(-c("gamete", "matSP"))
+Fs_PES.log2 <-
+  readr::read_csv(file = "data/Fs_PES.log2.csv") %>%
+  dplyr::select(-c("gamete", "matSP"))
+```
+
+rank-tranformed
+
+```{r}
+Fd_PES.rank <-
+  readr::read_csv(file = "data/Fd_PES.rank.csv") %>%
+  dplyr::select(-c("gamete", "matSP"))
+Fs_PES.rank <-
+  readr::read_csv(file = "data/Fs_PES.rank.csv") %>%
+  dplyr::select(-c("gamete", "matSP"))
+```
+
+rlog-tranformed
+
+```{r}
+Fd_PES.rlog <-
+  readr::read_csv(file = "data/Fd_PES.rlog.csv") %>%
+  dplyr::select(-c("gamete", "matSP"))
+Fs_PES.rlog <-
+  readr::read_csv(file = "data/Fs_PES.rlog.csv") %>%
+  dplyr::select(-c("gamete", "matSP"))
+```
+
+## myTAI issue
+
+I will post an issue on GitHub but `myTAI::tf()` loses the column name hwen transforming only one column.
+
+# Mean expression
+
+I now plot the mean expression of each PS.
+
+```{r}
+plot_PS_expression <- function(PES, stage_names, average = "mean"){
+  # PES_mean_expression <-
+  #   PES %>%
+  #   tidyr::pivot_longer(!c(PS, GeneID), values_to = "Expression", names_to = "Stage") %>%
+  #   dplyr::group_by(Stage) %>%
+  #   dplyr::summarise(stage_mean_exp = mean(Expression))
+  averaging_function <- base::match.fun(average)        
+
+  PES_in <- 
+    PES %>%
+    tidyr::pivot_longer(!c(PS, GeneID), values_to = "Expression", names_to = "Stage") %>%
+    # dplyr::left_join(PES_mean_expression) %>%
+    dplyr::mutate(PS_name = case_when(
+      PS <=6 ~ "Old",
+      PS == 7 ~ "Brown Algal",
+      PS == 8 ~ "Species specific"
+    )) %>%
+    dplyr::filter(!PS_name == "Old") %>%
+    dplyr::group_by(PS_name,Stage) %>%
+    dplyr::summarise(mean_expression = averaging_function(Expression))
+  
+  PES_in$Stage <- factor(PES_in$Stage, levels = unique(stage_names))
+  PES_in$PS_name <- factor(PES_in$PS_name, levels = c("Old", "Brown Algal", "Species specific"))
+  return(PES_in)
+}
+```
+
+```{r}
+Fd_stage_names = colnames(Fd_PES)[-c(1,2)]
+Fd_PES.sqrt %>%
+  plot_PS_expression(stage_names = Fd_stage_names) %>%
+  ggplot2::ggplot(aes(x = Stage, y = mean_expression, group = PS_name, colour = as.factor(PS_name))) +
+  ggplot2::geom_line(linewidth = 3) +
+  ggplot2::theme(legend.position = "bottom") +
+  ggplot2::labs(title = "F. distichus", y = "mean sqrt(TPM)", colour = "gene age") +
+  ggsci::scale_colour_npg()
+Fd_PES.log2 %>%
+  plot_PS_expression(stage_names = Fd_stage_names) %>%
+  ggplot2::ggplot(aes(x = Stage, y = mean_expression, group = PS_name, colour = as.factor(PS_name))) +
+  ggplot2::geom_line(linewidth = 3) +
+  ggplot2::theme(legend.position = "bottom") +
+  ggplot2::labs(title = "F. distichus", y = "mean log(TPM)", colour = "gene age") +
+  ggsci::scale_colour_npg()
+Fd_PES.sqrt %>%
+  plot_PS_expression(stage_names = Fd_stage_names, average = "median") %>%
+  ggplot2::ggplot(aes(x = Stage, y = mean_expression, group = PS_name, colour = as.factor(PS_name))) +
+  ggplot2::geom_line(linewidth = 3) +
+  ggplot2::theme(legend.position = "bottom") +
+  ggplot2::labs(title = "F. distichus", y = "median sqrt(TPM)", colour = "gene age") +
+  ggsci::scale_colour_npg()
+Fd_PES.log2 %>%
+  plot_PS_expression(stage_names = Fd_stage_names, average = "median") %>%
+  ggplot2::ggplot(aes(x = Stage, y = mean_expression, group = PS_name, colour = as.factor(PS_name))) +
+  ggplot2::geom_line(linewidth = 3) +
+  ggplot2::theme(legend.position = "bottom") +
+  ggplot2::labs(title = "F. distichus", y = "median log(TPM)", colour = "gene age") +
+  ggsci::scale_colour_npg()
+
+Fs_stage_names = colnames(Fs_PES)[-c(1,2)]
+Fs_PES.sqrt %>%
+  plot_PS_expression(stage_names = Fs_stage_names) %>%
+  ggplot2::ggplot(aes(x = Stage, y = mean_expression, group = PS_name, colour = as.factor(PS_name))) +
+  ggplot2::geom_line(linewidth = 3) +
+  ggplot2::theme(legend.position = "bottom") +
+  ggplot2::labs(title = "F. serratus", y = "mean sqrt(TPM)", colour = "gene age") +
+  ggsci::scale_colour_npg()
+Fs_PES.log2 %>%
+  plot_PS_expression(stage_names = Fs_stage_names) %>%
+  ggplot2::ggplot(aes(x = Stage, y = mean_expression, group = PS_name, colour = as.factor(PS_name))) +
+  ggplot2::geom_line(linewidth = 3) +
+  ggplot2::theme(legend.position = "bottom") +
+  ggplot2::labs(title = "F. serratus", y = "mean log(TPM)", colour = "gene age") +
+  ggsci::scale_colour_npg()
+Fs_PES.sqrt %>%
+  plot_PS_expression(stage_names = Fs_stage_names, average = "median") %>%
+  ggplot2::ggplot(aes(x = Stage, y = mean_expression, group = PS_name, colour = as.factor(PS_name))) +
+  ggplot2::geom_line(linewidth = 3) +
+  ggplot2::theme(legend.position = "bottom") +
+  ggplot2::labs(title = "F. serratus", y = "median sqrt(TPM)", colour = "gene age") +
+  ggsci::scale_colour_npg()
+Fs_PES.log2 %>%
+  plot_PS_expression(stage_names = Fs_stage_names, average = "median") %>%
+  ggplot2::ggplot(aes(x = Stage, y = mean_expression, group = PS_name, colour = as.factor(PS_name))) +
+  ggplot2::geom_line(linewidth = 3) +
+  ggplot2::theme(legend.position = "bottom") +
+  ggplot2::labs(title = "F. serratus", y = "median log(TPM)", colour = "gene age") +
+  ggsci::scale_colour_npg()
+```
+
+
+Get session info.
+
+```{r}
+devtools::session_info()
+```
