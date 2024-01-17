@@ -137,25 +137,24 @@ It seems like choosing the top 500 genes is a good idea based on the elbow heuri
 here are better plots
 
 
-```{r fig.height = 3.5, fig.width = 3}
+```{r fig.height = 3, fig.width = 3.3}
+# Meiospore
 test_data <- unicellular_pMat(Ec_PES_32m.sqrt) %>% dplyr::filter(Stage == "meiospore")
 test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
 plot(test_data2, main = "Ec32m meiospore sqrt", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
 test_data <- unicellular_pMat(Ec_PES_25f.sqrt) %>% dplyr::filter(Stage == "meiospore")
 test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
 plot(test_data2, main = "Ec25f meiospore sqrt", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
-```
 
-```{r fig.height = 3.5, fig.width = 3}
+# Gamete
 test_data <- unicellular_pMat(Ec_PES_32m.sqrt) %>% dplyr::filter(Stage == "gamete")
 test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
 plot(test_data2, main = "Ec32m gamete sqrt", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
 test_data <- unicellular_pMat(Ec_PES_25f.sqrt) %>% dplyr::filter(Stage == "gamete")
 test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
 plot(test_data2, main = "Ec25f gamete sqrt", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
-```
 
-```{r fig.height = 3.5, fig.width = 3}
+# Mitospore
 test_data <- unicellular_pMat(Ec_PES_32m.sqrt) %>% dplyr::filter(Stage == "mitospore")
 test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
 plot(test_data2, main = "Ec32m mitospore sqrt", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
@@ -163,6 +162,49 @@ test_data <- unicellular_pMat(Ec_PES_25f.sqrt) %>% dplyr::filter(Stage == "mitos
 test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
 plot(test_data2, main = "Ec25f mitospore sqrt", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
 ```
+
+```{r fig.height = 3, fig.width = 2.5}
+# male
+test_data <- unicellular_pMat(Ec_PES_32m.sqrt, unicell_names = "immGA") %>% dplyr::filter(Stage == "immGA")
+test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
+plot(test_data2, main = "Ec32m immGA", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
+test_data <- unicellular_pMat(Ec_PES_32m.sqrt, unicell_names = "matGA") %>% dplyr::filter(Stage == "matGA")
+test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
+plot(test_data2, main = "Ec32m matGA", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
+test_data <- unicellular_pMat(Ec_PES_32m.sqrt, unicell_names = "oldGA") %>% dplyr::filter(Stage == "oldGA")
+test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
+plot(test_data2, main = "Ec32m oldGA", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
+test_data <- unicellular_pMat(Ec_PES_32m.sqrt, unicell_names = "earlyPSP") %>% dplyr::filter(Stage == "earlyPSP")
+test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
+plot(test_data2, main = "Ec32m earlyPSP", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
+test_data <- unicellular_pMat(Ec_PES_32m.sqrt, unicell_names = "immPSP") %>% dplyr::filter(Stage == "immPSP")
+test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
+plot(test_data2, main = "Ec32m immPSP", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
+test_data <- unicellular_pMat(Ec_PES_32m.sqrt, unicell_names = "matPSP") %>% dplyr::filter(Stage == "matPSP")
+test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
+plot(test_data2, main = "Ec32m matPSP", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
+
+# female
+test_data <- unicellular_pMat(Ec_PES_25f.sqrt, unicell_names = "immGA") %>% dplyr::filter(Stage == "immGA")
+test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
+plot(test_data2, main = "Ec32m immGA", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
+test_data <- unicellular_pMat(Ec_PES_25f.sqrt, unicell_names = "matGA") %>% dplyr::filter(Stage == "matGA")
+test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
+plot(test_data2, main = "Ec32m matGA", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
+test_data <- unicellular_pMat(Ec_PES_25f.sqrt, unicell_names = "oldGA") %>% dplyr::filter(Stage == "oldGA")
+test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
+plot(test_data2, main = "Ec32m oldGA", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
+test_data <- unicellular_pMat(Ec_PES_25f.sqrt, unicell_names = "earlyPSP") %>% dplyr::filter(Stage == "earlyPSP")
+test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
+plot(test_data2, main = "Ec32m earlyPSP", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
+test_data <- unicellular_pMat(Ec_PES_25f.sqrt, unicell_names = "immPSP") %>% dplyr::filter(Stage == "immPSP")
+test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
+plot(test_data2, main = "Ec32m immPSP", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
+test_data <- unicellular_pMat(Ec_PES_25f.sqrt, unicell_names = "matPSP") %>% dplyr::filter(Stage == "matPSP")
+test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
+plot(test_data2, main = "Ec32m matPSP", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
+```
+
 
 ## Plot pMatrix
 
@@ -791,15 +833,6 @@ Ec_PES_32m.log2_denoised <-
   readr::read_csv(file = "data/Ec_PES_32m.log2_denoised.csv")
 Ec_PES_25f.log2_denoised <-
   readr::read_csv(file = "data/Ec_PES_25f.log2_denoised.csv")
-```
-
-```{r fig.height = 3.5, fig.width = 3}
-test_data <- unicellular_pMat(Ec_PES_32m.sqrt_denoised, unicell_names = "immGA") %>% dplyr::filter(Stage == "immGA")
-test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
-plot(test_data2, main = "Ec32m immGA sqrt", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
-test_data <- unicellular_pMat(Ec_PES_25f.sqrt_denoised, unicell_names = "immGA") %>% dplyr::filter(Stage == "immGA")
-test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
-plot(test_data2, main = "Ec25f immGA sqrt", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
 ```
 
 ```{r}
