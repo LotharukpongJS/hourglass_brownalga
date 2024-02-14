@@ -1,5 +1,5 @@
 ---
-title: "2.5 Young gene expression"
+title: "2.5 Young/old gene expression"
 output:
   html_document:
     fig_width: 3.5
@@ -76,11 +76,7 @@ Fs_PES.rlog <-
   dplyr::select(-c("gamete", "matSP"))
 ```
 
-## myTAI issue
-
-I will post an issue on GitHub but `myTAI::tf()` loses the column name hwen transforming only one column.
-
-# Mean expression
+# Average expression of young genes
 
 I now plot the mean expression of each PS.
 
@@ -174,6 +170,241 @@ Fs_PES.log2 %>%
   ggsci::scale_colour_npg()
 ```
 
+
+# Average expression of all genes
+
+To have an understanding of the variance in the median calculation, I will obtain the standard deviation via bootstrapping. Bootstrapping is done because the distribution of the standard deviation is non-normal.
+
+Turns out it would take longer than I thought. 
+
+```{r}
+# Average.preplot <- function(ExpressionSet, permutations = 500, is_PES = F, boot_function = "median"){
+#   # Check if the input is correct
+#   print("colnames should be either (1) GeneID and conditions, (2) conditions with GeneIDs as rownames, (3) PS, GeneID and conditions")
+#         
+#   if(!boot_function %in% c("mean", "median")){
+#     message("boot_function must be either 'mean' or 'median' (for now)")
+#   }
+# 
+#   if(is_PES){
+#     ExpressionSetInput <- dplyr::select(ExpressionSet, -1)
+#   }
+#   else{
+#     if("PS" %in% colnames(ExpressionSet)){
+#       stop("Check the is_PES option or if colnames includes PS")
+#     }
+#     ExpressionSetInput <- ExpressionSet
+#   }
+# 
+#   # Make GeneID the row name if not already
+#   if("GeneID" %in% colnames(ExpressionSetInput)){
+#     ExpressionSetInput <- 
+#       tibble::column_to_rownames(ExpressionSetInput, var = "GeneID")
+#   }
+#   # test
+# 
+#   m <- match.fun(boot_function)
+#   
+#   # Function to calculate mean
+#   average_function <- function(data, indices) {
+#     sampled_data <- data[indices, ]
+#     means <- apply(sampled_data, 2, m)
+#     return(means)
+#   }
+#   
+#   # Function to calculate standard deviation based on means
+#   std_dev_from_means <- function(boot_means) {
+#     return(apply(boot_means, 2, sd))
+#   }
+#   
+#   # Perform bootstrap resampling for means
+#   bootstrap_averages <- boot(data = ExpressionSetInput, statistic = average_function, R = permutations)
+# 
+#   # Calculate standard deviations from bootstrapped means
+#   bootstrap_std_dev <- std_dev_from_means(bootstrap_averages$t)
+# 
+#   return(bootstrap_std_dev)
+# }
+```
+
+
+I will just plot the relative expression. While it takes the mean expression for a PS for each stage `sum(Exp_{PS,Stage})/n` (where `n` is the number of genes in that PS) divided by the maximum mean expression for a PS across stages, i.e. `(sum(Exp_{PS,Stage})/n)/(max(sum(Exp_{PS,Stage})/n))`, it is in fact equivalent to `(sum(Exp_{PS,Stage}))/(max(sum(Exp_{PS,Stage})))` (that is, the relative sum expression level of genes in a PS).
+
+```r
+myTAI::plotRE()
+```
+
+```{r fig.height = 3, fig.width = 7}
+Fs_PES %>%
+  myTAI::PlotRE(Groups = list(c(1:6),c(7,8)), main = "Fs; TPM")
+Fd_PES %>%
+  myTAI::PlotRE(Groups = list(c(1:6),c(7,8)), main = "Fd; TPM")
+
+
+Fs_PES.sqrt %>%
+  myTAI::PlotRE(Groups = list(c(1:6),c(7,8)), main = "Fs; sqrt(TPM)")
+Fd_PES.sqrt %>%
+  myTAI::PlotRE(Groups = list(c(1:6),c(7,8)), main = "Fd; sqrt(TPM)")
+
+
+Fs_PES.log2 %>%
+  myTAI::PlotRE(Groups = list(c(1:6),c(7,8)), main = "Fs; log2(TPM+1)")
+Fd_PES.log2 %>%
+  myTAI::PlotRE(Groups = list(c(1:6),c(7,8)), main = "Fd; log2(TPM+1)")
+
+Fs_PES.rank %>%
+  myTAI::PlotRE(Groups = list(c(1:6),c(7,8)), main = "Fs; rank(TPM)")
+Fd_PES.rank %>%
+  myTAI::PlotRE(Groups = list(c(1:6),c(7,8)), main = "Fd; rank(TPM)")
+
+Fs_PES.rlog %>%
+  myTAI::PlotRE(Groups = list(c(1:6),c(7,8)), main = "Fs; rlog(TPM)")
+Fd_PES.rlog %>%
+  myTAI::PlotRE(Groups = list(c(1:6),c(7,8)), main = "Fd; rlog(TPM)")
+# Fs_PES.log2 %>%
+#   tidyr::pivot_longer(!c(PS,GeneID), names_to = "Stage", values_to = "Expression") %>%
+#   dplyr::group_by(PS, Stage) %>%
+#   dplyr::summarise(Average = base::mean(Expression),
+#                    y25 = quantile(Expression, 0.25),
+#                    y75 = quantile(Expression, 0.75)) %>%
+#   ggplot2::ggplot(aes(x = Stage, y = Average, group = PS, colour = as.factor(PS))) +
+#   ggplot2::geom_point() +
+#   ggplot2::geom_errorbar(aes(ymin = y25, ymax = y75)) +
+#   ggplot2::facet_grid(. ~ PS) +
+#   ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+Alternative function for more control.
+
+```{r}
+plot_relative_expression <- function(PES, average = "mean", plot = T){
+  averaging_function <- base::match.fun(average)        
+
+  PES_in <- 
+    PES %>%
+    tidyr::pivot_longer(!c(PS, GeneID), values_to = "Expression", names_to = "Stage") %>%
+    dplyr::group_by(PS,Stage) %>%
+    dplyr::summarise(mean_expression = averaging_function(Expression),
+                     n_genes = n())
+  
+  max_expression <- 
+    PES_in %>%
+    dplyr::group_by(PS) %>%
+    dplyr::summarise(max_expression = max(mean_expression),
+                     min_expression = min(mean_expression))
+
+  # normalise expression between 0 and 1
+  PES_relative_expression <-
+    left_join(PES_in, max_expression, by = "PS") %>%
+    dplyr::mutate(relative_expression = (mean_expression-min_expression)/(max_expression-min_expression))
+  
+  PES_relative_expression$Stage <- 
+    factor(PES_relative_expression$Stage, levels = unique(colnames(PES)[-c(1,2)]))
+  
+  # return if plotting is not desired.
+  if(!plot){return(PES_relative_expression)}
+  
+  PES_relative_expression <-
+    dplyr::mutate(PES_relative_expression, PS_category = case_when(
+      PS < 7 ~ "ancient genes",
+      TRUE~ "young genes"
+    )) %>%
+    dplyr::mutate(PS_representativeness = case_when(
+      n_genes < 1000 ~ "low",
+      TRUE~ "high"
+    ))
+  
+  ggplot2::ggplot(PES_relative_expression,
+                  aes(x = Stage, 
+                      y = relative_expression, 
+                      group = PS, 
+                      # linetype = PS_representativeness,
+                      # linewidth = log2(n_genes),
+                      colour = factor(PS))) +
+  # ggplot2::geom_line(alpha = 0.5) +
+  ggplot2::geom_line(linewidth = 2, linetype = "twodash") +
+  ggplot2::facet_wrap(vars(PS_category)) +
+  ggplot2::scale_color_brewer(palette="Dark2") +
+  ggplot2::labs(y = "relative expression", colour = "PS")
+}
+```
+
+```{r warning=FALSE, fig.height = 3, fig.width = 7}
+plot_relative_expression(Fs_PES) + ggplot2::labs(title = "Fs", subtitle = "TPM")
+plot_relative_expression(Fd_PES) + ggplot2::labs(title = "Fd", subtitle = "TPM")
+
+plot_relative_expression(Fs_PES.sqrt) + ggplot2::labs(title = "Fs", subtitle = "sqrt(TPM)")
+plot_relative_expression(Fd_PES.sqrt) + ggplot2::labs(title = "Fd", subtitle = "sqrt(TPM)")
+
+plot_relative_expression(Fs_PES.log2) + ggplot2::labs(title = "Fs", subtitle = "log2(TPM)")
+plot_relative_expression(Fd_PES.log2) + ggplot2::labs(title = "Fd", subtitle = "log2(TPM)")
+
+plot_relative_expression(Fs_PES.rank) + ggplot2::labs(title = "Fs", subtitle = "rank(TPM)")
+plot_relative_expression(Fd_PES.rank) + ggplot2::labs(title = "Fd", subtitle = "rank(TPM)")
+
+plot_relative_expression(Fs_PES.rlog) + ggplot2::labs(title = "Fs", subtitle = "rlog(TPM)")
+plot_relative_expression(Fd_PES.rlog) + ggplot2::labs(title = "Fd", subtitle = "rlog(TPM)")
+```
+
+Thus, we see a general pattern that the hourglass pattern comes from the down-regulation of younger genes rather than an upregulation of older genes, especially for the sqrt and log2 transformed data. The dataset with ranked show that if we emphasise genes with low expression in the resulting TAI profile, we see increased expression of older genes in the mid-embryo. However, this transformation is non-standard and it is unclear what is even meant by "relative expression" in the context of the rank data.
+
+## Plot mean CI
+
+Second attempt.
+
+```{r}
+plot_PS_CImean <- function(PES){
+  PES_in <- 
+    PES %>%
+    tidyr::pivot_longer(!c(PS, GeneID), values_to = "Expression", names_to = "Stage") %>%
+    dplyr::group_by(PS,Stage) %>%
+    dplyr::summarise(ggplot2::mean_cl_boot(Expression))
+  
+  PES_in$Stage <- 
+    factor(PES_in$Stage, levels = unique(colnames(PES)[-c(1,2)]))
+  
+  PES_in %>%
+    ggplot2::ggplot(aes(x = Stage, y = y, colour = factor(PS), group = PS)) +
+    ggplot2::geom_ribbon(aes(ymin = ymin, ymax = ymax), 
+              alpha = 0.1, color = NA) +
+    ggplot2::geom_line(size = 1) + 
+    ggplot2::scale_color_brewer(palette="Dark2") +
+    ggplot2::facet_wrap(vars(PS), scales = "free_y") +
+    ggplot2::labs(y = "Mean expression level", colour = "PS")
+  }
+```
+
+```{r fig.height = 4, fig.width = 6}
+
+# Fd_PES %>%
+#   tidyr::pivot_longer(!c(PS, GeneID), values_to = "Expression", names_to = "Stage") %>%
+#   dplyr::group_by(PS,Stage) %>%
+#   dplyr::summarise(ggplot2::mean_cl_boot(Expression)) %>%
+#   ggplot2::ggplot(aes(x = Stage, y = y, colour = factor(PS), group = PS)) +
+#   ggplot2::geom_ribbon(aes(ymin = ymin, ymax = ymax), 
+#               alpha = 0.1, color = NA) +
+#   ggplot2::geom_line(size = 1) + 
+#   ggplot2::scale_color_brewer(palette="Dark2") +
+#   ggplot2::facet_wrap(vars(PS), scales = "free_y") +
+#   ggplot2::theme_classic()
+
+plot_PS_CImean(Fs_PES) + ggplot2::labs(title = "Fs", subtitle = "TPM")
+plot_PS_CImean(Fd_PES) + ggplot2::labs(title = "Fd", subtitle = "TPM")
+
+plot_PS_CImean(Fs_PES.sqrt) + ggplot2::labs(title = "Fs", subtitle = "sqrt(TPM)")
+plot_PS_CImean(Fd_PES.sqrt) + ggplot2::labs(title = "Fd", subtitle = "sqrt(TPM)")
+
+plot_PS_CImean(Fs_PES.log2) + ggplot2::labs(title = "Fs", subtitle = "log2(TPM)")
+plot_PS_CImean(Fd_PES.log2) + ggplot2::labs(title = "Fd", subtitle = "log2(TPM)")
+
+plot_PS_CImean(Fs_PES.rank) + ggplot2::labs(title = "Fs", subtitle = "rank(TPM)")
+plot_PS_CImean(Fd_PES.rank) + ggplot2::labs(title = "Fd", subtitle = "rank(TPM)")
+
+plot_PS_CImean(Fs_PES.rlog) + ggplot2::labs(title = "Fs", subtitle = "rlog(TPM)")
+plot_PS_CImean(Fd_PES.rlog) + ggplot2::labs(title = "Fd", subtitle = "rlog(TPM)")
+```
+
+So what we see with more details (if the bootstrapping for the mean makes sense, which I do since the distribution underlying the expression is non-normal) is that the older genes are expressed with more variance and the youngest genes are completely downregulated in the 'phylotypic stage'. Data is based on 95% confidence interval.
 
 Get session info.
 
