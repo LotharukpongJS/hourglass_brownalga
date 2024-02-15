@@ -378,7 +378,7 @@ Fs_PES_ttest %>%
       x = Tissue,
       group = transformation,
       linetype = transformation)) +
-  ggplot2::geom_line(width = 0.05) +
+  ggplot2::geom_line(width = 0.05, alpha = 0.5) +
   ggplot2::geom_point(size = 5) +
   ggplot2::geom_hline(
     yintercept = -log10(0.05), 
@@ -389,7 +389,7 @@ Fs_PES_ttest %>%
   ggplot2::labs(
     title = "Fucus serratus matSP",
     subtitle = "T-test",
-    x = "Transformation",
+    x = "Tissue",
     y = "-log10(p_adjusted)"
   ) +
   ggplot2::coord_flip() +
@@ -426,6 +426,277 @@ Fs_PES_ttest %>%
   ggplot2::labs(title = "Fucus serratus",
                 subtitle = "Male TAI > female TAI?")
 
+```
+
+
+Note: these values are more significant than they should be because we are comparing the sd from bootstrapping which is different to comparing between permutation of male vs female.
+
+My suspicions were right. ACTUALLY THIS IS WRONG. Using permutation-derived standard deviation changes the sample size calculation. Also the distribution in the flat line test, for example, is modelled by fitting a gamma distribution to the variances of the dataset with permuted phylostrata.
+
+## FLT of permutation statistics between males and females
+
+```{r warning=FALSE,message=FALSE}
+# calculate p-values based on the flat line test, then adjust for multiple comparisons.
+hack_flt <- function(PES_m, PES_f, permutations = 500, tr_name = "", padj = F){
+        
+  # join_test <- dplyr::left_join(PES_m, PES_f, by = c("GeneID", "PS"))
+  # where x is male and y is female
+
+  # myTAI::FlatLineTest(join_test,permutations = permutations)
+  
+  pval_df <- data.frame()
+  
+  for(i in colnames(PES_m)[-c(1,2)]){
+    join_test <- dplyr::left_join(
+      dplyr::select(PES_m, 1, 2, starts_with(i)),
+      dplyr::select(PES_f, 1, 2, starts_with(i)),
+      by = c("GeneID", "PS"))
+    # join_test_df <- rbind(join_test)
+    # where x is male and y is female
+    pval <- myTAI::FlatLineTest(join_test, permutations = permutations)
+    pval_df <- 
+      dplyr::bind_rows(
+        pval_df, 
+        tibble::tibble(
+          tissue = i, 
+          p.value = pval$p.value,
+          transformation = tr_name))
+  }
+  
+  pval_df$tissue <- base::factor(pval_df$tissue, colnames(PES_m)[-c(1,2)])
+  
+  if(!padj){return(pval_df)}
+  
+  # to adjust p values
+  p_value <- pval_df$p.value
+
+  # Apply Bonferroni correction to the p-value
+  p_adjusted <- p.adjust(p_value, method = "bonferroni")
+  
+  pval_df$padj <- p_adjusted
+  
+  return(pval_df)
+}
+```
+
+```{r warning=FALSE}
+# check with myTAI function
+
+male_test <- dplyr::select(Fs_PES_M_matSP.sqrt, c(1:2, 3))
+female_test <- dplyr::select(Fs_PES_F_matSP.sqrt, c(1:2, 3))
+
+join_test <- dplyr::left_join(male_test, female_test, by = c("GeneID", "PS")) %>%
+# where x is male and y is female
+        dplyr::left_join(male_test, by = c("GeneID", "PS"))
+# Since `Error: Intersecting modules are not defined for the ReductiveHourglassTest.`
+
+myTAI::ReductiveHourglassTest(join_test,
+                              permutations = 500,
+                              modules = list(early = 1,mid = 2,late =3))
+```
+
+```{r warning=FALSE,message=FALSE}
+# calculate p-values based on the reductive hourglass test, then adjust for multiple comparisons.
+hack_rht <- function(PES_m, PES_f, permutations = 500, tr_name = "", padj = F){
+        
+  # join_test <- dplyr::left_join(PES_m, PES_f, by = c("GeneID", "PS"))
+  # where x is male and y is female
+
+  # myTAI::FlatLineTest(join_test,permutations = permutations)
+  
+  pval_df <- data.frame()
+  
+  for(i in colnames(PES_m)[-c(1,2)]){
+    join_test <- dplyr::left_join(
+        dplyr::select(PES_m, 1, 2, starts_with(i)),
+        dplyr::select(PES_f, 1, 2, starts_with(i)),
+        by = c("GeneID", "PS")) %>%
+      dplyr::left_join(dplyr::select(PES_m, 1, 2, starts_with(i)),
+        by = c("GeneID", "PS"))
+    # join_test_df <- rbind(join_test)
+    # where x is male and y is female ... and z is male (due to intersecting module error)
+    pval <- myTAI::ReductiveHourglassTest(
+            join_test, 
+            permutations = permutations, 
+            modules = list(early = 1,mid = 2,late =3))
+    pval_df <- 
+      dplyr::bind_rows(
+        pval_df, 
+        tibble::tibble(
+          tissue = i, 
+          p.value = pval$p.value,
+          transformation = tr_name))
+  }
+  
+  pval_df$tissue <- base::factor(pval_df$tissue, colnames(PES_m)[-c(1,2)])
+  
+  if(!padj){return(pval_df)}
+  
+  # to adjust p values
+  p_value <- pval_df$p.value
+
+  # Apply Bonferroni correction to the p-value
+  p_adjusted <- p.adjust(p_value, method = "bonferroni")
+  
+  pval_df$padj <- p_adjusted
+  
+  return(pval_df)
+}
+```
+
+```
+hack_rht(Fs_PES_M_matSP.sqrt, Fs_PES_F_matSP.sqrt, tr_name = "sqrt")
+hack_rht(Fs_PES_M_matSP.sqrt, Fs_PES_F_matSP.sqrt, tr_name = "sqrt", padj = T)
+```
+
+```{r warning=FALSE,message=FALSE}
+permutations = 500
+
+Fs_PES_perm <-
+  dplyr::bind_rows(
+    hack_flt(Fs_PES_M_matSP, Fs_PES_F_matSP, tr_name = "none", padj = T),
+    hack_flt(Fs_PES_M_matSP.sqrt, Fs_PES_F_matSP.sqrt, tr_name = "sqrt", padj = T),
+    hack_flt(Fs_PES_M_matSP.log2, Fs_PES_F_matSP.log2, tr_name = "log2", padj = T),
+    hack_flt(Fs_PES_M_matSP.rank, Fs_PES_F_matSP.rank, tr_name = "rank", padj = T),
+    hack_flt(Fs_PES_M_matSP.rlog, Fs_PES_F_matSP.rlog, tr_name = "rlog", padj = T)
+  ) %>%
+  dplyr::mutate(test = "permutation test")
+```
+
+```{r fig.height = 2.5, fig.width = 4}
+alpha = 2.22e-16 # so we do not get infinite values
+
+Fs_PES_perm %>%
+  ggplot2::ggplot(
+    aes(
+      y = -log10(padj + alpha),
+      x = tissue,
+      group = transformation,
+      linetype = transformation)) +
+  ggplot2::geom_line(width = 0.05, alpha = 0.5) +
+  ggplot2::geom_point(size = 5) +
+  ggplot2::geom_hline(
+    yintercept = -log10(0.05),
+    colour = "#E64B35FF",
+    linetype = 'dashed',
+    size = 1
+    ) +
+  ggplot2::labs(
+    title = "Fucus serratus",
+    subtitle = "Permutation test; TAI male != female",
+    x = "Tissue",
+    y = "-log10(p_adjusted)"
+  ) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_classic()
+
+```
+
+```{r fig.height = 2, fig.width = 6.5}
+Fs_PES_perm %>%
+  dplyr::mutate(
+    pval_label = case_when(
+      padj > 0.05 ~ "ns",
+      padj <= 0.05 & padj > 0.01 ~ "*",
+      padj <= 0.01 & padj > 0.001 ~ "**",
+      padj <= 0.001 ~ "***",
+      .default = NA
+    )
+  ) %>%
+  ggplot2::ggplot(
+    aes(
+      y = tissue,
+      label = pval_label,
+      x = transformation,
+      fill = -log10(padj + alpha))) +
+  ggplot2::geom_tile(colour = "black", size = 1) +
+  ggplot2::geom_text() +
+  ggplot2::theme_void() +
+  ggplot2::theme(legend.position = "",
+        axis.title.y = element_text(angle = 90),
+        axis.text.y = element_text(),
+        axis.text.x = element_text()) +
+  ggplot2::coord_flip() +
+  ggplot2::scale_fill_steps2(limits = c(0,3),
+                             low = "white", high = "#E64B35FF") +
+  ggplot2::labs(title = "Fucus serratus",
+                subtitle = "Male TAI & female TAI differ?")
+```
+
+##### If we check whether males are younger than females (TAI)
+
+```{r warning=FALSE,message=FALSE}
+permutations = 500
+
+Fs_PES_perm <-
+  dplyr::bind_rows(
+    hack_rht(Fs_PES_M_matSP, Fs_PES_F_matSP, tr_name = "none", padj = T),
+    hack_rht(Fs_PES_M_matSP.sqrt, Fs_PES_F_matSP.sqrt, tr_name = "sqrt", padj = T),
+    hack_rht(Fs_PES_M_matSP.log2, Fs_PES_F_matSP.log2, tr_name = "log2", padj = T),
+    hack_rht(Fs_PES_M_matSP.rank, Fs_PES_F_matSP.rank, tr_name = "rank", padj = T),
+    hack_rht(Fs_PES_M_matSP.rlog, Fs_PES_F_matSP.rlog, tr_name = "rlog", padj = T)
+  ) %>%
+  dplyr::mutate(test = "permutation test")
+```
+
+```{r fig.height = 2.5, fig.width = 4}
+alpha = 2.22e-16 # so we do not get infinite values
+
+Fs_PES_perm %>%
+  ggplot2::ggplot(
+    aes(
+      y = -log10(padj + alpha),
+      x = tissue,
+      group = transformation,
+      linetype = transformation)) +
+  ggplot2::geom_line(width = 0.05, alpha = 0.5) +
+  ggplot2::geom_point(size = 5) +
+  ggplot2::geom_hline(
+    yintercept = -log10(0.05),
+    colour = "#E64B35FF",
+    linetype = 'dashed',
+    size = 1
+    ) +
+  ggplot2::labs(
+    title = "Fucus serratus",
+    subtitle = "Permutation test; TAI male > female",
+    x = "Tissue",
+    y = "-log10(p_adjusted)"
+  ) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_classic()
+
+```
+
+```{r fig.height = 2, fig.width = 6.5}
+Fs_PES_perm %>%
+  dplyr::mutate(
+    pval_label = case_when(
+      padj > 0.05 ~ "ns",
+      padj <= 0.05 & padj > 0.01 ~ "*",
+      padj <= 0.01 & padj > 0.001 ~ "**",
+      padj <= 0.001 ~ "***",
+      .default = NA
+    )
+  ) %>%
+  ggplot2::ggplot(
+    aes(
+      y = tissue,
+      label = pval_label,
+      x = transformation,
+      fill = -log10(padj + alpha))) +
+  ggplot2::geom_tile(colour = "black", size = 1) +
+  ggplot2::geom_text() +
+  ggplot2::theme_void() +
+  ggplot2::theme(legend.position = "",
+        axis.title.y = element_text(angle = 90),
+        axis.text.y = element_text(),
+        axis.text.x = element_text()) +
+  ggplot2::coord_flip() +
+  ggplot2::scale_fill_steps2(limits = c(0,3),
+                             low = "white", high = "#E64B35FF") +
+  ggplot2::labs(title = "Fucus serratus",
+                subtitle = "Male TAI > female TAI?")
 ```
 
 ## Perform `FlatLineTest()`
@@ -964,7 +1235,7 @@ Fs_PES_ttest %>%
   ggplot2::labs(
     title = "Fucus serratus matSP",
     subtitle = "T-test",
-    x = "Transformation",
+    x = "Tissue",
     y = "-log10(p_adjusted)"
   ) +
   ggplot2::coord_flip() +
@@ -1002,6 +1273,8 @@ Fs_PES_ttest %>%
                 subtitle = "Male TAI > female TAI?")
 
 ```
+
+Not used.
 
 Get session info.
 
