@@ -1,0 +1,13 @@
+2022-11-29 15:58:35 : Started OrthoFinder version 2.5.4
+Command Line: /home/ubuntu/micromamba/envs/orthofinder_env/bin/orthofinder -f Fs_Fd_EC_complete_oldest/ -t 8
+
+WorkingDirectory_Base: /mnt/projects/orthofinder/Fs_Fd_EC_complete_oldest/OrthoFinder/Results_Nov29/WorkingDirectory/
+
+Species used: 
+0: F_distichus_pep_CA.faa
+1: F_serratus_pep_CA.faa
+2: PUBLIC_Ectocarpus-sp7_proteins.fa
+
+FN_Orthogroups: /mnt/projects/orthofinder/Fs_Fd_EC_complete_oldest/OrthoFinder/Results_Nov29/WorkingDirectory/clusters_OrthoFinder_I1.5.txt_id_pairs.txt
+WorkingDirectory_Trees: /mnt/projects/orthofinder/Fs_Fd_EC_complete_oldest/OrthoFinder/Results_Nov29/WorkingDirectory/
+2022-11-29 16:03:50 : OrthoFinder run completed

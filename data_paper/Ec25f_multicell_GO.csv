@@ -1,0 +1,33 @@
+GO.ID,Term,Significant,Expected,fisher,category
+GO:0005840,ribosome,25,2.38,1.6e-11,CC
+GO:0043226,organelle,29,13.39,4.6e-8,CC
+GO:0043228,non-membrane-bounded organelle,25,5.96,2.5e-6,CC
+GO:0043232,intracellular non-membrane-bounded organ...,25,5.96,2.8e-6,CC
+GO:0005622,intracellular anatomical structure,30,17.68,9.8e-6,CC
+GO:0005739,mitochondrion,4,0.93,5.4e-4,CC
+GO:0031090,organelle membrane,4,2.2,0.00151,CC
+GO:0043229,intracellular organelle,29,13.32,0.00174,CC
+GO:0098798,mitochondrial protein-containing complex,3,0.4,0.00266,CC
+GO:0031966,mitochondrial membrane,4,0.58,0.00366,CC
+GO:0006412,translation,25,1.96,5.4e-21,BP
+GO:0034645,cellular macromolecule biosynthetic proc...,25,2.51,8.1e-19,BP
+GO:0006518,peptide metabolic process,25,2.12,2.8e-18,BP
+GO:0043603,cellular amide metabolic process,25,2.3,4.3e-16,BP
+GO:1901566,organonitrogen compound biosynthetic pro...,26,4.29,3.8e-15,BP
+GO:0009059,macromolecule biosynthetic process,25,4.96,1.1e-13,BP
+GO:1901576,organic substance biosynthetic process,26,8.07,1.2e-11,BP
+GO:0009058,biosynthetic process,26,8.37,7.9e-11,BP
+GO:0043604,amide biosynthetic process,25,2.15,8.2e-11,BP
+GO:0044249,cellular biosynthetic process,26,7.82,3.4e-10,BP
+GO:0010467,gene expression,25,6.75,1.5e-9,BP
+GO:0044271,cellular nitrogen compound biosynthetic ...,26,5.73,1.6e-9,BP
+GO:0019538,protein metabolic process,25,8.91,1.1e-8,BP
+GO:0043043,peptide biosynthetic process,25,2.01,2.1e-8,BP
+GO:0034641,cellular nitrogen compound metabolic pro...,26,10.27,1e-7,BP
+GO:1901564,organonitrogen compound metabolic proces...,26,11.51,1.8e-7,BP
+GO:0044260,cellular macromolecule metabolic process,25,9.41,1.9e-7,BP
+GO:0044267,cellular protein metabolic process,25,7.5,9.7e-5,BP
+GO:0043170,macromolecule metabolic process,25,15.07,0.0025,BP
+GO:0005198,structural molecule activity,24,1.02,2e-30,MF
+GO:0003735,structural constituent of ribosome,24,0.68,1.9e-5,MF
+GO:0003676,nucleic acid binding,9,4.47,4.1e-4,MF

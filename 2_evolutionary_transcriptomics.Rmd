@@ -1,0 +1,1935 @@
+---
+title: "2. Evolutionary transcriptomics analyses"
+output:
+  html_document:
+    fig_width: 6
+    fig_height: 4
+    df_print: paged
+editor_options: 
+  chunk_output_type: inline
+---
+
+Having pre-processed the data, here, I analyse the evolutionary transcriptomics in three brown algal species, across life cycle stages and in different tissues. I use the term `TAI` often here. It stands for "transcriptome age index" (see the R package [`myTAI`](https://drostlab.github.io/myTAI/) for further details). Note: permutations here are set at 500 rather than 50000 to ensure a fast run.
+
+# Evolutionary transcriptome in _Fucus_ embryogenesis
+
+Here, we examine the TAI across the _Fucus_ embryogenesis. We find a developmental hourglass.
+
+```{r warning=FALSE,message=FALSE}
+library(tidyverse)
+library(myTAI)
+```
+
+### Load PES
+
+Non-transformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_PES <-
+  readr::read_csv(file = "data/Fd_PES.csv", show_col_types = FALSE)
+Fd_PES_F <-
+  readr::read_csv(file = "data/Fd_PES_F.csv", show_col_types = FALSE)
+Fd_PES_M <-
+  readr::read_csv(file = "data/Fd_PES_M.csv", show_col_types = FALSE)
+Fs_PES <-
+  readr::read_csv(file = "data/Fs_PES.csv", show_col_types = FALSE)
+Fs_PES_F <-
+  readr::read_csv(file = "data/Fs_PES_F.csv", show_col_types = FALSE)
+Fs_PES_M <-
+  readr::read_csv(file = "data/Fs_PES_M.csv", show_col_types = FALSE)
+Ec_PES_32m <-
+  readr::read_csv(file = "data/Ec_PES_32m.csv", show_col_types = FALSE)
+Ec_PES_25f <-
+  readr::read_csv(file = "data/Ec_PES_25f.csv", show_col_types = FALSE)
+```
+
+sqrt-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_PES.sqrt <-
+  readr::read_csv(file = "data/Fd_PES.sqrt.csv", show_col_types = FALSE)
+Fd_PES_F.sqrt <-
+  readr::read_csv(file = "data/Fd_PES_F.sqrt.csv", show_col_types = FALSE)
+Fd_PES_M.sqrt <-
+  readr::read_csv(file = "data/Fd_PES_M.sqrt.csv", show_col_types = FALSE)
+Fs_PES.sqrt <-
+  readr::read_csv(file = "data/Fs_PES.sqrt.csv", show_col_types = FALSE)
+Fs_PES_F.sqrt <-
+  readr::read_csv(file = "data/Fs_PES_F.sqrt.csv", show_col_types = FALSE)
+Fs_PES_M.sqrt <-
+  readr::read_csv(file = "data/Fs_PES_M.sqrt.csv", show_col_types = FALSE)
+Ec_PES_32m.sqrt <-
+  readr::read_csv(file = "data/Ec_PES_32m.sqrt.csv", show_col_types = FALSE)
+Ec_PES_25f.sqrt <-
+  readr::read_csv(file = "data/Ec_PES_25f.sqrt.csv", show_col_types = FALSE)
+```
+
+log2-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_PES.log2 <-
+  readr::read_csv(file = "data/Fd_PES.log2.csv", show_col_types = FALSE)
+Fd_PES_F.log2 <-
+  readr::read_csv(file = "data/Fd_PES_F.log2.csv", show_col_types = FALSE)
+Fd_PES_M.log2 <-
+  readr::read_csv(file = "data/Fd_PES_M.log2.csv", show_col_types = FALSE)
+Fs_PES.log2 <-
+  readr::read_csv(file = "data/Fs_PES.log2.csv", show_col_types = FALSE)
+Fs_PES_F.log2 <-
+  readr::read_csv(file = "data/Fs_PES_F.log2.csv", show_col_types = FALSE)
+Fs_PES_M.log2 <-
+  readr::read_csv(file = "data/Fs_PES_M.log2.csv", show_col_types = FALSE)
+Ec_PES_32m.log2 <-
+  readr::read_csv(file = "data/Ec_PES_32m.log2.csv", show_col_types = FALSE)
+Ec_PES_25f.log2 <-
+  readr::read_csv(file = "data/Ec_PES_25f.log2.csv", show_col_types = FALSE)
+```
+
+rank-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_PES.rank <-
+  readr::read_csv(file = "data/Fd_PES.rank.csv", show_col_types = FALSE)
+Fd_PES_F.rank <-
+  readr::read_csv(file = "data/Fd_PES_F.rank.csv", show_col_types = FALSE)
+Fd_PES_M.rank <-
+  readr::read_csv(file = "data/Fd_PES_M.rank.csv", show_col_types = FALSE)
+Fs_PES.rank <-
+  readr::read_csv(file = "data/Fs_PES.rank.csv", show_col_types = FALSE)
+Fs_PES_F.rank <-
+  readr::read_csv(file = "data/Fs_PES_F.rank.csv", show_col_types = FALSE)
+Fs_PES_M.rank <-
+  readr::read_csv(file = "data/Fs_PES_M.rank.csv", show_col_types = FALSE)
+Ec_PES_32m.rank <-
+  readr::read_csv(file = "data/Ec_PES_32m.rank.csv", show_col_types = FALSE)
+Ec_PES_25f.rank <-
+  readr::read_csv(file = "data/Ec_PES_25f.rank.csv", show_col_types = FALSE)
+```
+
+rlog-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_PES.rlog <-
+  readr::read_csv(file = "data/Fd_PES.rlog.csv", show_col_types = FALSE)
+Fd_PES_F.rlog <-
+  readr::read_csv(file = "data/Fd_PES_F.rlog.csv", show_col_types = FALSE)
+Fd_PES_M.rlog <-
+  readr::read_csv(file = "data/Fd_PES_M.rlog.csv", show_col_types = FALSE)
+Fs_PES.rlog <-
+  readr::read_csv(file = "data/Fs_PES.rlog.csv", show_col_types = FALSE)
+Fs_PES_F.rlog <-
+  readr::read_csv(file = "data/Fs_PES_F.rlog.csv", show_col_types = FALSE)
+Fs_PES_M.rlog <-
+  readr::read_csv(file = "data/Fs_PES_M.rlog.csv", show_col_types = FALSE)
+Ec_PES_32m.rlog <-
+  readr::read_csv(file = "data/Ec_PES_32m.rlog.csv", show_col_types = FALSE)
+Ec_PES_25f.rlog <-
+  readr::read_csv(file = "data/Ec_PES_25f.rlog.csv", show_col_types = FALSE)
+```
+
+## TAI calculation
+
+This function uses parts of the `myTAI::PlotSignature()` function.
+
+```{r warning=FALSE,message=FALSE}
+#TI stands for transcriptome index
+TI.preplot <- function(ExpressionSet, permutations = 500){
+  std <- 
+    myTAI::bootMatrix(
+      ExpressionSet = ExpressionSet, 
+      permutations  = permutations) %>% 
+    apply(2, stats::sd)
+  TI.out <- 
+    myTAI::TAI(ExpressionSet) %>%
+    tibble::as_tibble(rownames = "Stage", colnames = c("TAI", "PS")) %>% 
+    dplyr::bind_cols(as_tibble(std)) %>%
+    dplyr::rename(TAI = 2, sd = 3)
+  return(TI.out)
+}
+```
+
+### Fucus distichus
+
+```{r warning=FALSE,message=FALSE}
+# function to process Fd
+get_TAI_Fd <- function(PES_all, PES_M, PES_F, ordered_stages){
+  TAI_b <- 
+    TI.preplot(
+      dplyr::select(PES_all, !c("gamete"))) %>%
+    dplyr::mutate(Sex = "Mixed")
+  stages_to_NA <- # this will differ for Fucus serratus
+    ordered_stages[-c(1, 1+1)]
+  TAI_M <- 
+    TI.preplot(
+      PES_M) %>%
+    tibble::add_row(
+      dplyr::filter(
+        dplyr::select(TAI_b, !Sex), 
+        Stage == ordered_stages[1+1])) %>%
+    tibble::add_row(
+      tibble::tibble(Stage = stages_to_NA, TAI = NA, sd = NA)
+    ) %>%
+    dplyr::mutate(Sex = "Male")
+  TAI_F <- 
+    TI.preplot(
+      PES_F) %>%
+    tibble::add_row(
+      dplyr::filter(
+        dplyr::select(TAI_b, !Sex), 
+        Stage == ordered_stages[1+1])) %>%
+    tibble::add_row(
+      tibble::tibble(Stage = stages_to_NA, TAI = NA, sd = NA)
+    ) %>%
+    dplyr::mutate(Sex = "Female") # This is not true - this is needed for the plotting.
+  TAI_out <- 
+    dplyr::bind_rows(TAI_b, TAI_M, TAI_F)
+  TAI_out$Stage <- base::factor(TAI_out$Stage, ordered_stages)
+  return(TAI_out)
+}
+```
+
+```{r warning=FALSE,message=FALSE}
+ordered_stages <- colnames(Fd_PES)[3:ncol(Fd_PES)]
+Fd_TAI <- 
+  get_TAI_Fd(
+    PES_all = Fd_PES, 
+    PES_M = Fd_PES_M, 
+    PES_F = Fd_PES_F, 
+    ordered_stages)
+Fd_TAI.log2 <- 
+  get_TAI_Fd(
+    PES_all = Fd_PES.log2, 
+    PES_M = dplyr::rename(Fd_PES_M.log2, gamete = V1), 
+    PES_F = dplyr::rename(Fd_PES_F.log2, gamete = V1), 
+    ordered_stages)
+Fd_TAI.sqrt <- 
+  get_TAI_Fd(
+    PES_all = Fd_PES.sqrt, 
+    PES_M = dplyr::rename(Fd_PES_M.sqrt, gamete = V1), 
+    PES_F = dplyr::rename(Fd_PES_F.sqrt, gamete = V1), 
+    ordered_stages)
+Fd_TAI.rank <- 
+  get_TAI_Fd(
+    PES_all = Fd_PES.rank, 
+    PES_M = dplyr::rename(Fd_PES_M.rank, gamete = V1), 
+    PES_F = dplyr::rename(Fd_PES_F.rank, gamete = V1), 
+    ordered_stages)
+Fd_TAI.rlog <- 
+  get_TAI_Fd(
+    PES_all = Fd_PES.rlog, 
+    PES_M = Fd_PES_M.rlog, 
+    PES_F = Fd_PES_F.rlog, 
+    ordered_stages)
+```
+
+### Fucus serratus
+
+```{r warning=FALSE,message=FALSE}
+# function to process Fd.
+get_TAI_Fs <- function(PES_all, PES_M, PES_F, ordered_stages){
+  TAI_b <- 
+    TI.preplot(
+      dplyr::select(PES_all, !c("gamete","matSP"))) %>%
+    dplyr::mutate(Sex = "Mixed")
+  stages_to_NA <- # this will differ for Fucus distichus
+    ordered_stages[-c(1, 1+1, length(ordered_stages) - 1, length(ordered_stages))]
+  TAI_M <- 
+    TI.preplot(
+      PES_M) %>%
+    tibble::add_row(
+      dplyr::filter(
+        dplyr::select(TAI_b, !Sex), 
+        Stage %in% c(
+          ordered_stages[1+1], 
+          ordered_stages[length(ordered_stages) - 1]))) %>%
+    tibble::add_row(
+      tibble::tibble(Stage = stages_to_NA, TAI = NA, sd = NA)
+    ) %>%
+    dplyr::mutate(Sex = "Male")
+  TAI_F <- 
+    TI.preplot(
+      PES_F) %>%
+    tibble::add_row(
+      dplyr::filter(
+        dplyr::select(TAI_b, !Sex), 
+        Stage %in% c(
+          ordered_stages[1+1], 
+          ordered_stages[length(ordered_stages) - 1]))) %>%
+    tibble::add_row(
+      tibble::tibble(Stage = stages_to_NA, TAI = NA, sd = NA)
+    ) %>%
+    dplyr::mutate(Sex = "Female") # This is not true. this is needed for the plotting.
+  TAI_out <- 
+    dplyr::bind_rows(TAI_b, TAI_M, TAI_F)
+  TAI_out$Stage <- base::factor(TAI_out$Stage, ordered_stages)
+  return(TAI_out)
+}
+```
+
+```{r warning=FALSE,message=FALSE}
+ordered_stages <- colnames(Fs_PES)[3:ncol(Fs_PES)]
+Fs_TAI <- 
+  get_TAI_Fs(
+    PES_all = Fs_PES, 
+    PES_M = Fs_PES_M, 
+    PES_F = Fs_PES_F, 
+    ordered_stages)
+Fs_TAI.log2 <- 
+  get_TAI_Fs(
+    PES_all = Fs_PES.log2, 
+    PES_M = Fs_PES_M.log2, 
+    PES_F = Fs_PES_F.log2,
+    ordered_stages)
+Fs_TAI.sqrt <- 
+  get_TAI_Fs(
+    PES_all = Fs_PES.sqrt, 
+    PES_M = Fs_PES_M.sqrt, 
+    PES_F = Fs_PES_F.sqrt, 
+    ordered_stages)
+Fs_TAI.rank <- 
+  get_TAI_Fs(
+    PES_all = Fs_PES.rank, 
+    PES_M = Fs_PES_M.rank, 
+    PES_F = Fs_PES_F.rank, 
+    ordered_stages)
+Fs_TAI.rlog <- 
+  get_TAI_Fs(
+    PES_all = Fs_PES.rlog, 
+    PES_M = Fs_PES_M.rlog, 
+    PES_F = Fs_PES_F.rlog, 
+    ordered_stages)
+```
+
+```{r fig.height = 2.5, fig.width = 4.5}
+#Fs
+Fs_TAI %>% 
+  dplyr::filter(!Stage %in% c("gamete", "matSP") & Sex == "Mixed") %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    linewidth = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus serratus",
+       subtitle = "TPM")
+
+Fs_TAI.sqrt %>% 
+  dplyr::filter(!Stage %in% c("gamete", "matSP") & Sex == "Mixed") %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    linewidth = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus serratus",
+       subtitle = "sqrt(TPM)")
+
+# save plot
+# ggplot2::ggsave(filename = "Fs_TAI_embryo.pdf", device = "pdf", width = 4.5, height = 2.5)
+
+
+Fs_TAI.log2 %>% 
+  dplyr::filter(!Stage %in% c("gamete", "matSP") & Sex == "Mixed") %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    linewidth = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus serratus",
+       subtitle = "log2(TPM+\u03b1)")
+
+Fs_TAI.rank %>% 
+  dplyr::filter(!Stage %in% c("gamete", "matSP") & Sex == "Mixed") %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    linewidth = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus serratus",
+       subtitle = "rank(TPM)")
+
+Fs_TAI.rlog %>% 
+  dplyr::filter(!Stage %in% c("gamete", "matSP") & Sex == "Mixed") %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    linewidth = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus serratus",
+       subtitle = "rlog(TPM)")
+
+# Fd
+Fd_TAI %>% 
+  dplyr::filter(!Stage %in% c("gamete", "matSP") & Sex == "Mixed") %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    linewidth = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus distichus",
+       subtitle = "TPM")
+
+Fd_TAI.sqrt %>% 
+  dplyr::filter(!Stage %in% c("gamete", "matSP") & Sex == "Mixed") %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    linewidth = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus distichus",
+       subtitle = "sqrt(TPM)")
+
+# save plot
+# ggplot2::ggsave(filename = "Fd_TAI_embryo.pdf", device = "pdf", width = 4.5, height = 2.5)
+
+
+Fd_TAI.log2 %>% 
+  dplyr::filter(!Stage %in% c("gamete", "matSP") & Sex == "Mixed") %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    linewidth = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus distichus",
+       subtitle = "log2(TPM+\u03b1)")
+
+Fd_TAI.rank %>% 
+  dplyr::filter(!Stage %in% c("gamete", "matSP") & Sex == "Mixed") %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    linewidth = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus distichus",
+       subtitle = "rank(TPM)")
+
+Fd_TAI.rlog %>% 
+  dplyr::filter(!Stage %in% c("gamete", "matSP") & Sex == "Mixed") %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    linewidth = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus distichus",
+       subtitle = "rlog(TPM)")
+```
+
+## Statistical significance of TAI profiles
+
+### Flat line test
+
+##### _F. serratus_
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+Fs_PES_tS <- 
+  tfStability(
+    dplyr::select(Fs_PES, !c(gamete, matSP)),
+    transforms = c("none", "sqrt", "log2", "rank"),
+    permutations = 500
+    )
+Fs_PES_tS_processed <-
+  tibble::as_tibble(Fs_PES_tS, rownames = "transformation")
+
+Fs_PES_tS.rlog <- 
+  tfStability(
+    dplyr::select(Fs_PES.rlog, !c(gamete, matSP)),
+    transforms = c("none"), # it is already transformed.
+    permutations = 500
+    )
+Fs_PES_tS.rlog_processed <-
+  tibble::as_tibble(Fs_PES_tS.rlog, rownames = "transformation") %>%
+  dplyr::mutate(transformation = "rlog")
+
+Fs_PES_tS_res <- 
+  dplyr::bind_rows(Fs_PES_tS_processed, Fs_PES_tS.rlog_processed) %>%
+  dplyr::rename("pval" = value) %>%
+  dplyr::mutate(test = "FlatLineTest")
+```
+
+##### _F. distichus_
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+Fd_PES_tS <- 
+  tfStability(
+    dplyr::select(Fd_PES, !c(gamete, matSP)),
+    transforms = c("none", "sqrt", "log2", "rank"),
+    permutations = 500
+    )
+Fd_PES_tS_processed <-
+  tibble::as_tibble(Fd_PES_tS, rownames = "transformation")
+
+Fd_PES_tS.rlog <- 
+  tfStability(
+    dplyr::select(Fd_PES.rlog, !c(gamete, matSP)),
+    transforms = c("none"), # it is already transformed.
+    permutations = 500
+    )
+Fd_PES_tS.rlog_processed <-
+  tibble::as_tibble(Fd_PES_tS.rlog, rownames = "transformation") %>%
+  dplyr::mutate(transformation = "rlog")
+
+Fd_PES_tS_res <- 
+  dplyr::bind_rows(Fd_PES_tS_processed, Fd_PES_tS.rlog_processed) %>%
+  dplyr::rename("pval" = value) %>%
+  dplyr::mutate(test = "FlatLineTest")
+```
+
+### Plot `-log10(p-values)`
+
+The flat line test meets the assumptions that `V_p` can be roughly approximated by a gamma distribution. Here is an example.
+
+```{r, warning=FALSE, message=FALSE}
+FlatLineTest(tf(dplyr::select(Fs_PES, !c(gamete, matSP)), FUN = sqrt), 
+             plotHistogram = T,runs = 1, permutations = 3000)
+```
+
+##### Fucus serratus embryo
+
+```{r fig.height = 2.5, fig.width = 3}
+Fs_PES_tS_res %>%
+  ggplot2::ggplot(
+    aes(
+      y = -log10(pval), 
+      x = transformation)) +
+  ggplot2::geom_col(width = 0.05) +
+  ggplot2::geom_point(size = 5) +
+  ggplot2::geom_hline(
+    yintercept = -log10(0.05), 
+    colour = "#E64B35FF",
+    linetype = 'dashed',
+    size = 1
+    ) +
+  ggplot2::labs(
+    title = "Fucus serratus",
+    subtitle = "FlatLineTest",
+    x = "Transformation"
+  ) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_classic()
+# ggplot2::ggsave(filename = "Fs_TAI_embryo_FLT.pdf", device = "pdf", width = 3, height = 2.5)
+```
+
+##### Fucus distichus embryo
+
+```{r fig.height = 2.5, fig.width = 3}
+Fd_PES_tS_res %>%
+  ggplot2::ggplot(
+    aes(
+      y = -log10(pval), 
+      x = transformation)) +
+  ggplot2::geom_col(width = 0.05) +
+  ggplot2::geom_point(size = 5) +
+  ggplot2::geom_hline(
+    yintercept = -log10(0.05), 
+    colour = "#E64B35FF",
+    linetype = 'dashed',
+    size = 1
+    ) +
+  ggplot2::labs(
+    title = "Fucus distichus",
+    subtitle = "FlatLineTest",
+    x = "Transformation"
+  ) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_classic()
+# ggplot2::ggsave(filename = "Fd_TAI_embryo_FLT.pdf", device = "pdf", width = 3, height = 2.5)
+```
+
+### Non-flat line profile
+
+The reductive hourglass test meets the assumptions that `D_min` can be roughly approximated by a normal distribution. Here is an example.
+
+```{r, warning=FALSE, message=FALSE}
+ReductiveHourglassTest(tf(dplyr::select(Fs_PES, !c(gamete, matSP)), FUN = sqrt), 
+                       modules = list(early = 1:2, mid = 3:4, late = 5),
+                       plotHistogram = T,runs = 1, permutations = 3000)
+```
+
+```{r}
+Fs_PES_tS <- 
+  tfStability(
+    dplyr::select(Fs_PES, !c(gamete, matSP)),
+    TestStatistic = "ReductiveHourglassTest",
+    transforms = c("none", "sqrt", "log2", "rank"),
+    modules = list(early = 1:2, mid = 3:4, late = 5),
+    permutations = 500
+    )
+Fs_PES_tS_processed <-
+  tibble::as_tibble(Fs_PES_tS, rownames = "transformation")
+
+Fs_PES_tS.rlog <- 
+  tfStability(
+    dplyr::select(Fs_PES.rlog, !c(gamete, matSP)),
+    TestStatistic = "ReductiveHourglassTest",
+    transforms = c("none"), # it is already transformed.
+    modules = list(early = 1:2, mid = 3:4, late = 5),
+    permutations = 500
+    )
+Fs_PES_tS.rlog_processed <-
+  tibble::as_tibble(Fs_PES_tS.rlog, rownames = "transformation") %>%
+  dplyr::mutate(transformation = "rlog")
+
+Fs_PES_tS_res <- 
+  dplyr::bind_rows(Fs_PES_tS_processed, Fs_PES_tS.rlog_processed) %>%
+  dplyr::rename("pval" = value) %>%
+  dplyr::mutate(test = "ReductiveHourglassTest")
+
+Fd_PES_tS <- 
+  tfStability(
+    dplyr::select(Fd_PES, !c(gamete, matSP)),
+    TestStatistic = "ReductiveHourglassTest",
+    transforms = c("none", "sqrt", "log2", "rank"),
+    modules = list(early = 1:4, mid = 5, late = 6),
+    permutations = 500
+    )
+Fd_PES_tS_processed <-
+  tibble::as_tibble(Fd_PES_tS, rownames = "transformation")
+
+Fd_PES_tS.rlog <- 
+  tfStability(
+    dplyr::select(Fd_PES.rlog, !c(gamete, matSP)),
+    TestStatistic = "ReductiveHourglassTest",
+    transforms = c("none"), # it is already transformed.
+    modules = list(early = 1:4, mid = 5, late = 6),
+    permutations = 500
+    )
+Fd_PES_tS.rlog_processed <-
+  tibble::as_tibble(Fd_PES_tS.rlog, rownames = "transformation") %>%
+  dplyr::mutate(transformation = "rlog")
+
+Fd_PES_tS_res <- 
+  dplyr::bind_rows(Fd_PES_tS_processed, Fd_PES_tS.rlog_processed) %>%
+  dplyr::rename("pval" = value) %>%
+  dplyr::mutate(test = "ReductiveHourglassTest")
+```
+
+### Plot p-values
+
+##### Fucus serratus embryo
+
+```{r fig.height = 2.5, fig.width = 3}
+Fs_PES_tS_res %>%
+  ggplot2::ggplot(
+    aes(
+      y = -log10(pval), 
+      x = transformation)) +
+  ggplot2::geom_col(width = 0.05) +
+  ggplot2::geom_point(size = 5) +
+  ggplot2::geom_hline(
+    yintercept = -log10(0.05), 
+    colour = "#E64B35FF",
+    linetype = 'dashed',
+    size = 1
+    ) +
+  ggplot2::labs(
+    title = "Fucus serratus",
+    subtitle = "ReductiveHourglassTest",
+    x = "Transformation"
+  ) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_classic()
+# ggplot2::ggsave(filename = "Fs_TAI_embryo_RHT.pdf", device = "pdf", width = 3, height = 2.5)
+```
+
+##### Fucus distichus embryo
+
+```{r fig.height = 2.5, fig.width = 3}
+Fd_PES_tS_res %>%
+  ggplot2::ggplot(
+    aes(
+      y = -log10(pval), 
+      x = transformation)) +
+  ggplot2::geom_col(width = 0.05) +
+  ggplot2::geom_point(size = 5) +
+  ggplot2::geom_hline(
+    yintercept = -log10(0.05), 
+    colour = "#E64B35FF",
+    linetype = 'dashed',
+    size = 1
+    ) +
+  ggplot2::labs(
+    title = "Fucus distichus",
+    subtitle = "ReductiveHourglassTest",
+    x = "Transformation"
+  ) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_classic()
+
+# ggplot2::ggsave(filename = "Fd_TAI_embryo_RHT.pdf", device = "pdf", width = 3, height = 2.5)
+```
+
+# Evolutionary transcriptome in _Ectocarpus_
+
+Here, we examine the TAI across the life cycle of _Ectocarpus_ for both male and female strains.
+
+```{r warning=FALSE,message=FALSE}
+# function to process Fd. This will be changed to accommodate more seq data.
+get_TAI_Ec <- function(PES_M, PES_F, ordered_stages){
+  TAI_M <- 
+    TI.preplot(PES_M) %>%
+    dplyr::mutate(Sex = "Male")
+  TAI_F <- 
+    TI.preplot(PES_F) %>%
+    dplyr::mutate(Sex = "Female")
+  stages_to_NA <- # this will differ for Fucus distichus
+    ordered_stages[-c(1, 1+1, length(ordered_stages) - 1, length(ordered_stages))]
+  TAI_out <- 
+    dplyr::bind_rows(TAI_M, TAI_F)
+  TAI_out$Stage <- base::factor(TAI_out$Stage, ordered_stages)
+  return(TAI_out)
+}
+```
+
+```{r warning=FALSE,message=FALSE}
+ordered_stages <- colnames(Ec_PES_25f)[3:ncol(Ec_PES_25f)]
+
+Ec_TAI <- 
+  get_TAI_Ec(
+    PES_M = Ec_PES_32m, 
+    PES_F = Ec_PES_25f, 
+    ordered_stages)
+
+Ec_TAI.sqrt <- 
+  get_TAI_Ec(
+    PES_M = Ec_PES_32m.sqrt, 
+    PES_F = Ec_PES_25f.sqrt, 
+    ordered_stages)
+
+Ec_TAI.log2 <- 
+  get_TAI_Ec(
+    PES_M = Ec_PES_32m.log2, 
+    PES_F = Ec_PES_25f.log2, 
+    ordered_stages)
+
+Ec_TAI.rank <- 
+  get_TAI_Ec(
+    PES_M = Ec_PES_32m.rank, 
+    PES_F = Ec_PES_25f.rank, 
+    ordered_stages)
+
+Ec_TAI.rlog <- 
+  get_TAI_Ec(
+    PES_M = Ec_PES_32m.rlog, 
+    PES_F = Ec_PES_25f.rlog, 
+    ordered_stages)
+```
+
+```{r warning=FALSE,message=FALSE}
+Ec_TAI %>% 
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = Sex,
+      colour = Sex,
+      fill = Sex)) +
+  ggplot2::geom_line(alpha = 0.4, linewidth = 1) +
+  ggplot2::geom_crossbar(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    alpha = 0.5,
+    position = ggplot2::position_dodge(0.55), 
+    width = 0.5) +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  ggplot2::scale_x_discrete(guide = ggplot2::guide_axis(n.dodge=2)) +
+  labs(title = "Ectocarpus",
+       subtitle = "TPM")
+# ggplot2::ggsave(filename = "Ec_TAI_tpm.pdf", device = "pdf", width = 6, height = 4)
+
+Ec_TAI.sqrt %>% 
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = Sex,
+      colour = Sex,
+      fill = Sex)) +
+  ggplot2::geom_line(alpha = 0.4, linewidth = 1) +
+  ggplot2::geom_crossbar(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    alpha = 0.5,
+    position = ggplot2::position_dodge(0.55), 
+    width = 0.5) +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  ggplot2::scale_x_discrete(guide = ggplot2::guide_axis(n.dodge=2)) +
+  labs(title = "Ectocarpus",
+       subtitle = "sqrt(TPM)")
+# ggplot2::ggsave(filename = "Ec_TAI_sqrt.pdf", device = "pdf", width = 6, height = 4)
+
+Ec_TAI.log2 %>% 
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = Sex,
+      colour = Sex,
+      fill = Sex)) +
+  ggplot2::geom_line(alpha = 0.4, linewidth = 1) +
+  ggplot2::geom_crossbar(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    alpha = 0.5,
+    position = ggplot2::position_dodge(0.55), 
+    width = 0.5) +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  ggplot2::scale_x_discrete(guide = ggplot2::guide_axis(n.dodge=2)) +
+  labs(title = "Ectocarpus",
+       subtitle = "log2(TPM+\u03b1)")
+# ggplot2::ggsave(filename = "Ec_TAI_log2.pdf", device = "pdf", width = 6, height = 4)
+
+Ec_TAI.rank %>% 
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = Sex,
+      colour = Sex,
+      fill = Sex)) +
+  ggplot2::geom_line(alpha = 0.4, linewidth = 1) +
+  ggplot2::geom_crossbar(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    alpha = 0.5,
+    position = ggplot2::position_dodge(0.55), 
+    width = 0.5) +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  ggplot2::scale_x_discrete(guide = ggplot2::guide_axis(n.dodge=2)) +
+  labs(title = "Ectocarpus",
+       subtitle = "rank(TPM)")
+# ggplot2::ggsave(filename = "Ec_TAI_rank.pdf", device = "pdf", width = 6, height = 4)
+
+Ec_TAI.rlog %>% 
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = Sex,
+      colour = Sex,
+      fill = Sex)) +
+  ggplot2::geom_line(alpha = 0.4, linewidth = 1) +
+  ggplot2::geom_crossbar(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    alpha = 0.5,
+    position = ggplot2::position_dodge(0.55), 
+    width = 0.5) +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  ggplot2::scale_x_discrete(guide = ggplot2::guide_axis(n.dodge=2)) +
+  labs(title = "Ectocarpus",
+       subtitle = "rlog(TPM)")
+# ggplot2::ggsave(filename = "Ec_TAI_rlog.pdf", device = "pdf", width = 6, height = 4)
+```
+
+The r-log is behaving weird because this non-linear transformation does not preserve the _monotonic_ relationship.
+
+## Statistical significance of TAI profiles
+
+### Flat line test
+
+The flat line test meets the assumptions that the `V_p` can be roughly approximated by a gamma distribution. Here is an example.
+
+```{r, warning=FALSE, message=FALSE}
+FlatLineTest(tf(Ec_PES_25f, FUN = sqrt), plotHistogram = T,runs = 1, permutations = 3000)
+```
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+# female
+Ec_PES_25f_tS <- 
+  tfStability(
+    Ec_PES_25f,
+    transforms = c("none", "sqrt", "log2", "rank"),
+    permutations = 500
+    )
+Ec_PES_25f_tS_processed <-
+  tibble::as_tibble(Ec_PES_25f_tS, rownames = "transformation")
+
+Ec_PES_25f_tS.rlog <- 
+  tfStability(
+    Ec_PES_25f.rlog,
+    transforms = c("none"), # it is already transformed.
+    permutations = 500
+    )
+Ec_PES_25f_tS.rlog_processed <-
+  tibble::as_tibble(Ec_PES_25f_tS.rlog, rownames = "transformation") %>%
+  dplyr::mutate(transformation = "rlog")
+
+Ec_PES_25f_tS_res <- 
+  dplyr::bind_rows(Ec_PES_25f_tS_processed, Ec_PES_25f_tS.rlog_processed) %>%
+  dplyr::rename("pval" = value) %>%
+  dplyr::mutate(test = "FlatLineTest")
+
+# male
+Ec_PES_32m_tS <- 
+  tfStability(
+    Ec_PES_32m,
+    transforms = c("none", "sqrt", "log2", "rank"),
+    permutations = 500
+    )
+Ec_PES_32m_tS_processed <-
+  tibble::as_tibble(Ec_PES_32m_tS, rownames = "transformation")
+
+Ec_PES_32m_tS.rlog <- 
+  tfStability(
+    Ec_PES_32m.rlog,
+    transforms = c("none"), # it is already transformed.
+    permutations = 500
+    )
+Ec_PES_32m_tS.rlog_processed <-
+  tibble::as_tibble(Ec_PES_32m_tS.rlog, rownames = "transformation") %>%
+  dplyr::mutate(transformation = "rlog")
+
+Ec_PES_32m_tS_res <- 
+  dplyr::bind_rows(Ec_PES_32m_tS_processed, Ec_PES_32m_tS.rlog_processed) %>%
+  dplyr::rename("pval" = value) %>%
+  dplyr::mutate(test = "FlatLineTest")
+```
+
+### Plot `-log10(p-values)`
+
+```{r fig.height = 2.5, fig.width = 3}
+Ec_PES_32m_tS_res %>%
+  ggplot2::ggplot(
+    aes(
+      y = -log10(pval), 
+      x = transformation)) +
+  ggplot2::geom_col(width = 0.05) +
+  ggplot2::geom_point(size = 5) +
+  ggplot2::geom_hline(
+    yintercept = -log10(0.05), 
+    colour = "#E64B35FF",
+    linetype = 'dashed',
+    size = 1
+    ) +
+  ggplot2::labs(
+    title = "Ectocarpus (male)",
+    subtitle = "FlatLineTest",
+    x = "Transformation"
+  ) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_classic()
+# ggplot2::ggsave(filename = "Ec_TAI_M_FLT.pdf", device = "pdf", width = 3, height = 2.5)
+
+Ec_PES_25f_tS_res %>%
+  ggplot2::ggplot(
+    aes(
+      y = -log10(pval), 
+      x = transformation)) +
+  ggplot2::geom_col(width = 0.05) +
+  ggplot2::geom_point(size = 5) +
+  ggplot2::geom_hline(
+    yintercept = -log10(0.05), 
+    colour = "#E64B35FF",
+    linetype = 'dashed',
+    size = 1
+    ) +
+  ggplot2::labs(
+    title = "Ectocarpus (female)",
+    subtitle = "FlatLineTest",
+    x = "Transformation"
+  ) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_classic()
+# ggplot2::ggsave(filename = "Ec_TAI_F_FLT.pdf", device = "pdf", width = 3, height = 2.5)
+```
+
+# Evolutionary transcriptome across _Fucus_ tissues
+
+## TAI calculation
+
+Here, I assess the TAI profiles across adult (matSP) tissues of _F. serratus_ and _F. distichus_. Note, I use the square-root transformation in the paper as it strikes a balance between the log and non transformation in terms of variance stabilisation and reduction of the effect of noise in lowly expressed genes. But for completeness, I also show the profiles under various other transformations.
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+library(tidyverse)
+library(myTAI)
+```
+
+### Load PES
+
+Non-transformed
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+Fd_PES_matSP <-
+  readr::read_csv(file = "data/Fd_PES_matSP.csv", show_col_types = FALSE)
+Fs_PES_F_matSP <-
+  readr::read_csv(file = "data/Fs_PES_F_matSP.csv", show_col_types = FALSE)
+Fs_PES_M_matSP <-
+  readr::read_csv(file = "data/Fs_PES_M_matSP.csv", show_col_types = FALSE)
+```
+
+sqrt-tranformed
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+Fd_PES_matSP.sqrt <-
+  readr::read_csv(file = "data/Fd_PES_matSP.sqrt.csv", show_col_types = FALSE)
+Fs_PES_F_matSP.sqrt <-
+  readr::read_csv(file = "data/Fs_PES_F_matSP.sqrt.csv", show_col_types = FALSE)
+Fs_PES_M_matSP.sqrt <-
+  readr::read_csv(file = "data/Fs_PES_M_matSP.sqrt.csv", show_col_types = FALSE)
+```
+
+log2-tranformed
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+Fd_PES_matSP.log2 <-
+  readr::read_csv(file = "data/Fd_PES_matSP.log2.csv", show_col_types = FALSE)
+Fs_PES_F_matSP.log2 <-
+  readr::read_csv(file = "data/Fs_PES_F_matSP.log2.csv", show_col_types = FALSE)
+Fs_PES_M_matSP.log2 <-
+  readr::read_csv(file = "data/Fs_PES_M_matSP.log2.csv", show_col_types = FALSE)
+```
+
+rank-tranformed
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+Fd_PES_matSP.rank <-
+  readr::read_csv(file = "data/Fd_PES_matSP.rank.csv", show_col_types = FALSE)
+Fs_PES_F_matSP.rank <-
+  readr::read_csv(file = "data/Fs_PES_F_matSP.rank.csv", show_col_types = FALSE)
+Fs_PES_M_matSP.rank <-
+  readr::read_csv(file = "data/Fs_PES_M_matSP.rank.csv", show_col_types = FALSE)
+```
+
+rlog-tranformed
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+Fd_PES_matSP.rlog <-
+  readr::read_csv(file = "data/Fd_PES_matSP.rlog.csv", show_col_types = FALSE)
+Fs_PES_M_matSP.rlog <-
+  readr::read_csv(file = "data/Fs_PES_M_matSP.rlog.csv", show_col_types = FALSE)
+Fs_PES_F_matSP.rlog <-
+  readr::read_csv(file = "data/Fs_PES_F_matSP.rlog.csv", show_col_types = FALSE)
+```
+
+## TAI calculation
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+#TI stands for transcriptome index
+TI.preplot <- function(ExpressionSet, permutations = 500){
+  std <- 
+    myTAI::bootMatrix(
+      ExpressionSet = ExpressionSet, 
+      permutations  = permutations) %>% 
+    apply(2, stats::sd)
+  TI.out <- 
+    myTAI::TAI(ExpressionSet) %>%
+    tibble::as_tibble(rownames = "Tissue", colnames = c("TAI", "PS")) %>% 
+    dplyr::bind_cols(as_tibble(std)) %>%
+    dplyr::rename(TAI = 2, sd = 3)
+  return(TI.out)
+}
+```
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+# no transformation
+Fd_TAI_matSP <- 
+  TI.preplot(Fd_PES_matSP)
+Fs_TAI_F_matSP <- 
+  TI.preplot(Fs_PES_F_matSP) %>%
+  dplyr::mutate(Sex = "F")
+Fs_TAI_M_matSP <- 
+  TI.preplot(Fs_PES_M_matSP) %>%
+  dplyr::mutate(Sex = "M")
+
+# sqrt
+Fd_TAI_matSP.sqrt <- 
+  TI.preplot(Fd_PES_matSP.sqrt)
+Fs_TAI_F_matSP.sqrt <- 
+  TI.preplot(Fs_PES_F_matSP.sqrt) %>%
+  dplyr::mutate(Sex = "F")
+Fs_TAI_M_matSP.sqrt <- 
+  TI.preplot(Fs_PES_M_matSP.sqrt) %>%
+  dplyr::mutate(Sex = "M")
+
+# log2
+Fd_TAI_matSP.log2 <- 
+  TI.preplot(Fd_PES_matSP.log2)
+Fs_TAI_F_matSP.log2 <- 
+  TI.preplot(Fs_PES_F_matSP.log2) %>%
+  dplyr::mutate(Sex = "F")
+Fs_TAI_M_matSP.log2 <- 
+  TI.preplot(Fs_PES_M_matSP.log2) %>%
+  dplyr::mutate(Sex = "M")
+
+# rank
+Fd_TAI_matSP.rank <- 
+  TI.preplot(Fd_PES_matSP.rank)
+Fs_TAI_F_matSP.rank <- 
+  TI.preplot(Fs_PES_F_matSP.rank) %>%
+  dplyr::mutate(Sex = "F")
+Fs_TAI_M_matSP.rank <- 
+  TI.preplot(Fs_PES_M_matSP.rank) %>%
+  dplyr::mutate(Sex = "M")
+
+# rlog
+Fd_TAI_matSP.rlog <- 
+  TI.preplot(Fd_PES_matSP.rlog)
+Fs_TAI_F_matSP.rlog <- 
+  TI.preplot(Fs_PES_F_matSP.rlog) %>%
+  dplyr::mutate(Sex = "F")
+Fs_TAI_M_matSP.rlog <- 
+  TI.preplot(Fs_PES_M_matSP.rlog) %>%
+  dplyr::mutate(Sex = "M")
+```
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+plot_tissue_Fd <- function(preplot_out){
+  plot_out <- 
+    preplot_out %>%
+    ggplot2::ggplot(
+      aes(
+        x = "Mixed",
+        y = TAI,
+        group = Tissue
+        )
+      ) +
+    ggplot2::geom_point(
+      size = 4, 
+      position = ggplot2::position_dodge(width=0.9),
+      colour = "#00A087FF") +
+    ggplot2::geom_errorbar(
+      aes(ymin = TAI - sd, ymax = TAI + sd),
+      width = 0.1,
+      position = ggplot2::position_dodge(width=0.9),
+      colour = "#00A087FF") +
+    ggplot2::geom_text(
+      aes(label = Tissue),
+      vjust = -0.9,
+      angle = 90,
+      position = ggplot2::position_dodge(width = 0.9)) +
+    ggplot2::labs(
+      x = "Sex",
+      title = "Fucus distichus \n(matSP)"
+    ) +
+    ggplot2::theme_classic()
+  return(plot_out)
+}
+
+plot_tissue_Fs <- function(preplot_out){
+  plot_out <- 
+    preplot_out %>%
+    ggplot2::ggplot(
+      aes(
+        x = Sex,
+        y = TAI,
+        group = Tissue,
+        colour = Sex
+        )
+      ) +
+    ggplot2::geom_point(
+      size = 4, 
+      position = ggplot2::position_dodge(width=0.9)) +
+    ggplot2::geom_errorbar(
+      aes(ymin = TAI - sd, ymax = TAI + sd),
+      width = 0.1,
+      position = ggplot2::position_dodge(width=0.9)) +
+    ggplot2::geom_text(
+      aes(label = Tissue),
+      vjust = -0.9,
+      angle = 90,
+      position = ggplot2::position_dodge(width = 0.9),
+      colour = "black") +
+    ggplot2::scale_colour_manual(
+      values = c("#E64B35FF", "#4DBBD5FF"), 
+      guide = "none") +
+    ggplot2::labs(
+      x = "Sex",
+      title = "Fucus serratus \n(matSP)",
+      colour = NULL
+    ) +
+    ggplot2::theme_classic()
+  return(plot_out)
+}
+# https://stackoverflow.com/questions/35654364/ggplot-jitter-geom-errorbar
+# `ggplot2::position_jitter(seed = 1)` can also be used.
+# https://stackoverflow.com/questions/56816072/position-dodge-and-nudge-y-together
+# For colours:
+# scales::show_col(ggsci::pal_npg("nrc")(9))
+```
+
+
+```{r, fig.height = 4, fig.width = 2}
+plot_tissue_Fd(Fd_TAI_matSP) + 
+  ggplot2::labs(subtitle = "TPM")
+plot_tissue_Fd(Fd_TAI_matSP.sqrt) + 
+  ggplot2::labs(subtitle = "sqrt(TPM)")
+# save sqrt
+# ggplot2::ggsave(filename = "Fd_TAI_tissue.pdf", device = "pdf", width = 2, height = 4)
+plot_tissue_Fd(Fd_TAI_matSP.log2) + 
+  ggplot2::labs(subtitle = "log2(TPM+1)")
+plot_tissue_Fd(Fd_TAI_matSP.rank) + 
+  ggplot2::labs(subtitle = "rank(TPM)")
+plot_tissue_Fd(Fd_TAI_matSP.rlog) + 
+  ggplot2::labs(subtitle = "rlog(TPM)")
+```
+
+```{r, fig.height = 4, fig.width = 3}
+base::rbind(Fs_TAI_F_matSP, Fs_TAI_M_matSP) %>%
+  plot_tissue_Fs() + 
+  ggplot2::labs(subtitle = "TPM")
+
+base::rbind(Fs_TAI_F_matSP.sqrt, Fs_TAI_M_matSP.sqrt) %>%
+  plot_tissue_Fs() + 
+  ggplot2::labs(subtitle = "sqrt(TPM)")
+# save sqrt
+# ggplot2::ggsave(filename = "Fs_TAI_tissue.pdf", device = "pdf", width = 3, height = 4)
+
+base::rbind(Fs_TAI_F_matSP.log2, Fs_TAI_M_matSP.log2) %>%
+  plot_tissue_Fs() + 
+  ggplot2::labs(subtitle = "log2(TPM)")
+
+base::rbind(Fs_TAI_F_matSP.rank, Fs_TAI_M_matSP.rank) %>%
+  plot_tissue_Fs() + 
+  ggplot2::labs(subtitle = "rank(TPM)")
+
+base::rbind(Fs_TAI_F_matSP.rlog, Fs_TAI_M_matSP.rlog) %>%
+  plot_tissue_Fs() + 
+  ggplot2::labs(subtitle = "rlog(TPM)")
+```
+
+### FLT of permutation statistics between males and females
+
+```{r warning=FALSE,message=FALSE}
+# calculate p-values based on the flat line test, then adjust for multiple comparisons.
+hack_flt <- function(PES_m, PES_f, permutations = 500, tr_name = "", padj = F){
+  
+  pval_df <- data.frame()
+  
+  for(i in colnames(PES_m)[-c(1,2)]){
+    join_test <- dplyr::left_join(
+      dplyr::select(PES_m, 1, 2, starts_with(i)),
+      dplyr::select(PES_f, 1, 2, starts_with(i)),
+      by = c("GeneID", "PS"))
+    # join_test_df <- rbind(join_test)
+    # where x is male and y is female
+    pval <- myTAI::FlatLineTest(join_test, permutations = permutations)
+    pval_df <- 
+      dplyr::bind_rows(
+        pval_df, 
+        tibble::tibble(
+          tissue = i, 
+          p.value = pval$p.value,
+          transformation = tr_name))
+  }
+  
+  pval_df$tissue <- base::factor(pval_df$tissue, colnames(PES_m)[-c(1,2)])
+  
+  if(!padj){return(pval_df)}
+  
+  # to adjust p values
+  p_value <- pval_df$p.value
+
+  # Apply Bonferroni correction to the p-value
+  p_adjusted <- p.adjust(p_value, method = "bonferroni")
+  
+  pval_df$padj <- p_adjusted
+  
+  return(pval_df)
+}
+```
+
+```{r warning=FALSE}
+# check with myTAI function
+
+male_test <- dplyr::select(Fs_PES_M_matSP.sqrt, c(1:2, 3))
+female_test <- dplyr::select(Fs_PES_F_matSP.sqrt, c(1:2, 3))
+
+join_test <- dplyr::left_join(male_test, female_test, by = c("GeneID", "PS")) %>%
+# where x is male and y is female
+        dplyr::left_join(male_test, by = c("GeneID", "PS"))
+# Since `Error: Intersecting modules are not defined for the ReductiveHourglassTest.`
+
+myTAI::ReductiveHourglassTest(join_test,
+                              permutations = 500,
+                              modules = list(early = 1,mid = 2,late =3))
+```
+
+```{r warning=FALSE,message=FALSE}
+# calculate p-values based on the reductive hourglass test, then adjust for multiple comparisons.
+hack_rht <- function(PES_m, PES_f, permutations = 500, tr_name = "", padj = F){
+  
+  pval_df <- data.frame()
+  
+  for(i in colnames(PES_m)[-c(1,2)]){
+    join_test <- dplyr::left_join(
+        dplyr::select(PES_m, 1, 2, starts_with(i)),
+        dplyr::select(PES_f, 1, 2, starts_with(i)),
+        by = c("GeneID", "PS")) %>%
+      dplyr::left_join(dplyr::select(PES_m, 1, 2, starts_with(i)),
+        by = c("GeneID", "PS"))
+    # join_test_df <- rbind(join_test)
+    # where x is male and y is female ... and z is male (due to intersecting module error)
+    pval <- myTAI::ReductiveHourglassTest(
+            join_test, 
+            permutations = permutations, 
+            modules = list(early = 1,mid = 2,late =3))
+    pval_df <- 
+      dplyr::bind_rows(
+        pval_df, 
+        tibble::tibble(
+          tissue = i, 
+          p.value = pval$p.value,
+          transformation = tr_name))
+  }
+  
+  pval_df$tissue <- base::factor(pval_df$tissue, colnames(PES_m)[-c(1,2)])
+  
+  if(!padj){return(pval_df)}
+  
+  # to adjust p values
+  p_value <- pval_df$p.value
+
+  # Apply Bonferroni correction to the p-value
+  p_adjusted <- p.adjust(p_value, method = "bonferroni")
+  
+  pval_df$padj <- p_adjusted
+  
+  return(pval_df)
+}
+```
+
+```
+hack_rht(Fs_PES_M_matSP.sqrt, Fs_PES_F_matSP.sqrt, tr_name = "sqrt")
+hack_rht(Fs_PES_M_matSP.sqrt, Fs_PES_F_matSP.sqrt, tr_name = "sqrt", padj = T)
+```
+
+```{r warning=FALSE,message=FALSE}
+permutations = 500
+
+Fs_PES_perm <-
+  dplyr::bind_rows(
+    hack_flt(Fs_PES_M_matSP, Fs_PES_F_matSP, tr_name = "none", padj = T),
+    hack_flt(Fs_PES_M_matSP.sqrt, Fs_PES_F_matSP.sqrt, tr_name = "sqrt", padj = T),
+    hack_flt(Fs_PES_M_matSP.log2, Fs_PES_F_matSP.log2, tr_name = "log2", padj = T),
+    hack_flt(Fs_PES_M_matSP.rank, Fs_PES_F_matSP.rank, tr_name = "rank", padj = T),
+    hack_flt(Fs_PES_M_matSP.rlog, Fs_PES_F_matSP.rlog, tr_name = "rlog", padj = T)
+  ) %>%
+  dplyr::mutate(test = "permutation test")
+```
+
+```{r fig.height = 2.5, fig.width = 4}
+alpha = 2.22e-16 # so we do not get infinite values
+
+Fs_PES_perm %>%
+  ggplot2::ggplot(
+    aes(
+      y = -log10(padj + alpha),
+      x = tissue,
+      group = transformation,
+      linetype = transformation)) +
+  ggplot2::geom_line(width = 0.05, alpha = 0.5) +
+  ggplot2::geom_point(size = 5) +
+  ggplot2::geom_hline(
+    yintercept = -log10(0.05),
+    colour = "#E64B35FF",
+    linetype = 'dashed',
+    size = 1
+    ) +
+  ggplot2::labs(
+    title = "Fucus serratus",
+    subtitle = "Permutation test; TAI male != female",
+    x = "Tissue",
+    y = "-log10(p_adjusted)"
+  ) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_classic()
+```
+
+```{r fig.height = 2, fig.width = 3}
+Fs_PES_perm %>%
+  dplyr::mutate(
+    pval_label = case_when(
+      padj > 0.05 ~ "ns",
+      padj <= 0.05 & padj > 0.01 ~ "*",
+      padj <= 0.01 & padj > 0.001 ~ "**",
+      padj <= 0.001 ~ "***",
+      .default = NA
+    )
+  ) %>%
+  ggplot2::ggplot(
+    aes(
+      y = tissue,
+      label = pval_label,
+      x = transformation,
+      fill = -log10(padj + alpha))) +
+  ggplot2::geom_tile(colour = "black", size = 1) +
+  ggplot2::geom_text() +
+  ggplot2::theme_void() +
+  ggplot2::theme(legend.position = "",
+        axis.title.y = element_text(angle = 90),
+        axis.text.y = element_text(),
+        axis.text.x = element_text()) +
+  ggplot2::coord_flip() +
+  ggplot2::scale_fill_steps2(limits = c(0,3),
+                             low = "white", high = "#E64B35FF") +
+  ggplot2::labs(title = "Fucus serratus",
+                subtitle = "Male TAI & female TAI differ?")
+```
+
+##### If we check whether males are younger than females (TAI)
+
+```{r warning=FALSE,message=FALSE}
+permutations = 500
+
+Fs_PES_perm <-
+  dplyr::bind_rows(
+    hack_rht(Fs_PES_M_matSP, Fs_PES_F_matSP, tr_name = "none", padj = T),
+    hack_rht(Fs_PES_M_matSP.sqrt, Fs_PES_F_matSP.sqrt, tr_name = "sqrt", padj = T),
+    hack_rht(Fs_PES_M_matSP.log2, Fs_PES_F_matSP.log2, tr_name = "log2", padj = T),
+    hack_rht(Fs_PES_M_matSP.rank, Fs_PES_F_matSP.rank, tr_name = "rank", padj = T),
+    hack_rht(Fs_PES_M_matSP.rlog, Fs_PES_F_matSP.rlog, tr_name = "rlog", padj = T)
+  ) %>%
+  dplyr::mutate(test = "permutation test")
+```
+
+```{r fig.height = 2, fig.width = 3}
+Fs_PES_perm %>%
+  dplyr::mutate(
+    pval_label = case_when(
+      padj > 0.05 ~ "ns",
+      padj <= 0.05 & padj > 0.01 ~ "*",
+      padj <= 0.01 & padj > 0.001 ~ "**",
+      padj <= 0.001 ~ "***",
+      .default = NA
+    )
+  ) %>%
+  ggplot2::ggplot(
+    aes(
+      y = tissue,
+      label = pval_label,
+      x = transformation,
+      fill = -log10(padj + alpha))) +
+  ggplot2::geom_tile(colour = "black", size = 1) +
+  ggplot2::geom_text() +
+  ggplot2::theme_void() +
+  ggplot2::theme(legend.position = "",
+        axis.title.y = element_text(angle = 90),
+        axis.text.y = element_text(),
+        axis.text.x = element_text()) +
+  ggplot2::coord_flip() +
+  ggplot2::scale_fill_steps2(limits = c(0,3),
+                             low = "white", high = "#E64B35FF") +
+  ggplot2::labs(title = "Fucus serratus",
+                subtitle = "Male TAI > female TAI?")
+# ggplot2::ggsave(filename = "Fs_PES_perm.pdf", device = "pdf", width = 3, height = 2)
+```
+
+### Add gamete data in plot
+
+Non-transformed
+
+```{r warning=FALSE, message=FALSE, results = 'hide'}
+Fd_PES_M <-
+  readr::read_csv(file = "data/Fd_PES_M.csv")
+Fd_PES_F <-
+  readr::read_csv(file = "data/Fd_PES_F.csv")
+Fs_PES_F <-
+  readr::read_csv(file = "data/Fs_PES_F.csv") %>% dplyr::select(-matSP)
+Fs_PES_M <-
+  readr::read_csv(file = "data/Fs_PES_M.csv") %>% dplyr::select(-matSP)
+
+# sqrt
+Fd_PES_M.sqrt <-
+  readr::read_csv(file = "data/Fd_PES_M.sqrt.csv") %>% dplyr::rename(gamete = V1)
+Fd_PES_F.sqrt <-
+  readr::read_csv(file = "data/Fd_PES_F.sqrt.csv") %>% dplyr::rename(gamete = V1)
+Fs_PES_F.sqrt <-
+  readr::read_csv(file = "data/Fs_PES_F.sqrt.csv") %>% dplyr::select(-matSP)
+Fs_PES_M.sqrt <-
+  readr::read_csv(file = "data/Fs_PES_M.sqrt.csv") %>% dplyr::select(-matSP)
+
+# log2
+Fd_PES_M.log2 <-
+  readr::read_csv(file = "data/Fd_PES_M.log2.csv") %>% dplyr::rename(gamete = V1)
+Fd_PES_F.log2 <-
+  readr::read_csv(file = "data/Fd_PES_F.log2.csv") %>% dplyr::rename(gamete = V1)
+Fs_PES_F.log2 <-
+  readr::read_csv(file = "data/Fs_PES_F.log2.csv") %>% dplyr::select(-matSP)
+Fs_PES_M.log2 <-
+  readr::read_csv(file = "data/Fs_PES_M.log2.csv") %>% dplyr::select(-matSP)
+
+# rank
+Fd_PES_M.rank <-
+  readr::read_csv(file = "data/Fd_PES_M.rank.csv") %>% dplyr::rename(gamete = V1)
+Fd_PES_F.rank <-
+  readr::read_csv(file = "data/Fd_PES_F.rank.csv") %>% dplyr::rename(gamete = V1)
+Fs_PES_F.rank <-
+  readr::read_csv(file = "data/Fs_PES_F.rank.csv") %>% dplyr::select(-matSP)
+Fs_PES_M.rank <-
+  readr::read_csv(file = "data/Fs_PES_M.rank.csv") %>% dplyr::select(-matSP)
+
+# rlog
+Fd_PES_M.rlog <-
+  readr::read_csv(file = "data/Fd_PES_M.rlog.csv")
+Fd_PES_F.rlog <-
+  readr::read_csv(file = "data/Fd_PES_F.rlog.csv")
+Fs_PES_F.rlog <-
+  readr::read_csv(file = "data/Fs_PES_F.rlog.csv") %>% dplyr::select(-matSP)
+Fs_PES_M.rlog <-
+  readr::read_csv(file = "data/Fs_PES_M.rlog.csv") %>% dplyr::select(-matSP)
+```
+
+```{r warning=FALSE, message=FALSE, results = 'hide'}
+Fd_TAI_F <- 
+  TI.preplot(Fd_PES_F) %>%
+  dplyr::mutate(Sex = "F")
+Fd_TAI_M <- 
+  TI.preplot(Fd_PES_M) %>%
+  dplyr::mutate(Sex = "M")
+Fs_TAI_F <- 
+  TI.preplot(Fs_PES_F) %>%
+  dplyr::mutate(Sex = "F")
+Fs_TAI_M <- 
+  TI.preplot(Fs_PES_M) %>%
+  dplyr::mutate(Sex = "M")
+
+# sqrt
+Fd_TAI_F.sqrt <- 
+  TI.preplot(Fd_PES_F.sqrt) %>%
+  dplyr::mutate(Sex = "F")
+Fd_TAI_M.sqrt <- 
+  TI.preplot(Fd_PES_M.sqrt) %>%
+  dplyr::mutate(Sex = "M")
+Fs_TAI_F.sqrt <- 
+  TI.preplot(Fs_PES_F.sqrt) %>%
+  dplyr::mutate(Sex = "F")
+Fs_TAI_M.sqrt <- 
+  TI.preplot(Fs_PES_M.sqrt) %>%
+  dplyr::mutate(Sex = "M")
+
+# log2
+Fd_TAI_F.log2 <- 
+  TI.preplot(Fd_PES_F.log2) %>%
+  dplyr::mutate(Sex = "F")
+Fd_TAI_M.log2 <- 
+  TI.preplot(Fd_PES_M.log2) %>%
+  dplyr::mutate(Sex = "M")
+Fs_TAI_F.log2 <- 
+  TI.preplot(Fs_PES_F.log2) %>%
+  dplyr::mutate(Sex = "F")
+Fs_TAI_M.log2 <- 
+  TI.preplot(Fs_PES_M.log2) %>%
+  dplyr::mutate(Sex = "M")
+
+# rank
+Fd_TAI_F.rank <- 
+  TI.preplot(Fd_PES_F.rank) %>%
+  dplyr::mutate(Sex = "F")
+Fd_TAI_M.rank <- 
+  TI.preplot(Fd_PES_M.rank) %>%
+  dplyr::mutate(Sex = "M")
+Fs_TAI_F.rank <- 
+  TI.preplot(Fs_PES_F.rank) %>%
+  dplyr::mutate(Sex = "F")
+Fs_TAI_M.rank <- 
+  TI.preplot(Fs_PES_M.rank) %>%
+  dplyr::mutate(Sex = "M")
+
+# rlog
+Fd_TAI_F.rlog <- 
+  TI.preplot(Fd_PES_F.rlog) %>%
+  dplyr::mutate(Sex = "F")
+Fd_TAI_M.rlog <- 
+  TI.preplot(Fd_PES_M.rlog) %>%
+  dplyr::mutate(Sex = "M")
+Fs_TAI_F.rlog <- 
+  TI.preplot(Fs_PES_F.rlog) %>%
+  dplyr::mutate(Sex = "F")
+Fs_TAI_M.rlog <- 
+  TI.preplot(Fs_PES_M.rlog) %>%
+  dplyr::mutate(Sex = "M")
+```
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+plot_tissue_Fd_with_gametes <- function(preplot_out){
+  plot_out <- 
+    preplot_out %>%
+    ggplot2::ggplot(
+      aes(
+        x = interaction(Tissue,Sex),
+        y = TAI,
+        group = Tissue,
+        colour = Sex
+        )
+      ) +
+    ggplot2::geom_point(
+      size = 4, 
+      position = ggplot2::position_dodge(width=0.9)) +
+    ggplot2::geom_errorbar(
+      aes(ymin = TAI - sd, ymax = TAI + sd),
+      width = 0.1,
+      position = ggplot2::position_dodge(width=0.9)) +
+    ggplot2::geom_text(
+      aes(label = Tissue),
+      vjust = -0.9,
+      angle = 90,
+      position = ggplot2::position_dodge(width = 0.9),
+      colour = "black") +
+    ggplot2::scale_colour_manual(
+      values = c("#00A087FF", "#E64B35FF", "#4DBBD5FF"), 
+      guide = "none") +
+    ggplot2::labs(
+      x = "Sex",
+      title = "Fucus distichus \n(matSP)",
+      colour = NULL
+    ) +
+    ggplot2::theme_classic()
+  return(plot_out)
+}
+```
+
+```{r fig.height = 2.5, fig.width = 3}
+Fd_combined_matSP <- 
+  base::rbind(Fd_TAI_F.sqrt, Fd_TAI_M.sqrt) %>% 
+  base::rbind(dplyr::mutate(Fd_TAI_matSP.sqrt, Sex = "Mixed"))
+Fd_combined_matSP$Sex <- base::factor(Fd_combined_matSP$Sex, c("Mixed", "F", "M"))
+Fd_combined_matSP %>%
+  plot_tissue_Fd_with_gametes() + 
+  ggplot2::labs(subtitle = "sqrt(TPM)", x = "Samples") +
+  ggplot2::scale_x_discrete(breaks = 1)
+  # ggplot2::scale_x_discrete(breaks = levels(Fd_combined_matSP$Sex))
+# ggplot2::ggsave(filename = "Fd_TAI_tissue_gamete.pdf", device = "pdf", width = 2.2, height = 3)
+
+Fs_combined_matSP <- base::rbind(Fs_TAI_F.sqrt, Fs_TAI_M.sqrt) %>% 
+  base::rbind(Fs_TAI_F_matSP.sqrt) %>%
+  base::rbind(Fs_TAI_M_matSP.sqrt)
+Fs_combined_matSP$Tissue <- base::factor(Fs_combined_matSP$Tissue, c("holdfast", "reptip", "stipe", "vegtip", "gamete"))
+Fs_combined_matSP %>%
+  plot_tissue_Fs() + 
+  ggplot2::labs(subtitle = "sqrt(TPM)", x = "Samples") +
+  ggplot2::scale_x_discrete(breaks = 1)
+# ggplot2::ggsave(filename = "Fs_TAI_tissue_gamete.pdf", device = "pdf", width = 4, height = 3)
+```
+
+# Mean expression of different PS
+
+We check whether newer genes are restricted in expression during the waist of the hourglass. Or the older genes are upregulated.
+
+```{r}
+library(tidyverse)
+library(myTAI)
+```
+
+## Load PES
+
+Non-transformed
+
+```{r}
+Fd_PES <-
+  readr::read_csv(file = "data/Fd_PES.csv") %>% 
+  dplyr::select(-c("gamete", "matSP")) 
+Fs_PES <-
+  readr::read_csv(file = "data/Fs_PES.csv") %>% 
+  dplyr::select(-c("gamete", "matSP")) 
+```
+
+sqrt-tranformed
+
+```{r}
+Fd_PES.sqrt <-
+  readr::read_csv(file = "data/Fd_PES.sqrt.csv") %>% 
+  dplyr::select(-c("gamete", "matSP")) 
+Fs_PES.sqrt <-
+  readr::read_csv(file = "data/Fs_PES.sqrt.csv") %>% 
+  dplyr::select(-c("gamete", "matSP")) 
+```
+
+log2-tranformed
+
+```{r}
+Fd_PES.log2 <-
+  readr::read_csv(file = "data/Fd_PES.log2.csv") %>% 
+  dplyr::select(-c("gamete", "matSP")) 
+Fs_PES.log2 <-
+  readr::read_csv(file = "data/Fs_PES.log2.csv") %>% 
+  dplyr::select(-c("gamete", "matSP")) 
+```
+
+rank-tranformed
+
+```{r}
+Fd_PES.rank <-
+  readr::read_csv(file = "data/Fd_PES.rank.csv") %>% 
+  dplyr::select(-c("gamete", "matSP")) 
+Fs_PES.rank <-
+  readr::read_csv(file = "data/Fs_PES.rank.csv") %>% 
+  dplyr::select(-c("gamete", "matSP")) 
+```
+
+rlog-tranformed
+
+```{r}
+Fd_PES.rlog <-
+  readr::read_csv(file = "data/Fd_PES.rlog.csv") %>% 
+  dplyr::select(-c("gamete", "matSP")) 
+Fs_PES.rlog <-
+  readr::read_csv(file = "data/Fs_PES.rlog.csv") %>% 
+  dplyr::select(-c("gamete", "matSP")) 
+```
+
+## Average expression of all genes
+
+To have an understanding of the variance in the median calculation, I will obtain the standard deviation via bootstrapping.
+
+```{r}
+plot_relative_expression <- function(PES, average = "mean", plot = T){
+  averaging_function <- base::match.fun(average)        
+
+  PES_in <- 
+    PES %>%
+    tidyr::pivot_longer(!c(PS, GeneID), values_to = "Expression", names_to = "Stage") %>%
+    dplyr::group_by(PS,Stage) %>%
+    dplyr::summarise(mean_expression = averaging_function(Expression),
+                     n_genes = n())
+  
+  max_expression <- 
+    PES_in %>%
+    dplyr::group_by(PS) %>%
+    dplyr::summarise(max_expression = max(mean_expression),
+                     min_expression = min(mean_expression))
+
+  # normalise expression between 0 and 1
+  PES_relative_expression <-
+    left_join(PES_in, max_expression, by = "PS") %>%
+    dplyr::mutate(relative_expression = (mean_expression-min_expression)/(max_expression-min_expression))
+  
+  PES_relative_expression$Stage <- 
+    factor(PES_relative_expression$Stage, levels = unique(colnames(PES)[-c(1,2)]))
+  
+  # return if plotting is not desired.
+  if(!plot){return(PES_relative_expression)}
+  
+  PES_relative_expression <-
+    dplyr::mutate(PES_relative_expression, PS_category = case_when(
+      PS < 7 ~ "ancient genes",
+      TRUE~ "young genes"
+    )) %>%
+    dplyr::mutate(PS_representativeness = case_when(
+      n_genes < 1000 ~ "low",
+      TRUE~ "high"
+    ))
+  
+  ggplot2::ggplot(PES_relative_expression,
+                  aes(x = Stage, 
+                      y = relative_expression, 
+                      group = PS, 
+                      # linetype = PS_representativeness,
+                      # linewidth = log2(n_genes),
+                      colour = factor(PS))) +
+  # ggplot2::geom_line(alpha = 0.5) +
+  ggplot2::geom_line(linewidth = 2, linetype = "twodash") +
+  ggplot2::facet_wrap(vars(PS_category)) +
+  ggplot2::scale_color_brewer(palette="Dark2") +
+  ggplot2::labs(y = "relative expression", colour = "PS")
+}
+```
+
+```{r warning=FALSE, fig.height = 3, fig.width = 7}
+plot_relative_expression(Fs_PES) + ggplot2::labs(title = "Fs", subtitle = "TPM")
+plot_relative_expression(Fd_PES) + ggplot2::labs(title = "Fd", subtitle = "TPM")
+
+plot_relative_expression(Fs_PES.sqrt) + ggplot2::labs(title = "Fs", subtitle = "sqrt(TPM)")
+plot_relative_expression(Fd_PES.sqrt) + ggplot2::labs(title = "Fd", subtitle = "sqrt(TPM)")
+
+plot_relative_expression(Fs_PES.log2) + ggplot2::labs(title = "Fs", subtitle = "log2(TPM)")
+plot_relative_expression(Fd_PES.log2) + ggplot2::labs(title = "Fd", subtitle = "log2(TPM)")
+
+plot_relative_expression(Fs_PES.rank) + ggplot2::labs(title = "Fs", subtitle = "rank(TPM)")
+plot_relative_expression(Fd_PES.rank) + ggplot2::labs(title = "Fd", subtitle = "rank(TPM)")
+
+plot_relative_expression(Fs_PES.rlog) + ggplot2::labs(title = "Fs", subtitle = "rlog(TPM)")
+plot_relative_expression(Fd_PES.rlog) + ggplot2::labs(title = "Fd", subtitle = "rlog(TPM)")
+```
+
+Thus, we see a general pattern that the hourglass pattern comes from the down-regulation of younger genes rather than an upregulation of older genes, especially for the sqrt and log2 transformed data. The dataset with ranked show that if we emphasise genes with low expression in the resulting TAI profile, we see increased expression of older genes in the mid-embryo. However, this transformation is non-standard and it is unclear what is even meant by "relative expression" in the context of the rank data.
+
+#### Plot mean CI
+
+Second attempt.
+
+```{r}
+plot_PS_CImean <- function(PES){
+  PES_in <- 
+    PES %>%
+    tidyr::pivot_longer(!c(PS, GeneID), values_to = "Expression", names_to = "Stage") %>%
+    dplyr::group_by(PS,Stage) %>%
+    dplyr::summarise(ggplot2::mean_cl_boot(Expression))
+  
+  PES_in$Stage <- 
+    factor(PES_in$Stage, levels = unique(colnames(PES)[-c(1,2)]))
+  
+  PES_in %>%
+    ggplot2::ggplot(aes(x = Stage, y = y, colour = factor(PS), group = PS)) +
+    ggplot2::geom_ribbon(aes(ymin = ymin, ymax = ymax), 
+              alpha = 0.1, color = NA) +
+    ggplot2::geom_line(size = 1) + 
+    ggplot2::scale_color_brewer(palette="Dark2") +
+    ggplot2::facet_wrap(vars(PS), scales = "free_y") +
+    ggplot2::labs(y = "Mean expression level", colour = "PS")
+  }
+```
+
+```{r fig.height = 4, fig.width = 6}
+plot_PS_CImean(Fs_PES) + ggplot2::labs(title = "Fs", subtitle = "TPM")
+plot_PS_CImean(Fd_PES) + ggplot2::labs(title = "Fd", subtitle = "TPM")
+
+plot_PS_CImean(Fs_PES.sqrt) + ggplot2::labs(title = "Fs", subtitle = "sqrt(TPM)")
+plot_PS_CImean(Fd_PES.sqrt) + ggplot2::labs(title = "Fd", subtitle = "sqrt(TPM)")
+
+plot_PS_CImean(Fs_PES.log2) + ggplot2::labs(title = "Fs", subtitle = "log2(TPM)", y = "mean log2(TPM+1)") + ggplot2::theme_classic()
+# ggplot2::ggsave(filename = "Fs_PS_embryo.pdf", device = "pdf", width = 6, height = 4)
+plot_PS_CImean(Fd_PES.log2) + ggplot2::labs(title = "Fd", subtitle = "log2(TPM)", y = "mean log2(TPM+1)") + ggplot2::theme_classic()
+# ggplot2::ggsave(filename = "Fd_PS_embryo.pdf", device = "pdf", width = 6, height = 4)
+
+plot_PS_CImean(Fs_PES.rank) + ggplot2::labs(title = "Fs", subtitle = "rank(TPM)")
+plot_PS_CImean(Fd_PES.rank) + ggplot2::labs(title = "Fd", subtitle = "rank(TPM)")
+
+plot_PS_CImean(Fs_PES.rlog) + ggplot2::labs(title = "Fs", subtitle = "rlog(TPM)")
+plot_PS_CImean(Fd_PES.rlog) + ggplot2::labs(title = "Fd", subtitle = "rlog(TPM)")
+```
+
+So what we see with more details is that the older genes are expressed with more variance and the youngest genes are completely downregulated in the 'phylotypic stage'. The spread is based on 95% confidence interval.
+
+Get session info.
+
+```{r warning=FALSE,message=FALSE}
+devtools::session_info()
+```

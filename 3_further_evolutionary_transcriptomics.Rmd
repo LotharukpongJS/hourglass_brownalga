@@ -1,0 +1,3519 @@
+---
+title: "3. Further evolutionary transcriptomics analyses"
+output:
+  html_document:
+    df_print: paged
+---
+
+I provide here further evolutionary transcriptomics analyses that informed the work, most of which did not make into the main figures, e.g. denoised TAI, pTAI analysis and GO analyses. Note: permutations here are set at 500 rather than 50000 to ensure a fast run. In case you are wondering what `TAI` is, as mentioned in `2. Evolutionary transcriptomics analyses`, it stands for "transcriptome age index" (see the R package [`myTAI`](https://drostlab.github.io/myTAI/) for further details).
+
+# Evolutionary transcriptome in _Fucus_ embryogenesis using RNA-seq that has been 'denoised' using `noisyR`
+
+Testing TAI using the dataset that has been denoised by `noisyr`. The default settings were used `the selected similarity metric is correlation_pearson`, `similarity.threshold = 0.25` & `method.chosen = Boxplot-IQR`.
+
+Note: a lot of genes are removed through this analysis.
+
+```{r warning=FALSE,message=FALSE}
+library(tidyverse)
+library(myTAI)
+```
+
+The PES that was constructed using denoised data is already made. I am only using the raw `TPM`, `sqrt(TPM)` transform and `log2(TPM+1)` transform because I don't think the `rank` and the `rlog` transformations are necessary for this datatype.
+
+The only issue I see here would be oversampling the permutations.
+
+## Load PES
+
+Non-transformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_PES <-
+  readr::read_csv(file = "data/Fd_PES_denoised.csv", show_col_types = FALSE)
+Fd_PES_F <-
+  readr::read_csv(file = "data/Fd_PES_F_denoised.csv", show_col_types = FALSE)
+Fd_PES_M <-
+  readr::read_csv(file = "data/Fd_PES_M_denoised.csv", show_col_types = FALSE)
+Fs_PES <-
+  readr::read_csv(file = "data/Fs_PES_denoised.csv", show_col_types = FALSE)
+Fs_PES_F <-
+  readr::read_csv(file = "data/Fs_PES_F_denoised.csv", show_col_types = FALSE)
+Fs_PES_M <-
+  readr::read_csv(file = "data/Fs_PES_M_denoised.csv", show_col_types = FALSE)
+```
+
+sqrt-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_PES.sqrt <-
+  readr::read_csv(file = "data/Fd_PES.sqrt_denoised.csv", show_col_types = FALSE)
+Fd_PES_F.sqrt <-
+  readr::read_csv(file = "data/Fd_PES_F.sqrt_denoised.csv", show_col_types = FALSE)
+Fd_PES_M.sqrt <-
+  readr::read_csv(file = "data/Fd_PES_M.sqrt_denoised.csv", show_col_types = FALSE)
+Fs_PES.sqrt <-
+  readr::read_csv(file = "data/Fs_PES.sqrt_denoised.csv", show_col_types = FALSE)
+Fs_PES_F.sqrt <-
+  readr::read_csv(file = "data/Fs_PES_F.sqrt_denoised.csv", show_col_types = FALSE)
+Fs_PES_M.sqrt <-
+  readr::read_csv(file = "data/Fs_PES_M.sqrt_denoised.csv", show_col_types = FALSE)
+```
+
+log2-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_PES.log2 <-
+  readr::read_csv(file = "data/Fd_PES.log2_denoised.csv", show_col_types = FALSE)
+Fd_PES_F.log2 <-
+  readr::read_csv(file = "data/Fd_PES_F.log2_denoised.csv", show_col_types = FALSE)
+Fd_PES_M.log2 <-
+  readr::read_csv(file = "data/Fd_PES_M.log2_denoised.csv", show_col_types = FALSE)
+Fs_PES.log2 <-
+  readr::read_csv(file = "data/Fs_PES.log2_denoised.csv", show_col_types = FALSE)
+Fs_PES_F.log2 <-
+  readr::read_csv(file = "data/Fs_PES_F.log2_denoised.csv", show_col_types = FALSE)
+Fs_PES_M.log2 <-
+  readr::read_csv(file = "data/Fs_PES_M.log2_denoised.csv", show_col_types = FALSE)
+```
+
+## TAI calculation
+
+I had previously used a function to combine males and females into one TAI plot.
+
+```{r warning=FALSE,message=FALSE}
+#TI stands for transcriptome index
+TI.preplot <- function(ExpressionSet, permutations = 500){
+  std <- 
+    myTAI::bootMatrix(
+      ExpressionSet = ExpressionSet, 
+      permutations  = permutations) %>% 
+    apply(2, stats::sd)
+  TI.out <- 
+    myTAI::TAI(ExpressionSet) %>%
+    tibble::as_tibble(rownames = "Stage", colnames = c("TAI", "PS")) %>% 
+    dplyr::bind_cols(as_tibble(std)) %>%
+    dplyr::rename(TAI = 2, sd = 3)
+  return(TI.out)
+}
+```
+
+#### Fucus distichus
+
+```{r warning=FALSE,message=FALSE}
+# function to process Fd. This will be changed to accommodate more seq data.
+get_TAI_Fd <- function(PES_all, PES_M, PES_F, ordered_stages){
+  TAI_b <- 
+    TI.preplot(
+      dplyr::select(PES_all, !c("gamete"))) %>%
+    dplyr::mutate(Sex = "Mixed")
+  stages_to_NA <- # this will differ for Fucus serratus
+    ordered_stages[-c(1, 1+1)]
+  TAI_M <- 
+    TI.preplot(
+      PES_M) %>%
+    tibble::add_row(
+      dplyr::filter(
+        dplyr::select(TAI_b, !Sex), 
+        Stage == ordered_stages[1+1])) %>%
+    tibble::add_row(
+      tibble::tibble(Stage = stages_to_NA, TAI = NA, sd = NA)
+    ) %>%
+    dplyr::mutate(Sex = "Male")
+  TAI_F <- 
+    TI.preplot(
+      PES_F) %>%
+    tibble::add_row(
+      dplyr::filter(
+        dplyr::select(TAI_b, !Sex), 
+        Stage == ordered_stages[1+1])) %>%
+    tibble::add_row(
+      tibble::tibble(Stage = stages_to_NA, TAI = NA, sd = NA)
+    ) %>%
+    dplyr::mutate(Sex = "Female") # This is not true - this is needed for the plotting.
+  TAI_out <- 
+    dplyr::bind_rows(TAI_b, TAI_M, TAI_F)
+  TAI_out$Stage <- base::factor(TAI_out$Stage, ordered_stages)
+  return(TAI_out)
+}
+```
+
+```{r warning=FALSE,message=FALSE}
+ordered_stages <- colnames(Fd_PES)[3:ncol(Fd_PES)]
+Fd_TAI <- 
+  get_TAI_Fd(
+    PES_all = Fd_PES, 
+    PES_M = Fd_PES_M, 
+    PES_F = Fd_PES_F, 
+    ordered_stages)
+Fd_TAI.log2 <- 
+  get_TAI_Fd(
+    PES_all = Fd_PES.log2, 
+    PES_M = dplyr::rename(Fd_PES_M.log2, gamete = V1), 
+    PES_F = dplyr::rename(Fd_PES_F.log2, gamete = V1), 
+    ordered_stages)
+Fd_TAI.sqrt <- 
+  get_TAI_Fd(
+    PES_all = Fd_PES.sqrt, 
+    PES_M = dplyr::rename(Fd_PES_M.sqrt, gamete = V1), 
+    PES_F = dplyr::rename(Fd_PES_F.sqrt, gamete = V1), 
+    ordered_stages)
+```
+
+#### Fucus serratus
+
+```{r warning=FALSE,message=FALSE}
+# function to process Fd. This will be changed to accommodate more seq data.
+get_TAI_Fs <- function(PES_all, PES_M, PES_F, ordered_stages){
+  TAI_b <- 
+    TI.preplot(
+      dplyr::select(PES_all, !c("gamete","matSP"))) %>%
+    dplyr::mutate(Sex = "Mixed")
+  stages_to_NA <- # this will differ for Fucus distichus
+    ordered_stages[-c(1, 1+1, length(ordered_stages) - 1, length(ordered_stages))]
+  TAI_M <- 
+    TI.preplot(
+      PES_M) %>%
+    tibble::add_row(
+      dplyr::filter(
+        dplyr::select(TAI_b, !Sex), 
+        Stage %in% c(
+          ordered_stages[1+1], 
+          ordered_stages[length(ordered_stages) - 1]))) %>%
+    tibble::add_row(
+      tibble::tibble(Stage = stages_to_NA, TAI = NA, sd = NA)
+    ) %>%
+    dplyr::mutate(Sex = "Male")
+  TAI_F <- 
+    TI.preplot(
+      PES_F) %>%
+    tibble::add_row(
+      dplyr::filter(
+        dplyr::select(TAI_b, !Sex), 
+        Stage %in% c(
+          ordered_stages[1+1], 
+          ordered_stages[length(ordered_stages) - 1]))) %>%
+    tibble::add_row(
+      tibble::tibble(Stage = stages_to_NA, TAI = NA, sd = NA)
+    ) %>%
+    dplyr::mutate(Sex = "Female") # This is not true. this is needed for the plotting.
+  TAI_out <- 
+    dplyr::bind_rows(TAI_b, TAI_M, TAI_F)
+  TAI_out$Stage <- base::factor(TAI_out$Stage, ordered_stages)
+  return(TAI_out)
+}
+```
+
+```{r warning=FALSE,message=FALSE}
+ordered_stages <- colnames(Fs_PES)[3:ncol(Fs_PES)]
+Fs_TAI <- 
+  get_TAI_Fs(
+    PES_all = Fs_PES, 
+    PES_M = Fs_PES_M, 
+    PES_F = Fs_PES_F, 
+    ordered_stages)
+Fs_TAI.log2 <- 
+  get_TAI_Fs(
+    PES_all = Fs_PES.log2, 
+    PES_M = Fs_PES_M.log2, 
+    PES_F = Fs_PES_F.log2,
+    ordered_stages)
+Fs_TAI.sqrt <- 
+  get_TAI_Fs(
+    PES_all = Fs_PES.sqrt, 
+    PES_M = Fs_PES_M.sqrt, 
+    PES_F = Fs_PES_F.sqrt, 
+    ordered_stages)
+```
+
+## TAI profiles
+
+#### Fucus serratus
+
+```{r warning=FALSE,message=FALSE}
+Fs_TAI %>% 
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = Sex,
+      colour = Sex,
+      fill = Sex)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), alpha = 0.1) +
+  ggplot2::geom_line(size = 2, lineend = "round") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus serratus",
+       subtitle = "TPM")
+
+Fs_TAI.sqrt %>% 
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = Sex,
+      colour = Sex,
+      fill = Sex)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), alpha = 0.1) +
+  ggplot2::geom_line(size = 2, lineend = "round") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus serratus",
+       subtitle = "sqrt(TPM)")
+
+Fs_TAI.log2 %>% 
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = Sex,
+      colour = Sex,
+      fill = Sex)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), alpha = 0.1) +
+  ggplot2::geom_line(size = 2, lineend = "round") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus serratus",
+       subtitle = "log2(TPM+\u03b1)")
+```
+
+#### Fucus distichus
+
+```{r warning=FALSE,message=FALSE}
+Fd_TAI %>% 
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = Sex,
+      colour = Sex,
+      fill = Sex)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), alpha = 0.1) +
+  ggplot2::geom_line(size = 2, lineend = "round") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus distichus",
+       subtitle = "TPM")
+
+Fd_TAI.sqrt %>% 
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = Sex,
+      colour = Sex,
+      fill = Sex)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), alpha = 0.1) +
+  ggplot2::geom_line(size = 2, lineend = "round") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus distichus",
+       subtitle = "sqrt(TPM)")
+
+Fd_TAI.log2 %>% 
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = Sex,
+      colour = Sex,
+      fill = Sex)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), alpha = 0.1) +
+  ggplot2::geom_line(size = 2, lineend = "round") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus distichus",
+       subtitle = "log2(TPM+\u03b1)")
+```
+
+## tfStability
+
+### Flat line test
+
+_F. serratus_
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+Fs_PES_tS <- 
+  tfStability(
+    dplyr::select(Fs_PES, !c(gamete, matSP)),
+    transforms = c("none", "sqrt", "log2", "rank"),
+    permutations = 500
+    )
+Fs_PES_tS_processed <-
+  tibble::as_tibble(Fs_PES_tS, rownames = "transformation")
+
+Fs_PES_tS_res <- 
+  Fs_PES_tS_processed %>%
+  dplyr::rename("pval" = value) %>%
+  dplyr::mutate(test = "FlatLineTest")
+```
+
+_F. distichus_
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+Fd_PES_tS <- 
+  tfStability(
+    dplyr::select(Fd_PES, !c(gamete, matSP)),
+    transforms = c("none", "sqrt", "log2", "rank"),
+    permutations = 500
+    )
+Fd_PES_tS_processed <-
+  tibble::as_tibble(Fd_PES_tS, rownames = "transformation")
+
+Fd_PES_tS_res <- 
+  Fd_PES_tS_processed %>%
+  dplyr::rename("pval" = value) %>%
+  dplyr::mutate(test = "FlatLineTest")
+```
+
+#### Plot p-values
+
+Fucus serratus development
+
+```{r fig.height = 2.5, fig.width = 3}
+Fs_PES_tS_res %>%
+  ggplot2::ggplot(
+    aes(
+      y = -log10(pval), 
+      x = transformation)) +
+  ggplot2::geom_col(width = 0.05) +
+  ggplot2::geom_point(size = 5) +
+  ggplot2::geom_hline(
+    yintercept = -log10(0.05), 
+    colour = "#E64B35FF",
+    linetype = 'dashed',
+    size = 2
+    ) +
+  ggplot2::labs(
+    title = "Fucus serratus",
+    subtitle = "FlatLineTest",
+    x = "Transformation"
+  ) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_classic()
+# save plot
+# ggplot2::ggsave(filename = "Fs_TAI_denoised_embryo_FLT.pdf", device = "pdf", width = 3, height = 2.5)
+```
+
+Fucus distichus development
+
+```{r fig.height = 2.5, fig.width = 3}
+Fd_PES_tS_res %>%
+  ggplot2::ggplot(
+    aes(
+      y = -log10(pval), 
+      x = transformation)) +
+  ggplot2::geom_col(width = 0.05) +
+  ggplot2::geom_point(size = 5) +
+  ggplot2::geom_hline(
+    yintercept = -log10(0.05), 
+    colour = "#E64B35FF",
+    linetype = 'dashed',
+    size = 2
+    ) +
+  ggplot2::labs(
+    title = "Fucus distichus",
+    subtitle = "FlatLineTest",
+    x = "Transformation"
+  ) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_classic()
+# save plot
+# ggplot2::ggsave(filename = "Fd_TAI_denoised_embryo_FLT.pdf", device = "pdf", width = 3, height = 2.5)
+```
+
+### Non-flat line profile
+
+```{r warning=FALSE,message=FALSE}
+Fs_PES_tS <- 
+  tfStability(
+    dplyr::select(Fs_PES, !c(gamete, matSP)),
+    TestStatistic = "ReductiveHourglassTest",
+    transforms = c("none", "sqrt", "log2", "rank"),
+    modules = list(early = 1:2, mid = 3:4, late = 5),
+    permutations = 500
+    )
+Fs_PES_tS_processed <-
+  tibble::as_tibble(Fs_PES_tS, rownames = "transformation")
+
+Fs_PES_tS_res <- 
+  Fs_PES_tS_processed %>%
+  dplyr::rename("pval" = value) %>%
+  dplyr::mutate(test = "ReductiveHourglassTest")
+
+Fd_PES_tS <- 
+  tfStability(
+    dplyr::select(Fd_PES, !c(gamete, matSP)),
+    TestStatistic = "ReductiveHourglassTest",
+    transforms = c("none", "sqrt", "log2", "rank"),
+    modules = list(early = 1:4, mid = 5, late = 6),
+    permutations = 500
+    )
+Fd_PES_tS_processed <-
+  tibble::as_tibble(Fd_PES_tS, rownames = "transformation")
+
+Fd_PES_tS_res <- 
+  Fd_PES_tS_processed %>%
+  dplyr::rename("pval" = value) %>%
+  dplyr::mutate(test = "ReductiveHourglassTest")
+```
+
+#### Plot p-values
+
+Fucus serratus development
+
+```{r fig.height = 2.5, fig.width = 3}
+Fs_PES_tS_res %>%
+  ggplot2::ggplot(
+    aes(
+      y = -log10(pval), 
+      x = transformation)) +
+  ggplot2::geom_col(width = 0.05) +
+  ggplot2::geom_point(size = 5) +
+  ggplot2::geom_hline(
+    yintercept = -log10(0.05), 
+    colour = "#E64B35FF",
+    linetype = 'dashed',
+    size = 2
+    ) +
+  ggplot2::labs(
+    title = "Fucus serratus",
+    subtitle = "ReductiveHourglassTest",
+    x = "Transformation"
+  ) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_classic()
+# save plot
+# ggplot2::ggsave(filename = "Fs_TAI_denoised_embryo_RHT.pdf", device = "pdf", width = 3, height = 2.5)
+```
+
+Fucus distichus development
+
+```{r fig.height = 2.5, fig.width = 3}
+Fd_PES_tS_res %>%
+  ggplot2::ggplot(
+    aes(
+      y = -log10(pval), 
+      x = transformation)) +
+  ggplot2::geom_col(width = 0.05) +
+  ggplot2::geom_point(size = 5) +
+  ggplot2::geom_hline(
+    yintercept = -log10(0.05), 
+    colour = "#E64B35FF",
+    linetype = 'dashed',
+    size = 2
+    ) +
+  ggplot2::labs(
+    title = "Fucus distichus",
+    subtitle = "ReductiveHourglassTest",
+    x = "Transformation"
+  ) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_classic()
+# y = -log10(0.05) + max(Fd_PES_tS_res)/9,
+# or perhaps we can use raw Pvalues
+# save plot
+# ggplot2::ggsave(filename = "Fd_TAI_denoised_embryo_RHT.pdf", device = "pdf", width = 3, height = 2.5)
+```
+
+### TAI _Fucus_ embryonic stages only
+
+```{r fig.height = 2.5, fig.width = 4.5}
+#Fs
+Fs_TAI %>% 
+  dplyr::filter(!Stage %in% c("gamete", "matSP") & Sex == "Mixed") %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    size = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus serratus",
+       subtitle = "TPM")
+
+Fs_TAI.sqrt %>% 
+  dplyr::filter(!Stage %in% c("gamete", "matSP") & Sex == "Mixed") %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    size = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus serratus",
+       subtitle = "sqrt(TPM)")
+# save plot
+# ggplot2::ggsave(filename = "Fs_TAI_denoised_embryo.pdf", device = "pdf", width = 4.5, height = 2.5)
+
+Fs_TAI.log2 %>% 
+  dplyr::filter(!Stage %in% c("gamete", "matSP") & Sex == "Mixed") %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    size = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus serratus",
+       subtitle = "log2(TPM+\u03b1)")
+
+# Fd
+Fd_TAI %>% 
+  dplyr::filter(!Stage %in% c("gamete", "matSP") & Sex == "Mixed") %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    size = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus distichus",
+       subtitle = "TPM")
+
+Fd_TAI.sqrt %>% 
+  dplyr::filter(!Stage %in% c("gamete", "matSP") & Sex == "Mixed") %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    size = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus distichus",
+       subtitle = "sqrt(TPM)")
+# save plot
+# ggplot2::ggsave(filename = "Fd_TAI_denoised_embryo.pdf", device = "pdf", width = 4.5, height = 2.5)
+
+Fd_TAI.log2 %>% 
+  dplyr::filter(!Stage %in% c("gamete", "matSP") & Sex == "Mixed") %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    size = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus distichus",
+       subtitle = "log2(TPM+\u03b1)")
+```
+
+
+# Stats for male-female difference in Ectocarpus
+
+We examine here whether there is a significant difference between the TAI of male and female strains of _Ectocarpus_.
+
+```{r warning=FALSE,message=FALSE}
+library(tidyverse)
+library(myTAI)
+```
+
+## Load PES
+
+Non-transformed
+
+```{r warning=FALSE,message=FALSE}
+Ec_PES_32m <-
+  readr::read_csv(file = "data/Ec_PES_32m.csv", show_col_types = FALSE)
+Ec_PES_25f <-
+  readr::read_csv(file = "data/Ec_PES_25f.csv", show_col_types = FALSE)
+```
+
+sqrt-transformed
+
+```{r warning=FALSE,message=FALSE}
+Ec_PES_32m.sqrt <-
+  readr::read_csv(file = "data/Ec_PES_32m.sqrt.csv", show_col_types = FALSE)
+Ec_PES_25f.sqrt <-
+  readr::read_csv(file = "data/Ec_PES_25f.sqrt.csv", show_col_types = FALSE)
+```
+
+log2-transformed
+
+```{r warning=FALSE,message=FALSE}
+Ec_PES_32m.log2 <-
+  readr::read_csv(file = "data/Ec_PES_32m.log2.csv", show_col_types = FALSE)
+Ec_PES_25f.log2 <-
+  readr::read_csv(file = "data/Ec_PES_25f.log2.csv", show_col_types = FALSE)
+```
+
+rank-transformed
+
+```{r warning=FALSE,message=FALSE}
+Ec_PES_32m.rank <-
+  readr::read_csv(file = "data/Ec_PES_32m.rank.csv", show_col_types = FALSE)
+Ec_PES_25f.rank <-
+  readr::read_csv(file = "data/Ec_PES_25f.rank.csv", show_col_types = FALSE)
+```
+
+rlog-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Ec_PES_32m.rlog <-
+  readr::read_csv(file = "data/Ec_PES_32m.rlog.csv", show_col_types = FALSE)
+Ec_PES_25f.rlog <-
+  readr::read_csv(file = "data/Ec_PES_25f.rlog.csv", show_col_types = FALSE)
+```
+
+## tfStability
+
+### FLT of permutation statistics between males and females
+
+```{r warning=FALSE,message=FALSE}
+# calculate p-values based on the flat line test, then adjust for multiple comparisons.
+hack_flt <- function(PES_m, PES_f, permutations = 500, tr_name = "", padj = F){
+        
+  pval_df <- data.frame()
+  
+  for(i in colnames(PES_m)[-c(1,2)]){
+    join_test <- dplyr::left_join(
+      dplyr::select(PES_m, 1, 2, starts_with(i)),
+      dplyr::select(PES_f, 1, 2, starts_with(i)),
+      by = c("GeneID", "PS"))
+    # join_test_df <- rbind(join_test)
+    # where x is male and y is female
+    pval <- myTAI::FlatLineTest(join_test, permutations = permutations)
+    pval_df <- 
+      dplyr::bind_rows(
+        pval_df, 
+        tibble::tibble(
+          stage = i, 
+          p.value = pval$p.value,
+          transformation = tr_name))
+  }
+  
+  pval_df$stage <- base::factor(pval_df$stage, colnames(PES_m)[-c(1,2)])
+  
+  if(!padj){return(pval_df)}
+  
+  # to adjust p values
+  p_value <- pval_df$p.value
+
+  # Apply Bonferroni correction to the p-value
+  p_adjusted <- p.adjust(p_value, method = "bonferroni")
+  
+  pval_df$padj <- p_adjusted
+  
+  return(pval_df)
+}
+```
+
+```{r warning=FALSE,message=FALSE}
+permutations = 500
+
+Ec_PES_perm <-
+  dplyr::bind_rows(
+    hack_flt(Ec_PES_32m, Ec_PES_25f, tr_name = "none", padj = T),
+    hack_flt(Ec_PES_32m.sqrt, Ec_PES_25f.sqrt, tr_name = "sqrt", padj = T),
+    hack_flt(Ec_PES_32m.log2, Ec_PES_25f.log2, tr_name = "log2", padj = T),
+    hack_flt(Ec_PES_32m.rank, Ec_PES_25f.rank, tr_name = "rank", padj = T),
+    hack_flt(Ec_PES_32m.rlog, Ec_PES_25f.rlog, tr_name = "rlog", padj = T)
+  ) %>%
+  dplyr::mutate(test = "permutation test")
+```
+
+```{r fig.height = 4, fig.width = 4}
+alpha = 2.22e-16 # so we do not get infinite values
+
+Ec_PES_perm %>%
+  ggplot2::ggplot(
+    aes(
+      y = -log10(padj),
+      x = stage,
+      group = transformation,
+      linetype = transformation)) +
+  ggplot2::geom_line(width = 0.05, alpha = 0.5) +
+  ggplot2::geom_point(size = 5) +
+  ggplot2::geom_hline(
+    yintercept = -log10(0.05),
+    colour = "#E64B35FF",
+    linetype = 'dashed',
+    size = 1
+    ) +
+  ggplot2::labs(
+    title = "Ectocarpus",
+    subtitle = "Permutation test; TAI male > female",
+    x = "Stage",
+    y = "-log10(p_adjusted)"
+  ) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_classic()
+ggplot2::ggsave(filename = "Ec_sex_permutation_test.pdf", device = "pdf", width = 6, height = 4)
+```
+
+```{r fig.height = 2, fig.width = 6.5}
+Ec_PES_perm %>%
+  dplyr::mutate(
+    pval_label = case_when(
+      padj > 0.05 ~ "ns",
+      padj <= 0.05 & padj > 0.01 ~ "*",
+      padj <= 0.01 & padj > 0.001 ~ "**",
+      padj <= 0.001 ~ "***",
+      .default = NA
+    )
+  ) %>%
+  ggplot2::ggplot(
+    aes(
+      y = stage,
+      label = pval_label,
+      x = transformation,
+      fill = -log10(padj + alpha))) +
+  ggplot2::geom_tile(colour = "black", size = 1) +
+  ggplot2::geom_text() +
+  ggplot2::theme_void() +
+  ggplot2::theme(legend.position = "",
+        axis.title.y = element_text(angle = 90),
+        axis.text.y = element_text(),
+        axis.text.x = element_text()) +
+  ggplot2::coord_flip() +
+  ggplot2::scale_fill_steps2(limits = c(0,3),
+                             low = "white", high = "#E64B35FF") +
+  ggplot2::labs(title = "Fucus serratus",
+                subtitle = "Male TAI & female TAI differ?")
+```
+
+# Tau profiles
+
+Tau is used here to calculate stage specificity
+
+```{r warning=FALSE,message=FALSE}
+library(tidyverse)
+library(myTAI)
+```
+
+```{r warning=FALSE,message=FALSE}
+specificity <- function(PES, measure = "tau", drop_Na = T){
+        n_expcol <- ncol(PES) - 2 # e.g. stages or tissue
+        ExpressionSet <- PES[,-1]
+        if (measure == "tau") {
+                norm_expression <- t(apply(
+                        ExpressionSet[, -1], # geneID
+                        1, 
+                        function(row) row / max(row))) # normalise expression
+                specificity_index <- data.frame(
+                        # calculate Tau and return ExpressionSet with tau
+                        tau = apply(
+                                norm_expression,
+                                1,
+                                function(row) sum(1 - row) / (n_expcol-1)),
+                        GeneID = ExpressionSet[, 1])
+        }
+        if (drop_Na) {
+                specificity_index <- na.omit(specificity_index)
+        }
+        return(specificity_index)
+}
+```
+
+
+### Load PES
+
+Non-transformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_PES <-
+  readr::read_csv(file = "data/Fd_PES.csv") %>% select(-c(gamete,matSP))
+Fs_PES <-
+  readr::read_csv(file = "data/Fs_PES.csv") %>% select(-c(gamete,matSP))
+```
+
+sqrt-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_PES.sqrt <-
+  readr::read_csv(file = "data/Fd_PES.sqrt.csv") %>% select(-c(gamete,matSP))
+Fs_PES.sqrt <-
+  readr::read_csv(file = "data/Fs_PES.sqrt.csv") %>% select(-c(gamete,matSP))
+```
+
+log2-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_PES.log2 <-
+  readr::read_csv(file = "data/Fd_PES.log2.csv") %>% select(-c(gamete,matSP))
+Fs_PES.log2 <-
+  readr::read_csv(file = "data/Fs_PES.log2.csv") %>% select(-c(gamete,matSP))
+```
+
+rank-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_PES.rank <-
+  readr::read_csv(file = "data/Fd_PES.rank.csv") %>% select(-c(gamete,matSP))
+Fs_PES.rank <-
+  readr::read_csv(file = "data/Fs_PES.rank.csv") %>% select(-c(gamete,matSP))
+```
+
+rlog-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_PES.rlog <-
+  readr::read_csv(file = "data/Fd_PES.rlog.csv") %>% select(-c(gamete,matSP))
+Fs_PES.rlog <-
+  readr::read_csv(file = "data/Fs_PES.rlog.csv") %>% select(-c(gamete,matSP))
+```
+
+#### Get tau values
+
+```{r fig.height = 3, fig.width = 3}
+Fd_PES_tau <- specificity(Fd_PES)
+Fs_PES_tau <- specificity(Fs_PES)
+Fd_PES_tau.sqrt <- specificity(Fd_PES.sqrt)
+Fs_PES_tau.sqrt <- specificity(Fs_PES.sqrt)
+Fd_PES_tau.log2 <- specificity(Fd_PES.log2)
+Fs_PES_tau.log2 <- specificity(Fs_PES.log2)
+Fd_PES_tau.rank <- specificity(Fd_PES.rank)
+Fs_PES_tau.rank <- specificity(Fs_PES.rank)
+```
+
+#### Plot tau distribution
+
+```{r fig.height = 3, fig.width = 3}
+hist(Fd_PES_tau$tau, breaks = 100)
+hist(Fs_PES_tau$tau, breaks = 100)
+hist(Fd_PES_tau.sqrt$tau, breaks = 100)
+hist(Fs_PES_tau.sqrt$tau, breaks = 100)
+hist(Fd_PES_tau.log2$tau, breaks = 100)
+hist(Fs_PES_tau.log2$tau, breaks = 100)
+hist(Fd_PES_tau.rank$tau, breaks = 100)
+hist(Fs_PES_tau.rank$tau, breaks = 100)
+```
+
+#### Make tau into quantiles (deciles)
+
+This is analogous to divergence map
+
+```{r warning=FALSE,message=FALSE}
+tau_map <- function(tauExpressionSet, n_quantile = 10){
+    GeneID <- tau_strata <- NULL
+    data.table::setDT(tauExpressionSet)
+    data.table::setkeyv(tauExpressionSet, c("tau", "GeneID"))
+    tau_tbl_tauMap <- data.table::as.data.table(dplyr::select(dtplyr::lazy_dt(tauExpressionSet), 
+        tau, GeneID))
+    QuantileValues <- stats::quantile(tau_tbl_tauMap[, tau], 
+        probs = seq(0, 1, (1/{
+            {
+                n_quantile
+            }
+        })), na.rm = TRUE)
+    if (any(duplicated(QuantileValues))) {
+        stop("ERROR: there is at least one duplicate threshold in the quantile analysis. Please select a lower value as n_quantile.")
+    }
+    else {
+    }
+    tau_tbl_tauMap$tau <- base::cut(tau_tbl_tauMap[, tau], 
+        breaks = QuantileValues, include.lowest = TRUE, labels = FALSE)
+    data.table::setnames(tau_tbl_tauMap, old = "tau", new = "tau_strata")
+    return(tau_tbl_tauMap[, list(tau_strata, GeneID)])
+    
+}
+```
+
+```{r warning=FALSE,message=FALSE}
+Fd_PES_tau.quantile <- tau_map(Fd_PES_tau)
+Fs_PES_tau.quantile <- tau_map(Fs_PES_tau)
+Fd_PES_tau.sqrt.quantile <- tau_map(Fd_PES_tau.sqrt)
+Fs_PES_tau.sqrt.quantile <- tau_map(Fs_PES_tau.sqrt)
+Fd_PES_tau.log2.quantile <- tau_map(Fd_PES_tau.log2)
+Fs_PES_tau.log2.quantile <- tau_map(Fs_PES_tau.log2)
+Fd_PES_tau.rank.quantile <- tau_map(Fd_PES_tau.rank)
+Fs_PES_tau.rank.quantile <- tau_map(Fs_PES_tau.rank)
+```
+
+```{r fig.height = 3, fig.width = 3}
+dplyr::left_join(Fd_PES_tau, Fd_PES) %>%
+        ggplot2::ggplot(aes(x = PS, y = tau)) +
+        ggplot2::geom_jitter(alpha = 0.1) +
+        ggplot2::geom_smooth(method = "lm")
+dplyr::left_join(Fs_PES_tau, Fs_PES) %>%
+        ggplot2::ggplot(aes(x = PS, y = tau)) +
+        ggplot2::geom_jitter(alpha = 0.1) +
+        ggplot2::geom_smooth(method = "lm")
+dplyr::left_join(Fd_PES_tau.sqrt, Fd_PES) %>%
+        ggplot2::ggplot(aes(x = PS, y = tau)) +
+        ggplot2::geom_jitter(alpha = 0.1) +
+        ggplot2::geom_smooth(method = "lm")
+dplyr::left_join(Fs_PES_tau.sqrt, Fs_PES) %>%
+        ggplot2::ggplot(aes(x = PS, y = tau)) +
+        ggplot2::geom_jitter(alpha = 0.1) +
+        ggplot2::geom_smooth(method = "lm")
+dplyr::left_join(Fd_PES_tau.log2, Fd_PES) %>%
+        ggplot2::ggplot(aes(x = PS, y = tau)) +
+        ggplot2::geom_jitter(alpha = 0.1) +
+        ggplot2::geom_smooth(method = "lm")
+dplyr::left_join(Fs_PES_tau.log2, Fs_PES) %>%
+        ggplot2::ggplot(aes(x = PS, y = tau)) +
+        ggplot2::geom_jitter(alpha = 0.1) +
+        ggplot2::geom_smooth(method = "lm")
+
+
+# box plots instead
+
+dplyr::left_join(Fd_PES_tau, Fd_PES) %>%
+        ggplot2::ggplot(aes(x = as.factor(PS), y = tau)) +
+        ggplot2::geom_jitter(alpha = 0.1) +
+        ggplot2::geom_boxplot(width = 0.2)
+dplyr::left_join(Fs_PES_tau, Fs_PES) %>%
+        ggplot2::ggplot(aes(x = as.factor(PS), y = tau)) +
+        ggplot2::geom_jitter(alpha = 0.1) +
+        ggplot2::geom_boxplot(width = 0.2)
+dplyr::left_join(Fd_PES_tau.sqrt, Fd_PES) %>%
+        ggplot2::ggplot(aes(x = as.factor(PS), y = tau)) +
+        ggplot2::geom_jitter(alpha = 0.1) +
+        ggplot2::geom_boxplot(width = 0.2)
+dplyr::left_join(Fs_PES_tau.sqrt, Fs_PES) %>%
+        ggplot2::ggplot(aes(x = as.factor(PS), y = tau)) +
+        ggplot2::geom_jitter(alpha = 0.1) +
+        ggplot2::geom_boxplot(width = 0.2)
+dplyr::left_join(Fd_PES_tau.log2, Fd_PES) %>%
+        ggplot2::ggplot(aes(x = as.factor(PS), y = tau)) +
+        ggplot2::geom_jitter(alpha = 0.1) +
+        ggplot2::geom_boxplot(width = 0.2)
+dplyr::left_join(Fs_PES_tau.log2, Fs_PES) %>%
+        ggplot2::ggplot(aes(x = as.factor(PS), y = tau)) +
+        ggplot2::geom_jitter(alpha = 0.1) +
+        ggplot2::geom_boxplot(width = 0.2)
+```
+
+```{r fig.height = 3, fig.width = 3}
+dplyr::left_join(Fd_PES_tau.quantile, Fd_PES) %>%
+        ggplot2::ggplot(aes(x = PS, y = tau_strata)) +
+        ggplot2::geom_jitter(alpha = 0.1) +
+        ggplot2::geom_smooth(method = "lm")
+dplyr::left_join(Fs_PES_tau.quantile, Fs_PES) %>%
+        ggplot2::ggplot(aes(x = PS, y = tau_strata)) +
+        ggplot2::geom_jitter(alpha = 0.1) +
+        ggplot2::geom_smooth(method = "lm")
+dplyr::left_join(Fd_PES_tau.sqrt.quantile, Fd_PES) %>%
+        ggplot2::ggplot(aes(x = PS, y = tau_strata)) +
+        ggplot2::geom_jitter(alpha = 0.1) +
+        ggplot2::geom_smooth(method = "lm") +
+        ggplot2::labs(title = "Fd tau-strata",
+                      subtitle = "sqrt")
+# ggplot2::ggsave(filename = "Fd_PS_tau.pdf", device = "pdf", width = 3, height = 3)
+
+dplyr::left_join(Fs_PES_tau.sqrt.quantile, Fs_PES) %>%
+        ggplot2::ggplot(aes(x = PS, y = tau_strata)) +
+        ggplot2::geom_jitter(alpha = 0.1) +
+        ggplot2::geom_smooth(method = "lm") +
+        ggplot2::labs(title = "Fs tau-strata",
+                      subtitle = "sqrt")
+# ggplot2::ggsave(filename = "Fs_PS_tau.pdf", device = "pdf", width = 3, height = 3)
+
+dplyr::left_join(Fd_PES_tau.log2.quantile, Fd_PES) %>%
+        ggplot2::ggplot(aes(x = PS, y = tau_strata)) +
+        ggplot2::geom_jitter(alpha = 0.1) +
+        ggplot2::geom_smooth(method = "lm")
+dplyr::left_join(Fs_PES_tau.log2.quantile, Fs_PES) %>%
+        ggplot2::ggplot(aes(x = PS, y = tau_strata)) +
+        ggplot2::geom_jitter(alpha = 0.1) +
+        ggplot2::geom_smooth(method = "lm")
+```
+
+```{r warning=FALSE,message=FALSE}
+corr_from_tauPES <- function(PES, PES_tau){
+        input_data <- dplyr::left_join(
+                PES_tau, 
+                dplyr::select(PES, c(1, 2)), by = "GeneID")
+        return(stats::cor.test(input_data$PS, input_data$tau_strata))
+}
+```
+
+```{r warning=FALSE,message=FALSE}
+corr_from_tauPES(PES_tau = Fd_PES_tau.quantile, PES = Fd_PES)
+corr_from_tauPES(PES_tau = Fs_PES_tau.quantile, PES = Fs_PES)
+corr_from_tauPES(PES_tau = Fd_PES_tau.sqrt.quantile, PES = Fd_PES)
+corr_from_tauPES(PES_tau = Fs_PES_tau.sqrt.quantile, PES = Fs_PES)
+corr_from_tauPES(PES_tau = Fd_PES_tau.log2.quantile, PES = Fd_PES)
+corr_from_tauPES(PES_tau = Fs_PES_tau.log2.quantile, PES = Fs_PES)
+```
+
+The correlation between PS and tau_strata is very weak. Therefore, we have a statistically independent measure.
+
+```{r warning=FALSE,message=FALSE}
+Fd_SpES <- myTAI::MatchMap(Fd_PES_tau.quantile, Fd_PES[-1])
+Fs_SpES <- myTAI::MatchMap(Fs_PES_tau.quantile, Fs_PES[-1])
+Fd_SpES.sqrt <- myTAI::MatchMap(Fd_PES_tau.sqrt.quantile, Fd_PES.sqrt[-1])
+Fs_SpES.sqrt <- myTAI::MatchMap(Fs_PES_tau.sqrt.quantile, Fs_PES.sqrt[-1])
+Fd_SpES.log2 <- myTAI::MatchMap(Fd_PES_tau.log2.quantile, Fd_PES.log2[-1])
+Fs_SpES.log2 <- myTAI::MatchMap(Fs_PES_tau.log2.quantile, Fs_PES.log2[-1])
+```
+
+### Plot TSpI
+
+(Transcriptome Specificity Index).
+We should keep in mind that we are only retaining the embryo stages.
+
+```{r warning=FALSE,message=FALSE}
+#TI stands for transcriptome index
+TI.preplot <- function(ExpressionSet, permutations = 500){
+  std <- 
+    myTAI::bootMatrix(
+      ExpressionSet = ExpressionSet, 
+      permutations  = permutations) %>% 
+    apply(2, stats::sd)
+  TI.out <- 
+    myTAI::TAI(ExpressionSet) %>%
+    tibble::as_tibble(rownames = "Stage", colnames = c("TAI", "PS")) %>% 
+    dplyr::bind_cols(as_tibble(std)) %>%
+    dplyr::rename(TAI = 2, sd = 3)
+  return(TI.out)
+}
+```
+
+```{r warning=FALSE,message=FALSE}
+get_TAI <- function(SpES, ordered_stages){
+  TAI <- 
+    TI.preplot(SpES)
+  TAI_out <- 
+    TAI
+  TAI_out$Stage <- base::factor(TAI_out$Stage, ordered_stages)
+  return(TAI_out)
+}
+```
+
+```{r fig.height = 2.5, fig.width = 4.5}
+get_TAI(Fd_SpES, ordered_stages = colnames(Fd_SpES)[-c(1,2)]) %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    size = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus distichus",
+       subtitle = "TPM",
+       y = "TSpI")
+
+get_TAI(Fs_SpES, ordered_stages = colnames(Fs_SpES)[-c(1,2)]) %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    size = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus serratus",
+       subtitle = "TPM",
+       y = "TSpI")
+
+# sqrt transformation
+
+get_TAI(Fd_SpES.sqrt, ordered_stages = colnames(Fd_SpES)[-c(1,2)]) %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    size = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus distichus",
+       subtitle = "sqrt(TPM)",
+       y = "TSI")
+# ggplot2::ggsave(filename = "Fd_TSI_embryo.pdf", device = "pdf", width = 4.5, height = 2.5)
+
+get_TAI(Fs_SpES.sqrt, ordered_stages = colnames(Fs_SpES)[-c(1,2)]) %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    size = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus serratus",
+       subtitle = "sqrt(TPM)",
+       y = "TSI")
+# ggplot2::ggsave(filename = "Fs_TSI_embryo.pdf", device = "pdf", width = 4.5, height = 2.5)
+
+
+# log transformation
+
+get_TAI(Fd_SpES.log2, ordered_stages = colnames(Fd_SpES)[-c(1,2)]) %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    size = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus distichus",
+       subtitle = "log2(TPM+1)",
+       y = "TSpI")
+
+get_TAI(Fs_SpES.log2, ordered_stages = colnames(Fs_SpES)[-c(1,2)]) %>%
+  ggplot2::ggplot(
+    aes(
+      y = TAI, 
+      x = Stage,
+      group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = TAI - sd,
+        ymax = TAI + sd
+        ), 
+    colour = "#00A087FF", 
+    fill = "#00A087FF", 
+    alpha = 0.1) +
+  ggplot2::geom_line(
+    size = 2,
+    lineend = "round",
+    colour = "#00A087FF") +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  labs(title = "Fucus serratus",
+       subtitle = "log2(TPM+1)",
+       y = "TSpI")
+```
+
+#### Performing statistical analysis for the significance of the hourglass-shape from tau.
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+# Fucus serratus
+Fs_SpES_tS <- 
+  tfStability(
+    Fs_SpES,
+    transforms = c("none", "sqrt", "log2", "rank"),
+    permutations = 500
+    )
+Fs_SpES_tS_processed <-
+  tibble::as_tibble(Fs_SpES_tS, rownames = "transformation") %>%
+  dplyr::rename("pval" = value) %>%
+  dplyr::mutate(test = "FlatLineTest")
+
+# Fucus distichus
+Fd_SpES_tS <- 
+  tfStability(
+    Fd_SpES,
+    transforms = c("none", "sqrt", "log2", "rank"),
+    permutations = 500
+    )
+Fd_SpES_tS_processed <-
+  tibble::as_tibble(Fd_SpES_tS, rownames = "transformation") %>%
+  dplyr::rename("pval" = value) %>%
+  dplyr::mutate(test = "FlatLineTest")
+```
+
+```{r fig.height = 2.5, fig.width = 3}
+Fs_SpES_tS_processed %>%
+  ggplot2::ggplot(
+    aes(
+      y = -log10(pval), 
+      x = transformation)) +
+  ggplot2::geom_col(width = 0.05) +
+  ggplot2::geom_point(size = 5) +
+  ggplot2::geom_hline(
+    yintercept = -log10(0.05), 
+    colour = "#E64B35FF",
+    linetype = 'dashed',
+    size = 1
+    ) +
+  ggplot2::labs(
+    title = "Fucus serratus",
+    subtitle = "FlatLineTest",
+    x = "Transformation"
+  ) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_classic()
+
+Fd_SpES_tS_processed %>%
+  ggplot2::ggplot(
+    aes(
+      y = -log10(pval), 
+      x = transformation)) +
+  ggplot2::geom_col(width = 0.05) +
+  ggplot2::geom_point(size = 5) +
+  ggplot2::geom_hline(
+    yintercept = -log10(0.05), 
+    colour = "#E64B35FF",
+    linetype = 'dashed',
+    size = 1
+    ) +
+  ggplot2::labs(
+    title = "Fucus distichus",
+    subtitle = "FlatLineTest",
+    x = "Transformation"
+  ) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_classic()
+```
+
+# TDI across _Ectocarpus_ life cycle stages
+
+In case you're wondering, `TDI` stands for `transcriptome age index`.
+
+## Computing dNdS ratio 
+
+The R package `Orthologr` (see [documentation](https://drostlab.github.io/orthologr/)) was used to obtain the dNdS ratio for each gene.
+
+```R
+library(orthologr)
+```
+
+```R
+Ec_dNdS <- dNdS(
+     query_file      ="/mnt/projects/TDI/06__FINAL_CDS/PUBLIC_Ectocarpus-sp7_CDS-gff.fa",
+     subject_file    ="/mnt/projects/TDI/06__FINAL_CDS/PUBLIC_Ectocarpus-subulatus_CDS-gff.fa",
+     ortho_detection ="RBH", 
+     aa_aln_type     ="pairwise",
+     aa_aln_tool     ="NW", 
+     codon_aln_tool  ="pal2nal", 
+     dnds_est.method ="Comeron", 
+     comp_cores      =1)
+
+write.table(x = Ec_dNdS,
+            file = "Ec7_Ecs_dNdS.csv",
+            sep = ";",
+            col.names = TRUE,
+            row.names = FALSE,
+            quote = FALSE)
+```
+
+And from there compute the divergence stratum for each gene (where 1 means lowest divergence and 10 means highest divergence). In fact, one can already use the `orthologr::divergence_stratigraphy()` but I wanted to check how the dNdS ratios were distributed.
+
+```{r warning=FALSE,message=FALSE}
+Ec_dNdS <- readr::read_csv2("data/Ec7_Ecs_dNdS.csv") %>% 
+  drop_na() %>%
+  dplyr::mutate(GeneID = query_id) %>%
+  dplyr::mutate(dN = as.numeric(dN),
+                dS = as.numeric(dS),
+                dNdS = as.numeric(dNdS)) %>%
+  dplyr::ungroup()
+
+Ec_dNdS_temp <- 
+  filter(Ec_dNdS, dNdS <= 2) %>% drop_na()
+Ec_dNdS_decval <- 
+  stats::quantile(
+    Ec_dNdS_temp[ , "dNdS"],
+    probs = seq(0.0, 1, 0.1),
+    na.rm = TRUE)
+
+Ec_dNdS_quintiles <- cut(Ec_dNdS_temp$dNdS, breaks = Ec_dNdS_decval, include.lowest = TRUE, labels = FALSE)
+Ec_dNdS_temp$DS <- Ec_dNdS_quintiles
+Ec_deciles <- Ec_dNdS_temp %>% dplyr::select(DS, GeneID)
+
+rm(Ec_dNdS_temp)
+```
+
+```{r fig.height = 3, fig.width = 4}
+Ec_deciles %>% 
+  ggplot2::ggplot(aes(DS)) +
+  ggplot2::geom_bar() +
+  ggplot2::labs(
+    title = "DS distribution",
+    subtitle = "Ec7 vs Ec. siliculosus",
+    x = "DS"
+  )
+```
+
+```{r warning=FALSE,message=FALSE}
+Ec_abundance <-
+  readr::read_csv("data/Ec_abundance.csv")
+Ec_abundance_25f <-
+  Ec_abundance %>%
+  dplyr::select(1 | dplyr::starts_with("F_"))
+Ec_abundance_32m <-
+  Ec_abundance %>%
+  dplyr::select(1 | dplyr::starts_with("M_"))
+sample_info_ec <-
+  readr::read_csv("data/sample_info_ec.csv")
+```
+
+```{r warning=FALSE,message=FALSE}
+construct_DES <- 
+  function(
+    ExpressionMatrix, 
+    DivergenceMap, 
+    metadata, 
+    AVG = median,
+    grouping_var = "Stage",
+    name_var = "LibName",
+    transform_opt = F,
+    transformation){
+  RepCol <- 
+    metadata %>% 
+    dplyr::group_by(.data[[grouping_var]]) %>% 
+    dplyr::summarize(n=dplyr::n()) %>% 
+    dplyr::arrange(
+      base::factor(
+        .data[[grouping_var]], 
+        levels = base::unique(metadata[,grouping_var][[1]])
+        )
+      ) %>% 
+    base::as.vector()
+  # making sure the metadata and the expression set match
+  DES <- 
+    ExpressionMatrix %>%
+    dplyr::left_join(
+      dplyr::select(
+        DivergenceMap, 
+        c(GeneID, DS)
+        )
+      ) %>%
+    tidyr::drop_na() %>% # NAs can ruin the transformation.
+    dplyr::relocate(DS, GeneID) 
+  if(transform_opt){
+    if(transformation == "rlog"){
+      DES <-
+        myTAI::tf(
+          DES,
+          FUN = rlog, 
+          integerise = TRUE)
+    }
+    else if(transformation == "vst"){
+      DES <-
+        myTAI::tf(
+          DES,
+          FUN = vst, 
+          integerise = TRUE)
+    }
+  }
+  DES_FILT <- 
+    DES %>%
+    dplyr::select(1:2 | metadata[,name_var][[1]])
+  OUT <- DES_FILT %>%
+    myTAI::CollapseReplicates(
+      RepCol$n,
+      AVG, 
+      stage.names = RepCol[[grouping_var]])
+  return(OUT)
+}
+```
+
+```{r warning=FALSE,message=FALSE}
+Ec_DES_25f <- 
+  construct_DES(
+    Ec_abundance_25f, 
+    Ec_deciles,
+    dplyr::filter(
+      sample_info_ec, 
+      Sex == "F"),
+    name_var = "SampleName"
+    )
+Ec_DES_32m <- 
+  construct_DES(
+    Ec_abundance_32m, 
+    Ec_deciles,
+    dplyr::filter(
+      sample_info_ec, 
+      Sex == "M"),
+    name_var = "SampleName"
+    )
+```
+
+```{r warning=FALSE,message=FALSE}
+Ec_DES_32m.sqrt <- 
+  myTAI::tf(
+  ExpressionSet = Ec_DES_32m, 
+  FUN = sqrt)
+Ec_DES_25f.sqrt <- 
+  myTAI::tf(
+  ExpressionSet = Ec_DES_25f, 
+  FUN = sqrt)
+
+# save
+Ec_DES_32m.sqrt %>%
+  readr::write_csv(file = "data/Ec_DES_32m.sqrt.csv")
+Ec_DES_25f.sqrt %>%
+  readr::write_csv(file = "data/Ec_DES_25f.sqrt.csv")
+```
+
+### Visualise dNdS & gene age correspondence
+
+```{r warning=FALSE,message=FALSE}
+library(scales)
+library(see)
+Ec_age <- readr::read_csv("data/Ec_age_processed.csv")
+Fd_age <- readr::read_csv("data/Fd_age_processed.csv")
+Fs_age <- readr::read_csv("data/Fs_age_processed.csv")
+```
+
+```{r fig.height = 2.5, fig.width = 5.5}
+Kendall_dNdS <- Ec_dNdS %>% 
+  filter(dNdS < 2, !dNdS == 0) %>%
+  left_join(Ec_age)
+Kendall_dNdS %>% drop_na() %>%
+  ggplot(aes(x = rank, y = dNdS, group = rank)) +
+  see::geom_violindot(dots_size = 0.05, binwidth = 0.02) +
+  labs(title = "Correlation between gene age and dNdS",
+       subtitle = "Ectocarpus",
+       x = "Gene age",
+       y = "dN/dS ratio\n(Ec7 vs Ec. siliculosus)") +
+  scale_x_continuous(breaks=c(1:max(Kendall_dNdS$rank, na.rm = TRUE))) +
+  theme_classic()
+res<-cor.test(Kendall_dNdS$rank,Kendall_dNdS$dNdS, method="kendall")
+res
+```
+
+```{r fig.height = 2.5, fig.width = 4.5}
+Kendall_dNdS <- Ec_dNdS %>% 
+  mutate(zero = case_when(
+    dNdS == 0 ~ "dNdS=0",
+    TRUE ~ "dNdS>0")) %>%
+  left_join(Ec_age)
+Kendall_dNdS %>% drop_na() %>%
+  ggplot(aes(x = rank, fill = zero)) +
+  ggplot2::geom_bar(colour = "black") +
+  labs(title = "Gene age and dNdS=0",
+       subtitle = "Ectocarpus",
+       x = "Gene age",
+       y = "Number of genes",
+       fill = "") +
+  scale_x_continuous(breaks=c(1:max(Kendall_dNdS$rank, na.rm = TRUE))) +
+  theme_classic() +
+  scale_fill_manual(values = c("#DC0000FF", "white"))
+```
+
+## Obtaining the DES
+
+From DES (Divergence Expression Set), one can obtain the TDI profiles through the `mytTAI::TAI` function. The `myTAI` package, to my knowledge, does not enable the flexibility to plot the separate sexes, for example in one plot. Therefore, I will _not_ use the `myTAI::PlotSignature` function.
+
+```{r warning=FALSE,message=FALSE}
+library(tidyverse)
+library(myTAI)
+```
+
+## Load DES
+
+sqrt-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Ec_DES_32m.sqrt <-
+  readr::read_csv(file = "data/Ec_DES_32m.sqrt.csv", show_col_types = FALSE)
+Ec_DES_25f.sqrt <-
+  readr::read_csv(file = "data/Ec_DES_25f.sqrt.csv", show_col_types = FALSE)
+```
+
+## TDI calculation
+
+I had previously used a function to combine males and females into one TDI plot.
+
+```{r warning=FALSE,message=FALSE}
+#TI stands for transcriptome index
+TI.preplot <- function(ExpressionSet, permutations = 500){
+  std <- 
+    myTAI::bootMatrix(
+      ExpressionSet = ExpressionSet, 
+      permutations  = permutations) %>% 
+    apply(2, stats::sd)
+  TI.out <- 
+    myTAI::TDI(ExpressionSet) %>%
+    tibble::as_tibble(rownames = "Stage", colnames = c("TDI", "PS")) %>% 
+    dplyr::bind_cols(as_tibble(std)) %>%
+    dplyr::rename(TDI = 2, sd = 3)
+  return(TI.out)
+}
+```
+
+```{r warning=FALSE,message=FALSE}
+# function to process Fd. This will be changed to accommodate more seq data.
+get_TDI_Ec <- function(DES_M, DES_F, ordered_stages){
+  TDI_M <- 
+    TI.preplot(DES_M) %>%
+    dplyr::mutate(Sex = "Male")
+  TDI_F <- 
+    TI.preplot(DES_F) %>%
+    dplyr::mutate(Sex = "Female")
+  stages_to_NA <- # this will differ for Fucus distichus
+    ordered_stages[-c(1, 1+1, length(ordered_stages) - 1, length(ordered_stages))]
+  TDI_out <- 
+    dplyr::bind_rows(TDI_M, TDI_F)
+  TDI_out$Stage <- base::factor(TDI_out$Stage, ordered_stages)
+  return(TDI_out)
+}
+```
+
+```{r warning=FALSE,message=FALSE}
+ordered_stages <- colnames(Ec_DES_25f)[3:ncol(Ec_DES_25f)]
+
+Ec_TDI.sqrt <- 
+  get_TDI_Ec(
+    DES_M = Ec_DES_32m.sqrt, 
+    DES_F = Ec_DES_25f.sqrt, 
+    ordered_stages)
+```
+
+```{r warning=FALSE,message=FALSE}
+Ec_TDI.sqrt %>% 
+  ggplot2::ggplot(
+    aes(
+      y = TDI, 
+      x = Stage,
+      group = Sex,
+      colour = Sex,
+      fill = Sex)) +
+  ggplot2::geom_line(alpha = 0.4, linewidth = 1) +
+  ggplot2::geom_crossbar(
+    aes(ymin = TDI - sd,
+        ymax = TDI + sd
+        ), 
+    alpha = 0.5,
+    position = ggplot2::position_dodge(0.55), 
+    width = 0.5) +
+  theme_classic() +
+  ggsci::scale_colour_npg() +
+  ggplot2::scale_x_discrete(guide = ggplot2::guide_axis(n.dodge=2)) +
+  labs(title = "Ectocarpus",
+       subtitle = "sqrt(TPM)")
+# ggplot2::ggsave(filename = "Ec_TDI_sqrt.pdf", device = "pdf", width = 6, height = 4)
+```
+
+# Visualisation of orthogroups
+
+
+Instead of relying on one-to-one orthologues, we incorporate in-paralogues into _comparative transcriptomics_ analysis. As I have discussed in the article vignette of `myTAI` (see [here](https://drostlab.github.io/myTAI/articles/Phylostratigraphy.html)), this approach has some limitations, in that while not explicitely transferring (potential) issues from the `orthologue conjecture`, some elements of this assumption is incoporated. Regardless, I think it still captures more information than using one-to-one orthologues.
+
+This is different to the original filter because with the original filter, we wanted to retain as much genes as possible for TAI analysis. Here, we want to minimise species difference.
+
+```{r warning=FALSE,message=FALSE}
+library(tidyverse)
+library(ggfortify)
+```
+
+```{r warning=FALSE,message=FALSE}
+sample_info_fd <-
+  readr::read_csv2("data/sample_info_fd.csv", show_col_types = FALSE)
+sample_info_fs <-
+  readr::read_csv2("data/sample_info_fs.csv", show_col_types = FALSE)
+
+sample_info_fd_embryo <-
+  sample_info_fd %>%
+  dplyr::filter(!Stage %in% c("gamete", "matSP")) %>%
+  dplyr::mutate(LibLab = str_c(Species, "_", Stage, "_", Replicate))
+sample_info_fs_embryo <-
+  sample_info_fs %>%
+  dplyr::filter(!Stage %in% c("gamete", "matSP")) %>%
+  mutate(LibLab = str_c(Species, "_", Stage, "_", Replicate))
+```
+
+```{r warning=FALSE,message=FALSE}
+Fs_abundance <-
+  readr::read_csv(file = "data/Fs_OG_abundance.csv", show_col_types = FALSE)
+Fd_abundance <-
+  readr::read_csv(file = "data/Fd_OG_abundance.csv", show_col_types = FALSE)
+```
+
+
+## PCA using OGs
+
+```{r warning=FALSE,message=FALSE}
+selectGenes <- function(counts, min.count=2){
+  keep <-
+    counts[rowMeans(counts)>min.count, ]
+  return(keep)
+}
+```
+
+To minimise noise, I remove OGs with low counts.
+
+```{r warning=FALSE,message=FALSE}
+combined_metatable <- 
+  rbind(sample_info_fs_embryo, sample_info_fd_embryo) %>%
+  relocate(LibName)
+```
+
+```{r warning=FALSE,message=FALSE}
+merged_TPM_pre <- 
+  merge(Fs_abundance, Fd_abundance, by = "OG") %>%
+  dplyr::select(1, combined_metatable$LibName)
+merged_TPM <- 
+  data.frame(row.names = merged_TPM_pre[,1], merged_TPM_pre[,-1], check.names = FALSE)
+merged_TPM.filt <-
+  as.matrix(merged_TPM) %>%
+  selectGenes(min.count=10)
+```
+
+Through the filtering function, I retain 2889 / 3724 OGs
+
+```{r warning=FALSE,message=FALSE}
+rlog_TPM <- DESeq2::rlog(merged_TPM.filt %>% round(0))
+log2_TPM <- log2(merged_TPM.filt+1)
+sqrt_TPM <- sqrt(merged_TPM.filt)
+tpm10_TPM <- (merged_TPM.filt > 10) * 1
+```
+
+```{r warning=FALSE,message=FALSE, fig.height = 8, fig.width = 5.5}
+# combined_metatable$Stage <- factor(combined_metatable$Stage, levels = unique(combined_metatable$Stage))
+combined_metatable$Stage <- factor(combined_metatable$Stage, levels = unique(sample_info_fd_embryo$Stage))
+
+myPCAfunction <- function(pcDat, data, x, y){
+  OUT <- 
+    ggplot2::autoplot(
+      pcDat,
+      data = data,
+      # frame.colour = "Species" & "Stage",
+      colour = "Stage",
+      shape = "Species",
+      x = x,
+      y = y,
+      size = 5,
+      # frame = TRUE,
+      alpha = 0.5) +
+    ggplot2::scale_color_brewer(palette="Dark2")
+  return(OUT)
+}
+
+pcDat <- prcomp(t(rlog_TPM), scale = TRUE)
+# pcDat <- prcomp(t(rlog_TPM))
+
+PC1_2 <- 
+  myPCAfunction(pcDat, data = combined_metatable, x = 1, y = 2) +
+  labs(title = "PC1 and PC2") +
+  theme_grey()
+
+PC1_3 <- 
+  myPCAfunction(pcDat, data = combined_metatable, x = 1, y = 3) +
+  labs(title = "PC1 and PC3") +
+  theme_grey()
+
+rlog_plot <- ggpubr::ggarrange(PC1_2, PC1_3, common.legend = T, ncol = 1, nrow = 2)
+ggpubr::annotate_figure(rlog_plot, top = ggpubr::text_grob("rlog", 
+                                                   face = "bold", size = 14))
+```
+
+```{r warning=FALSE,message=FALSE, fig.height = 3, fig.width = 5.5}
+
+pcDat <- prcomp(t(log2_TPM), scale = TRUE)
+
+PC1_2 <- myPCAfunction(pcDat, data = combined_metatable, x = 1, y = 2) +
+  labs(title = "PC1 and PC2") +
+  theme_grey()
+
+PC1_3 <- myPCAfunction(pcDat, data = combined_metatable, x = 1, y = 3) +
+  labs(title = "PC1 and PC3") +
+  theme_grey()
+
+log2_plot <- ggpubr::ggarrange(PC1_2, PC1_3, common.legend = T)
+ggpubr::annotate_figure(log2_plot, top = ggpubr::text_grob("log2", 
+                                                   face = "bold", size = 14))
+
+pcDat <- prcomp(t(sqrt_TPM), scale = TRUE)
+# pcDat <- prcomp(t(rlog_TPM))
+
+PC1_2 <- myPCAfunction(pcDat, data = combined_metatable, x = 1, y = 2) +
+  labs(title = "PC1 and PC2") +
+  theme_grey()
+
+PC1_3 <- myPCAfunction(pcDat, data = combined_metatable, x = 1, y = 3) +
+  labs(title = "PC1 and PC3") +
+  theme_grey()
+
+sqrt_plot <- ggpubr::ggarrange(PC1_2, PC1_3, common.legend = T)
+ggpubr::annotate_figure(sqrt_plot, top = ggpubr::text_grob("sqrt", 
+                                                   face = "bold", size = 14))
+
+pcDat <- prcomp(t(tpm10_TPM)) # too many zeros to do a scale = TRUE
+
+PC1_2 <- myPCAfunction(pcDat, data = combined_metatable, x = 1, y = 2) +
+  labs(title = "PC1 and PC2") +
+  theme_grey()
+
+PC1_3 <- myPCAfunction(pcDat, data = combined_metatable, x = 1, y = 3) +
+  labs(title = "PC1 and PC3") +
+  theme_grey()
+
+rlog_plot <- ggpubr::ggarrange(PC1_2, PC1_3, common.legend = T)
+ggpubr::annotate_figure(rlog_plot, top = ggpubr::text_grob("tpm10 threshold", 
+                                                   face = "bold", size = 14))
+```
+
+## Distance metrics
+
+Here, we use distance metrics to quantify how distant the stages are from each other across _Fucus_ species and maybe even in _Ectocarpus_.
+
+```{r warning=FALSE,message=FALSE}
+library(philentropy)
+```
+
+```{r warning=FALSE,message=FALSE}
+ncol_Fs <- grep( "Fs" , colnames( log2_TPM ) )
+ncol_Fd <- grep( "Fd" , colnames( log2_TPM ) )
+```
+
+## Using log2(TPM+1)
+
+```{r warning=FALSE,message=FALSE}
+log2_TPM_renamed <- log2_TPM
+base::colnames(log2_TPM_renamed) <- combined_metatable$LibLab
+```
+
+### Pearson correlation
+
+Linear relationship
+
+```{r warning=FALSE,message=FALSE, fig.height = 3, fig.width = 4.5}
+M = cor(x = log2_TPM_renamed[,ncol_Fs], 
+        y = log2_TPM_renamed[,ncol_Fd], 
+        method = "pearson")
+
+M_melt <- reshape2::melt(M)
+
+tmp1 <- sample_info_fd_embryo %>% 
+  dplyr::select(Var2 = LibLab, Stage) %>% 
+  full_join(M_melt, multiple = "all") %>%
+  dplyr::rename(Fd = Stage)
+
+tmp2 <- sample_info_fs_embryo %>% 
+  dplyr::select(Var1 = LibLab, Stage) %>% 
+  full_join(tmp1, multiple = "all") %>%
+  dplyr::rename(Fs = Stage)
+
+tmp2$Fs <- factor(tmp2$Fs, levels = unique(tmp2$Fs))
+tmp2$Fd <- factor(tmp2$Fd, levels = unique(tmp2$Fd))
+tmp2 %>% group_by(Fs, Fd) %>% summarise(median_corr = median(value)) %>%
+  ggplot(aes(x = Fs, y = Fd, fill = median_corr)) +
+  geom_tile() +
+  geom_text(aes(label = paste0(round(median_corr,3))), color = "black") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  scale_fill_gradient(low = "white", high = "#DC0000FF") +
+  labs(x = "Fucus serratus samples",
+       y = "Fucus distichus samples",
+       title = "Pearson correlation (log2)",
+       fill = "median(correlation)")
+```
+
+### Spearman correlation
+
+Monotonic relationship
+
+```{r warning=FALSE,message=FALSE, fig.height = 3, fig.width = 4.5}
+log2_TPM_renamed <- log2_TPM
+base::colnames(log2_TPM_renamed) <- combined_metatable$LibLab
+
+M = cor(x = log2_TPM_renamed[,ncol_Fs], 
+        y = log2_TPM_renamed[,ncol_Fd], 
+        method = "spearman")
+
+M_melt <- reshape2::melt(M)
+
+tmp1 <- sample_info_fd_embryo %>% 
+  dplyr::select(Var2 = LibLab, Stage) %>% 
+  full_join(M_melt, multiple = "all") %>%
+  dplyr::rename(Fd = Stage)
+
+tmp2 <- sample_info_fs_embryo %>% 
+  dplyr::select(Var1 = LibLab, Stage) %>% 
+  full_join(tmp1, multiple = "all") %>%
+  dplyr::rename(Fs = Stage)
+
+tmp2$Fs <- factor(tmp2$Fs, levels = unique(tmp2$Fs))
+tmp2$Fd <- factor(tmp2$Fd, levels = unique(tmp2$Fd))
+tmp2 %>% group_by(Fs, Fd) %>% summarise(median_corr = median(value)) %>%
+  ggplot(aes(x = Fs, y = Fd, fill = median_corr)) +
+  geom_tile() +
+  geom_text(aes(label = paste0(round(median_corr,3))), color = "black") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  scale_fill_gradient(low = "white", high = "#DC0000FF") +
+  labs(x = "Fucus serratus samples",
+       y = "Fucus distichus samples",
+       title = "Spearman correlation (log2)",
+       fill = "median(correlation)")
+```
+
+### Manhattan distance
+
+Manhattan distance is a distance metric used to measure the distance between two points in a grid-like system, such as a city block or a chessboard. It is calculated as the sum of the absolute differences between the coordinates of the two points. The Manhattan distance is also known as the L1 norm or taxicab distance.
+
+It is L_{1} norm unlike Euclidean L_{2} norm.
+
+Because it uses absolute values instead of exponentiation and rooting, it is said to be *more robust to outliers* compared to the euclidean distance. Additionally, the modulus is much faster to compute than exponentiation. It is a special case of the Minkowski distance.
+
+```{r warning=FALSE,message=FALSE, fig.height = 3, fig.width = 4.5}
+DM <- philentropy::distance(t(log2_TPM_renamed), use.row.names = TRUE, method = "manhattan")
+DM2 <- DM[ncol_Fs, ncol_Fd]
+
+M_melt <- reshape2::melt(DM2)
+
+tmp1 <- sample_info_fd_embryo %>% 
+  dplyr::select(Var2 = LibLab, Stage) %>% 
+  full_join(M_melt, multiple = "all") %>%
+  dplyr::rename(Fd = Stage)
+
+tmp2 <- sample_info_fs_embryo %>% 
+  dplyr::select(Var1 = LibLab, Stage) %>% 
+  full_join(tmp1, multiple = "all") %>%
+  dplyr::rename(Fs = Stage)
+
+tmp2$Fs <- factor(tmp2$Fs, levels = unique(tmp2$Fs))
+tmp2$Fd <- factor(tmp2$Fd, levels = unique(tmp2$Fd))
+tmp2 %>% group_by(Fs, Fd) %>% summarise(median_corr = median(value)) %>%
+  ggplot(aes(x = Fs, y = Fd, fill = median_corr)) +
+  geom_tile() +
+  geom_text(aes(label = paste0(round(median_corr,0))), color = "black") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  scale_fill_gradient(low = "white", high = "#3C5488FF") +
+  labs(x = "Fucus serratus samples",
+       y = "Fucus distichus samples",
+       title = "Manhattan distance (log2)",
+       fill = "median(distance)")
+```
+
+### JSD metric
+
+Jensen-Shannon distance is a statistical distance metric that measures the similarity between two probability distributions. It is often used in data analysis and machine learning for clustering, classification, and anomaly detection tasks.
+
+```{r warning=FALSE,message=FALSE, fig.height = 3, fig.width = 4.5}
+mat_normalized <- apply(log2_TPM_renamed, 2, function(x) x/sum(x)) %>% as.data.frame()
+# colSums(mat_normalized)
+DM <- philentropy::distance(t(mat_normalized), use.row.names = TRUE, method = "jensen-shannon")
+DM2 <- DM[ncol_Fs, ncol_Fd]
+DM3 <- sqrt(DM2)
+
+M_melt <- reshape2::melt(DM3)
+
+tmp1 <- sample_info_fd_embryo %>% 
+  dplyr::select(Var2 = LibLab, Stage) %>% 
+  full_join(M_melt, multiple = "all") %>%
+  dplyr::rename(Fd = Stage)
+
+tmp2 <- sample_info_fs_embryo %>% 
+  dplyr::select(Var1 = LibLab, Stage) %>% 
+  full_join(tmp1, multiple = "all") %>%
+  dplyr::rename(Fs = Stage)
+
+tmp2$Fs <- factor(tmp2$Fs, levels = unique(tmp2$Fs))
+tmp2$Fd <- factor(tmp2$Fd, levels = unique(tmp2$Fd))
+tmp2 %>% group_by(Fs, Fd) %>% summarise(median_corr = median(value)) %>%
+  ggplot(aes(x = Fs, y = Fd, fill = median_corr)) +
+  geom_tile() +
+  geom_text(aes(label = paste0(round(median_corr,3))), color = "black") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  scale_fill_gradient(low = "white", high = "#3C5488FF") +
+  labs(x = "Fucus serratus samples",
+       y = "Fucus distichus samples",
+       title = "JSD metric (norm. log2)",
+       fill = "median(distance)")
+```
+
+## Using rlog(TPM)
+
+I am using rlog data here because it reduces the distance since there is higher correlation between the low-count genes. It should be noted though that the transformation here isn't monotonic.
+
+```{r warning=FALSE,message=FALSE}
+rlog_TPM_renamed <- rlog_TPM
+rlog_TPM_renamed <- rlog_TPM
+base::colnames(rlog_TPM_renamed) <- combined_metatable$LibLab
+```
+
+### Pearson correlation
+
+```{r warning=FALSE,message=FALSE, fig.height = 3, fig.width = 4.5}
+base::colnames(rlog_TPM_renamed) <- combined_metatable$LibLab
+
+M = cor(x = rlog_TPM_renamed[,ncol_Fs], 
+        y = rlog_TPM_renamed[,ncol_Fd], 
+        method = "pearson")
+
+M_melt <- reshape2::melt(M)
+
+tmp1 <- sample_info_fd_embryo %>% 
+  dplyr::select(Var2 = LibLab, Stage) %>% 
+  full_join(M_melt, multiple = "all") %>%
+  dplyr::rename(Fd = Stage)
+
+tmp2 <- sample_info_fs_embryo %>% 
+  dplyr::select(Var1 = LibLab, Stage) %>% 
+  full_join(tmp1, multiple = "all") %>%
+  dplyr::rename(Fs = Stage)
+
+tmp2$Fs <- factor(tmp2$Fs, levels = unique(tmp2$Fs))
+tmp2$Fd <- factor(tmp2$Fd, levels = unique(tmp2$Fd))
+tmp2 %>% group_by(Fs, Fd) %>% summarise(median_corr = median(value)) %>%
+  ggplot(aes(x = Fs, y = Fd, fill = median_corr)) +
+  geom_tile() +
+  geom_text(aes(label = paste0(round(median_corr,3))), color = "black") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  scale_fill_gradient(low = "white", high = "#DC0000FF") +
+  labs(x = "Fucus serratus samples",
+       y = "Fucus distichus samples",
+       title = "Pearson correlation (rlog)",
+       fill = "median(correlation)")
+# save plot
+# ggplot2::ggsave(filename = "Fucus_Pearson.pdf", device = "pdf", width = 4.5, height = 3)
+```
+
+### Spearman correlation
+
+```{r warning=FALSE,message=FALSE, fig.height = 3, fig.width = 4.5}
+rlog_TPM_renamed <- rlog_TPM
+base::colnames(rlog_TPM_renamed) <- combined_metatable$LibLab
+
+M = cor(x = rlog_TPM_renamed[,ncol_Fs], 
+        y = rlog_TPM_renamed[,ncol_Fd], 
+        method = "spearman")
+
+M_melt <- reshape2::melt(M)
+
+tmp1 <- sample_info_fd_embryo %>% 
+  dplyr::select(Var2 = LibLab, Stage) %>% 
+  full_join(M_melt, multiple = "all") %>%
+  dplyr::rename(Fd = Stage)
+
+tmp2 <- sample_info_fs_embryo %>% 
+  dplyr::select(Var1 = LibLab, Stage) %>% 
+  full_join(tmp1, multiple = "all") %>%
+  dplyr::rename(Fs = Stage)
+
+tmp2$Fs <- factor(tmp2$Fs, levels = unique(tmp2$Fs))
+tmp2$Fd <- factor(tmp2$Fd, levels = unique(tmp2$Fd))
+tmp2 %>% group_by(Fs, Fd) %>% summarise(median_corr = median(value)) %>%
+  ggplot(aes(x = Fs, y = Fd, fill = median_corr)) +
+  geom_tile() +
+  geom_text(aes(label = paste0(round(median_corr,3))), color = "black") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  scale_fill_gradient(low = "white", high = "#DC0000FF") +
+  labs(x = "Fucus serratus samples",
+       y = "Fucus distichus samples",
+       title = "Spearman correlation (rlog)",
+       fill = "median(correlation)")
+# save plot
+# ggplot2::ggsave(filename = "Fucus_Spearman.pdf", device = "pdf", width = 4.5, height = 3)
+```
+
+### Manhattan distance
+
+```{r warning=FALSE,message=FALSE, fig.height = 3, fig.width = 4.5}
+DM <- philentropy::distance(t(rlog_TPM_renamed), use.row.names = TRUE, method = "manhattan")
+DM2 <- DM[ncol_Fs, ncol_Fd]
+
+M_melt <- reshape2::melt(DM2)
+
+tmp1 <- sample_info_fd_embryo %>% 
+  dplyr::select(Var2 = LibLab, Stage) %>% 
+  full_join(M_melt, multiple = "all") %>%
+  dplyr::rename(Fd = Stage)
+
+tmp2 <- sample_info_fs_embryo %>% 
+  dplyr::select(Var1 = LibLab, Stage) %>% 
+  full_join(tmp1, multiple = "all") %>%
+  dplyr::rename(Fs = Stage)
+
+tmp2$Fs <- factor(tmp2$Fs, levels = unique(tmp2$Fs))
+tmp2$Fd <- factor(tmp2$Fd, levels = unique(tmp2$Fd))
+tmp2 %>% group_by(Fs, Fd) %>% summarise(median_corr = median(value)) %>%
+  ggplot(aes(x = Fs, y = Fd, fill = median_corr)) +
+  geom_tile() +
+  geom_text(aes(label = paste0(round(median_corr,0))), color = "black") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  scale_fill_gradient(low = "white", high = "#3C5488FF") +
+  labs(x = "Fucus serratus samples",
+       y = "Fucus distichus samples",
+       title = "Manhattan distance (rlog)",
+       fill = "median(distance)")
+# save plot
+# ggplot2::ggsave(filename = "Fucus_Manhattan.pdf", device = "pdf", width = 4.5, height = 3)
+```
+
+### Euclidean distance
+
+```{r warning=FALSE,message=FALSE, fig.height = 3, fig.width = 4.5}
+DM <- philentropy::distance(t(rlog_TPM_renamed), use.row.names = TRUE, method = "euclidean")
+DM2 <- DM[ncol_Fs, ncol_Fd]
+
+M_melt <- reshape2::melt(DM2)
+
+tmp1 <- sample_info_fd_embryo %>% 
+  dplyr::select(Var2 = LibLab, Stage) %>% 
+  full_join(M_melt, multiple = "all") %>%
+  dplyr::rename(Fd = Stage)
+
+tmp2 <- sample_info_fs_embryo %>% 
+  dplyr::select(Var1 = LibLab, Stage) %>% 
+  full_join(tmp1, multiple = "all") %>%
+  dplyr::rename(Fs = Stage)
+
+tmp2$Fs <- factor(tmp2$Fs, levels = unique(tmp2$Fs))
+tmp2$Fd <- factor(tmp2$Fd, levels = unique(tmp2$Fd))
+tmp2 %>% group_by(Fs, Fd) %>% summarise(median_corr = median(value)) %>%
+  ggplot(aes(x = Fs, y = Fd, fill = median_corr)) +
+  geom_tile() +
+  geom_text(aes(label = paste0(round(median_corr,1))), color = "black") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  scale_fill_gradient(low = "white", high = "#3C5488FF") +
+  labs(x = "Fucus serratus samples",
+       y = "Fucus distichus samples",
+       title = "Euclidean distance (rlog)",
+       fill = "median(distance)")
+```
+
+### JSD metric
+
+```{r warning=FALSE,message=FALSE, fig.height = 3, fig.width = 4.5}
+mat_normalized <- apply(rlog_TPM_renamed, 2, function(x) x/sum(x)) %>% as.data.frame()
+# colSums(mat_normalized)
+DM <- philentropy::distance(t(mat_normalized), use.row.names = TRUE, method = "jensen-shannon")
+DM2 <- DM[ncol_Fs, ncol_Fd]
+DM3 <- sqrt(DM2)
+
+M_melt <- reshape2::melt(DM3)
+
+tmp1 <- sample_info_fd_embryo %>% 
+  dplyr::select(Var2 = LibLab, Stage) %>% 
+  full_join(M_melt, multiple = "all") %>%
+  dplyr::rename(Fd = Stage)
+
+tmp2 <- sample_info_fs_embryo %>% 
+  dplyr::select(Var1 = LibLab, Stage) %>% 
+  full_join(tmp1, multiple = "all") %>%
+  dplyr::rename(Fs = Stage)
+
+tmp2$Fs <- factor(tmp2$Fs, levels = unique(tmp2$Fs))
+tmp2$Fd <- factor(tmp2$Fd, levels = unique(tmp2$Fd))
+tmp2 %>% group_by(Fs, Fd) %>% summarise(median_corr = median(value)) %>%
+  ggplot(aes(x = Fs, y = Fd, fill = median_corr)) +
+  geom_tile() +
+  geom_text(aes(label = paste0(round(median_corr,3))), color = "black") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  scale_fill_gradient(low = "white", high = "#3C5488FF") +
+  labs(x = "Fucus serratus samples",
+       y = "Fucus distichus samples",
+       title = "JSD metric (norm. rlog)",
+       fill = "median(distance)")
+# save plot
+# ggplot2::ggsave(filename = "Fucus_JSD.pdf", device = "pdf", width = 4.5, height = 3)
+```
+
+# pTAI analysis
+
+After a question in the TAC about whether the same genes drive the TAI, I decided to use pMatrix and check which genes drive the high (young) TAI in the gametes.
+
+```{r warning=FALSE,message=FALSE}
+library(tidyverse)
+library(myTAI)
+library(see)
+```
+
+## Load PES
+
+Non-transformed
+
+```{r warning=FALSE,message=FALSE}
+Ec_PES_32m <-
+  readr::read_csv(file = "data/Ec_PES_32m.csv", show_col_types = FALSE)
+Ec_PES_25f <-
+  readr::read_csv(file = "data/Ec_PES_25f.csv", show_col_types = FALSE)
+```
+
+sqrt-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Ec_PES_32m.sqrt <-
+  readr::read_csv(file = "data/Ec_PES_32m.sqrt.csv", show_col_types = FALSE)
+Ec_PES_25f.sqrt <-
+  readr::read_csv(file = "data/Ec_PES_25f.sqrt.csv", show_col_types = FALSE)
+```
+
+log2-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Ec_PES_32m.log2 <-
+  readr::read_csv(file = "data/Ec_PES_32m.log2.csv", show_col_types = FALSE)
+Ec_PES_25f.log2 <-
+  readr::read_csv(file = "data/Ec_PES_25f.log2.csv", show_col_types = FALSE)
+```
+
+rank-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Ec_PES_32m.rank <-
+  readr::read_csv(file = "data/Ec_PES_32m.rank.csv", show_col_types = FALSE)
+Ec_PES_25f.rank <-
+  readr::read_csv(file = "data/Ec_PES_25f.rank.csv", show_col_types = FALSE)
+```
+
+rlog-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Ec_PES_32m.rlog <-
+  readr::read_csv(file = "data/Ec_PES_32m.rlog.csv", show_col_types = FALSE)
+Ec_PES_25f.rlog <-
+  readr::read_csv(file = "data/Ec_PES_25f.rlog.csv", show_col_types = FALSE)
+```
+
+### Select unicellular stages
+
+```{r warning=FALSE,message=FALSE}
+unicellular_pMat <- function(PES, unicell_names = c("meiospore", "gamete", "mitospore"), dropzero = F, ordered_stages, top_genes = F, n_genes = 500, stage_select = "gamete"){
+        
+        if(!is.data.frame(PES))
+                stop("PES is not a dataframe")
+        
+        stage_select <- rlang::sym(stage_select)
+        
+        PES_filt <- PES %>% 
+                dplyr::select(1, 2, all_of(unicell_names))
+        
+        if(dropzero){
+                PES_filt <- PES_filt %>%
+                        dplyr::filter(rowSums(!select(., all_of(unicell_names))) == 0)
+        }
+        
+                
+        PES_filt <- PES_filt %>%
+                myTAI::pMatrix() %>%
+                tibble::as_tibble(rownames = "GeneID") 
+        
+        # in case one wants to select the top N genes.
+        if(top_genes){
+                PES_filt <- PES_filt %>%
+                        dplyr::slice_max({{stage_select}}, n = n_genes)
+        }
+        
+        PES_filt <- PES_filt %>%
+                tidyr::pivot_longer(!GeneID, names_to = "Stage", values_to = "pTAI")
+        
+        # make factor
+        PES_filt$Stage <- base::factor(PES_filt$Stage, ordered_stages)
+        return(PES_filt)
+}
+```
+
+```{r warning=FALSE,message=FALSE}
+test_data <- unicellular_pMat(Ec_PES_32m.sqrt) %>% dplyr::filter(Stage == "meiospore")
+test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
+plot(test_data2, main = "Ec32m meiospore sqrt", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
+test_data <- unicellular_pMat(Ec_PES_25f.sqrt) %>% dplyr::filter(Stage == "meiospore")
+test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
+plot(test_data2, main = "Ec25f meiospore sqrt", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
+```
+
+It seems like choosing the top 500 genes is a good idea based on the elbow heuristics. Red = top 100; green = top 500; blue = top 1000
+
+here are better plots
+
+```{r fig.height = 3, fig.width = 3.3}
+# Meiospore
+test_data <- unicellular_pMat(Ec_PES_32m.sqrt) %>% dplyr::filter(Stage == "meiospore")
+test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
+pdf(file = "pTAI_plots/Ec32m_meiospore_sqrt.pdf",
+    width = 3.3,
+    height = 3)
+plot(test_data2, main = "Ec32m meiospore sqrt", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
+dev.off()
+
+test_data <- unicellular_pMat(Ec_PES_25f.sqrt) %>% dplyr::filter(Stage == "meiospore")
+test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
+pdf(file = "pTAI_plots/Ec25f_meiospore_sqrt.pdf",
+    width = 3.3,
+    height = 3)
+plot(test_data2, main = "Ec25f meiospore sqrt", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
+dev.off()
+
+# Gamete
+test_data <- unicellular_pMat(Ec_PES_32m.sqrt) %>% dplyr::filter(Stage == "gamete")
+test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
+pdf(file = "pTAI_plots/Ec32m_gamete_sqrt.pdf",
+    width = 3.3,
+    height = 3)
+plot(test_data2, main = "Ec32m gamete sqrt", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
+dev.off()
+
+test_data <- unicellular_pMat(Ec_PES_25f.sqrt) %>% dplyr::filter(Stage == "gamete")
+test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
+pdf(file = "pTAI_plots/Ec25f_gamete_sqrt.pdf",
+    width = 3.3,
+    height = 3)
+plot(test_data2, main = "Ec25f gamete sqrt", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
+dev.off()
+
+# Mitospore
+test_data <- unicellular_pMat(Ec_PES_32m.sqrt) %>% dplyr::filter(Stage == "mitospore")
+test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
+pdf(file = "pTAI_plots/Ec32m_mitospore_sqrt.pdf",
+    width = 3.3,
+    height = 3)
+plot(test_data2, main = "Ec32m mitospore sqrt", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
+dev.off()
+
+test_data <- unicellular_pMat(Ec_PES_25f.sqrt) %>% dplyr::filter(Stage == "mitospore")
+test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
+pdf(file = "pTAI_plots/Ec25f_mitospore_sqrt.pdf",
+    width = 3.3,
+    height = 3)
+plot(test_data2, main = "Ec25f mitospore sqrt", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
+dev.off()
+```
+
+```{r fig.height = 3, fig.width = 2.5}
+# male
+test_data <- unicellular_pMat(Ec_PES_32m.sqrt, unicell_names = "immGA") %>% dplyr::filter(Stage == "immGA")
+test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
+pdf(file = "pTAI_plots/Ec32m_immGA_sqrt.pdf",
+    width = 2.5,
+    height = 3)
+plot(test_data2, main = "Ec32m immGA", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
+dev.off()
+
+test_data <- unicellular_pMat(Ec_PES_32m.sqrt, unicell_names = "matGA") %>% dplyr::filter(Stage == "matGA")
+test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
+pdf(file = "pTAI_plots/Ec32m_matGA_sqrt.pdf",
+    width = 2.5,
+    height = 3)
+plot(test_data2, main = "Ec32m matGA", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
+dev.off()
+
+test_data <- unicellular_pMat(Ec_PES_32m.sqrt, unicell_names = "oldGA") %>% dplyr::filter(Stage == "oldGA")
+test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
+pdf(file = "pTAI_plots/Ec32m_oldGA_sqrt.pdf",
+    width = 2.5,
+    height = 3)
+plot(test_data2, main = "Ec32m oldGA", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
+dev.off()
+
+test_data <- unicellular_pMat(Ec_PES_32m.sqrt, unicell_names = "earlyPSP") %>% dplyr::filter(Stage == "earlyPSP")
+test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
+pdf(file = "pTAI_plots/Ec32m_earlyPSP_sqrt.pdf",
+    width = 2.5,
+    height = 3)
+plot(test_data2, main = "Ec32m earlyPSP", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
+dev.off()
+
+test_data <- unicellular_pMat(Ec_PES_32m.sqrt, unicell_names = "immPSP") %>% dplyr::filter(Stage == "immPSP")
+test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
+pdf(file = "pTAI_plots/Ec32m_immPSP_sqrt.pdf",
+    width = 2.5,
+    height = 3)
+plot(test_data2, main = "Ec32m immPSP", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
+dev.off()
+
+test_data <- unicellular_pMat(Ec_PES_32m.sqrt, unicell_names = "matPSP") %>% dplyr::filter(Stage == "matPSP")
+test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
+pdf(file = "pTAI_plots/Ec32m_matPSP_sqrt.pdf",
+    width = 2.5,
+    height = 3)
+plot(test_data2, main = "Ec32m matPSP", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
+dev.off()
+
+# female
+test_data <- unicellular_pMat(Ec_PES_25f.sqrt, unicell_names = "immGA") %>% dplyr::filter(Stage == "immGA")
+test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
+pdf(file = "pTAI_plots/Ec25f_immGA_sqrt.pdf",
+    width = 2.5,
+    height = 3)
+plot(test_data2, main = "Ec25f immGA", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
+dev.off()
+
+test_data <- unicellular_pMat(Ec_PES_25f.sqrt, unicell_names = "matGA") %>% dplyr::filter(Stage == "matGA")
+test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
+pdf(file = "pTAI_plots/Ec25f_matGA_sqrt.pdf",
+    width = 2.5,
+    height = 3)
+plot(test_data2, main = "Ec25f matGA", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
+dev.off()
+
+test_data <- unicellular_pMat(Ec_PES_25f.sqrt, unicell_names = "oldGA") %>% dplyr::filter(Stage == "oldGA")
+test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
+pdf(file = "pTAI_plots/Ec25f_oldGA_sqrt.pdf",
+    width = 2.5,
+    height = 3)
+plot(test_data2, main = "Ec25f oldGA", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
+dev.off()
+
+test_data <- unicellular_pMat(Ec_PES_25f.sqrt, unicell_names = "earlyPSP") %>% dplyr::filter(Stage == "earlyPSP")
+test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
+pdf(file = "pTAI_plots/Ec25f_earlyPSP_sqrt.pdf",
+    width = 2.5,
+    height = 3)
+plot(test_data2, main = "Ec25f earlyPSP", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
+dev.off()
+
+test_data <- unicellular_pMat(Ec_PES_25f.sqrt, unicell_names = "immPSP") %>% dplyr::filter(Stage == "immPSP")
+test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
+pdf(file = "pTAI_plots/Ec25f_immPSP_sqrt.pdf",
+    width = 2.5,
+    height = 3)
+plot(test_data2, main = "Ec25f immPSP", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
+dev.off()
+
+test_data <- unicellular_pMat(Ec_PES_25f.sqrt, unicell_names = "matPSP") %>% dplyr::filter(Stage == "matPSP")
+test_data2 <- sort(test_data$pTAI, decreasing = TRUE)
+pdf(file = "pTAI_plots/Ec25f_matPSP_sqrt.pdf",
+    width = 2.5,
+    height = 3)
+plot(test_data2, main = "Ec25f matPSP", ylab = "pTAI", xlab = "sorted genes"); abline(v = 500, col = "green"); # abline(v = 100, col = "red"); abline(v = 1000, col = "blue")
+dev.off()
+```
+
+### pTAI plot
+
+```{r warning=FALSE,message=FALSE}
+unicellular_pMat_plot <- function(PES, 
+                                  unicell_names = c("meiospore", "gamete", "mitospore"), 
+                                  n_genes = 500,
+                                  stage_select = "gamete",
+                                  transformation = "log2",
+                                  alpha = 0,
+                                  dropzero = F,
+                                  ordered_stages) {
+        top_pTAI <- PES %>% 
+                unicellular_pMat(dropzero = dropzero, ordered_stages = ordered_stages, top_genes = TRUE, stage_select = stage_select, n_genes = n_genes)
+        
+        PES_filt <- unicellular_pMat(PES = PES, unicell_names = unicell_names, ordered_stages = ordered_stages)
+        # Rest of your function logic
+        # ...
+        
+        # transformation
+        f <- match.fun(transformation)
+        
+        
+        plot_re <- PES_filt %>%
+                ggplot2::ggplot(aes(y = f(pTAI + alpha), x = Stage, fill = Stage)) +
+                see::geom_violinhalf(trim = TRUE, width=1.2, alpha = 0.8) + 
+                ggplot2::scale_fill_manual(values = c("#3C5488FF", "white", "white")) +
+                ggplot2::geom_line(
+                        data = top_pTAI, 
+                        aes(y = f(pTAI + alpha), x = Stage, group = GeneID),
+                        alpha = 0.2,
+                        colour = "#3C5488FF") +
+                ggplot2::geom_point(
+                        data = top_pTAI, 
+                        aes(y = f(pTAI + alpha), x = Stage, group = GeneID),
+                        alpha = 0.3,
+                        size = 0.7,
+                        colour = "#3C5488FF") +
+                ggplot2::ylab(paste0(transformation, "(pTAI)")) +
+                
+                ggplot2::theme_classic() +
+                ggplot2::theme(legend.position="none") +
+                ggplot2::coord_flip()
+  
+  return(plot_re)
+}
+
+unicellular_pMat_plot_all <- function(PES, 
+                                  unicell_names = c("meiospore", "gamete", "mitospore"), 
+                                  n_genes = 500,
+                                  transformation = "log2",
+                                  alpha = 0,
+                                  dropzero = F,
+                                  ordered_stages) {
+        top_pTAI_1 <- PES %>% 
+                unicellular_pMat(dropzero = dropzero, ordered_stages = ordered_stages, top_genes = TRUE, stage_select = unicell_names[[1]], n_genes = n_genes)
+        top_pTAI_2 <- PES %>% 
+                unicellular_pMat(dropzero = dropzero, ordered_stages = ordered_stages, top_genes = TRUE, stage_select = unicell_names[[2]], n_genes = n_genes)
+        top_pTAI_3 <- PES %>% 
+                unicellular_pMat(dropzero = dropzero, ordered_stages = ordered_stages, top_genes = TRUE, stage_select = unicell_names[[3]], n_genes = n_genes)
+        
+        top_pTAI_all <- top_pTAI_1 %>%
+                inner_join(top_pTAI_2) %>%
+                inner_join(top_pTAI_3)
+        
+        PES_filt <- unicellular_pMat(PES = PES, unicell_names = unicell_names, ordered_stages = ordered_stages)
+        # Rest of your function logic
+        # ...
+        
+        # transformation
+        f <- match.fun(transformation)
+        
+        
+        plot_re <- PES_filt %>%
+                ggplot2::ggplot(aes(y = f(pTAI + alpha), x = Stage, fill = Stage)) +
+                see::geom_violinhalf(trim = TRUE, width=1.2, alpha = 0.5) + 
+                ggplot2::scale_fill_manual(values = c("#3C5488FF", "#E64B35FF", "#00A087FF")) +
+                ggplot2::geom_line(
+                        data = top_pTAI_1, 
+                        aes(y = f(pTAI + alpha), x = Stage, group = GeneID),
+                        alpha = 0.1,
+                        size = 0.3,
+                        colour = "#3C5488FF") +
+                ggplot2::geom_point(
+                        data = top_pTAI_1, 
+                        aes(y = f(pTAI + alpha), x = Stage, group = GeneID),
+                        alpha = 0.1,
+                        size = 0.7,
+                        colour = "#3C5488FF") +
+                ggplot2::geom_line(
+                        data = top_pTAI_2, 
+                        aes(y = f(pTAI + alpha), x = Stage, group = GeneID),
+                        alpha = 0.1,
+                        size = 0.3,
+                        colour = "#E64B35FF") +
+                ggplot2::geom_point(
+                        data = top_pTAI_3, 
+                        aes(y = f(pTAI + alpha), x = Stage, group = GeneID),
+                        alpha = 0.1,
+                        size = 0.7,
+                        colour = "#E64B35FF") +
+                ggplot2::geom_line(
+                        data = top_pTAI_3, 
+                        aes(y = f(pTAI + alpha), x = Stage, group = GeneID),
+                        alpha = 0.1,
+                        size = 0.3,
+                        colour = "#00A087FF") +
+                ggplot2::geom_point(
+                        data = top_pTAI_3, 
+                        aes(y = f(pTAI + alpha), x = Stage, group = GeneID),
+                        alpha = 0.1,
+                        size = 0.7,
+                        colour = "#00A087FF") +
+                ggplot2::geom_line(
+                        data = top_pTAI_all, 
+                        aes(y = f(pTAI + alpha), x = Stage, group = GeneID),
+                        alpha = 0.5,
+                        colour = "black") +
+                ggplot2::ylab(paste0(transformation, "(pTAI)")) +
+                
+                ggplot2::theme_classic() +
+                ggplot2::theme(legend.position="none") +
+                ggplot2::coord_flip()
+  
+  return(plot_re)
+}
+```
+
+
+```{r warning=FALSE,message=FALSE}
+ordered_stages <- c("gamete", "meiospore", "mitospore")
+
+unicellular_pMat_plot_all(Ec_PES_32m.sqrt, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec32m",
+                     subtitle = "sqrt(TPM)")
+ggplot2::ggsave(filename = "pTAI_plots/Ec32m_pTAI_unicell.pdf", device = "pdf", width = 5, height = 3)
+
+unicellular_pMat_plot_all(Ec_PES_25f.sqrt, ordered_stages = ordered_stages) + 
+        ggplot2::labs(title = "Ec25f",
+                     subtitle = "sqrt(TPM)")
+ggplot2::ggsave(filename = "pTAI_plots/Ec25f_pTAI_unicell.pdf", device = "pdf", width = 5, height = 3)
+```
+
+During multicellular stages.
+
+```{r warning=FALSE,message=FALSE}
+multicellular_pMat_plot <- function(PES, 
+                                  multicell_names = c("immGA", "matGA", "oldGA", "earlyPSP", "immPSP", "matPSP"), 
+                                  n_genes = 500,
+                                  stage_select = "immGA",
+                                  transformation = "log2",
+                                  alpha = 0,
+                                  dropzero = F,
+                                  ordered_stages) {
+        top_pTAI <- PES %>% 
+                unicellular_pMat(dropzero = dropzero, unicell_names = multicell_names, ordered_stages = ordered_stages, top_genes = TRUE, stage_select = stage_select, n_genes = n_genes)
+        
+        PES_filt <- unicellular_pMat(PES = PES, unicell_names = multicell_names, ordered_stages = ordered_stages)
+        
+        # transformation
+        f <- match.fun(transformation)
+        
+        plot_re <- PES_filt %>%
+                ggplot2::ggplot(aes(y = f(pTAI + alpha), x = Stage, fill = Stage)) +
+                see::geom_violinhalf(trim = TRUE, width=1.2, alpha = 0.8) + 
+                ggplot2::geom_line(
+                        data = top_pTAI, 
+                        aes(y = f(pTAI + alpha), x = Stage, group = GeneID),
+                        alpha = 0.2,
+                        colour = "#3C5488FF") +
+                ggplot2::geom_point(
+                        data = top_pTAI, 
+                        aes(y = f(pTAI + alpha), x = Stage, group = GeneID),
+                        alpha = 0.3,
+                        size = 0.7,
+                        colour = "#3C5488FF") +
+                ggplot2::ylab(paste0(transformation, "(pTAI)")) +
+                
+                ggplot2::theme_classic() +
+                ggplot2::theme(legend.position="none") +
+                ggplot2::coord_flip()
+  
+  return(plot_re)
+}
+```
+
+#### Save shared top contributor genes
+
+```{r warning=FALSE,message=FALSE}
+intersection_genes <- function(PES, n_genes = 500, ordered_stages, raw_out = FALSE){
+
+        if(!is.data.frame(PES))
+                stop("PES is not a dataframe")
+        
+        PES_filt <- unicellular_pMat(PES = PES, unicell_names = ordered_stages, ordered_stages = ordered_stages)
+        
+        stage_filter <- NULL
+        top_pMat <- tibble::tibble()
+        for (i in 1:length(ordered_stages)) {
+                stage_filter <- ordered_stages[[i]]
+                
+                filtered_pMatrix <- PES_filt %>%
+                        dplyr::filter(Stage == stage_filter) %>% 
+                        dplyr::slice_max(pTAI, n = n_genes)
+                top_pMat <- rbind(top_pMat, filtered_pMatrix)
+        }
+        
+        if(raw_out){
+                return(top_pMat)
+        }
+        
+        top_pMat_out <- top_pMat %>% 
+                dplyr::count(GeneID) %>% 
+                dplyr::filter(n == length(ordered_stages))
+        
+        # top_pMat_out <- top_pMat_out %>% nrow()
+        
+        return(top_pMat_out)
+}
+```
+
+Make sure to have created a `pTAI/` directory under `data/`, e.g. `makedir data/pTAI`
+
+```{r warning=FALSE,message=FALSE}
+ordered_stages <- c("gamete", "meiospore", "mitospore")
+intersection_genes(Ec_PES_32m.sqrt, ordered_stages = ordered_stages) %>% select(1) %>% write_csv("data/pTAI/Ec_PES_32m.sqrt_unicell.csv")
+intersection_genes(Ec_PES_25f.sqrt, ordered_stages = ordered_stages) %>% select(1) %>% write_csv("data/pTAI/Ec_PES_25f.sqrt_unicell.csv")
+
+ordered_stages <- c("immGA", "matGA", "oldGA", "earlyPSP", "immPSP", "matPSP")
+intersection_genes(Ec_PES_32m.sqrt, ordered_stages = ordered_stages) %>% select(1) %>% write_csv("data/pTAI/Ec_PES_32m.sqrt_multicell.csv")
+intersection_genes(Ec_PES_25f.sqrt, ordered_stages = ordered_stages) %>% select(1) %>% write_csv("data/pTAI/Ec_PES_25f.sqrt_multicell.csv")
+```
+
+We have loads of genes.
+
+# GO analysis of top contributor gene (from `pTAI`)
+
+Based on the top 500 contributors to TAI, we can assess whether certain GO categories are enriched. We use `Fisher’s exact` test statistics with the `parent-child algorithm` as implemented in `TopGO`. [Note, the enrichment analysis per se was not possible but the GO terms on each gene was analysed]
+
+```{r}
+library(tximport)
+library(myTAI)
+library(tidyverse)
+```
+
+## run interproscan
+
+First, I filtered removed the last `*` and then any internal `*` from the protein sequences, so that we can run interproscan.
+
+```bash
+sed 's/\*$//' PUBLIC_Ectocarpus-sp7_proteins.fa | sed 's/\*//g' > Ectocarpus-sp7.filt.faa
+
+mkdir Ec_ips
+
+~/bin/interproscan-5.61-93.0/interproscan.sh \
+-i Ectocarpus-sp7.filt.faa \
+-d Ec_ips \
+-t p \
+--goterms \
+-cpu 20 \
+-dp
+```
+
+## Load data
+
+### Load intersections
+
+```{r}
+Ec_PES_32m.sqrt_unicell <- readr::read_csv("data/pTAI/Ec_PES_32m.sqrt_unicell.csv")
+Ec_PES_25f.sqrt_unicell <- readr::read_csv("data/pTAI/Ec_PES_25f.sqrt_unicell.csv")
+Ec_PES_32m.sqrt_multicell <- readr::read_csv("data/pTAI/Ec_PES_32m.sqrt_multicell.csv")
+Ec_PES_25f.sqrt_multicell <- readr::read_csv("data/pTAI/Ec_PES_25f.sqrt_multicell.csv")
+```
+
+### Load PES
+
+```{r}
+# # Non-transformed
+Ec_PES_32m <-
+  readr::read_csv(file = "data/Ec_PES_32m.csv")
+Ec_PES_25f <-
+  readr::read_csv(file = "data/Ec_PES_25f.csv")
+
+# sqrt-tranformed
+Ec_PES_32m.sqrt <-
+  readr::read_csv(file = "data/Ec_PES_32m.sqrt.csv")
+Ec_PES_25f.sqrt <-
+  readr::read_csv(file = "data/Ec_PES_25f.sqrt.csv")
+```
+
+```{r}
+# similar to unicellular_pMat() from 2_4_unicell_pTAI.Rmd
+process_pMat <- function(PES, dropzero = F, ordered_stages, top_genes = F, n_genes = 500, stage_select = "gamete"){
+        
+        if(!is.data.frame(PES))
+                stop("PES is not a dataframe")
+        
+        stage_select <- rlang::sym(stage_select)
+        
+        PES_filt <- PES
+        
+        PES_filt <- PES_filt %>%
+                myTAI::pMatrix() %>%
+                tibble::as_tibble(rownames = "GeneID") 
+        
+        # in case one wants to select the top N genes.
+        if(top_genes){
+                PES_filt <- PES_filt %>%
+                        dplyr::slice_max({{stage_select}}, n = n_genes)
+        }
+        
+        PES_filt <- PES_filt %>%
+                tidyr::pivot_longer(!GeneID, names_to = "Stage", values_to = "pTAI")
+        
+        # make factor
+        PES_filt$Stage <- base::factor(PES_filt$Stage, ordered_stages)
+        return(PES_filt)
+}
+```
+
+### Load interproscan data
+
+```{r}
+GO_Ec <- read_delim("data/Interproscan/Ec_ips/Ectocarpus-sp7.filt.processed.faa.tsv", 
+                    delim = "\t", col_select = c(1,14)) %>%
+        drop_na() %>%
+        filter(GO_term != "-") %>% 
+        separate_rows(GO_term, sep = "\\|") %>% 
+        # dplyr::mutate(GeneID = str_remove(GeneID, "\\.[^.]+$")) %>%
+        arrange(GeneID) %>%
+        distinct()
+
+IPR_Ec <- read_delim("data/Interproscan/Ec_ips/Ectocarpus-sp7.filt.processed.faa.tsv", 
+                    delim = "\t") %>%
+        dplyr::select(GeneID, Analysis, Signature_description, GO_term) %>%
+        # dplyr::mutate(GeneID = str_remove(GeneID, "\\.[^.]+$")) %>%
+        arrange(GeneID) %>%
+        distinct()
+```
+
+```R
+length(unique(GO_Ec$GO_term))
+length(unique(GO_Ec$GeneID))
+```
+
+There are 18,289 GO terms (whereof 2070 are unique) attached to 9881 genes (including isoforms) in _Ectocarpus_.
+
+### What is the proportion of genes without GO terms?
+
+```{r}
+# sqrt males
+pTAI500 <- Ec_PES_32m.sqrt_unicell %>%
+        dplyr::mutate(pTAI500 = 1)
+
+GO_fisher_input <- Ec_PES_32m.sqrt %>%
+        dplyr::select(GeneID) %>%
+        dplyr::left_join(GO_Ec, by = join_by(GeneID)) %>%
+        dplyr::mutate(GO_present = case_when(
+                !is.na(GO_term) ~ "GO_present",
+                TRUE ~ "GO_notpresent"
+                )) %>%
+        dplyr::left_join(pTAI500, by = join_by(GeneID)) %>%
+        dplyr::mutate(pTAI500 = case_when(
+                pTAI500 == 1 ~ "top TAI contributors",
+                TRUE ~ "not top TAI contributors"
+                )) %>%
+        dplyr::select(-GO_term) %>%
+        dplyr::distinct()
+fisher.test(GO_fisher_input$pTAI500, GO_fisher_input$GO_present, alternative = "less")
+
+# sqrt females
+pTAI500 <- Ec_PES_25f.sqrt_unicell %>%
+        dplyr::mutate(pTAI500 = 1)
+
+GO_fisher_input <- Ec_PES_25f.sqrt %>%
+        dplyr::select(GeneID) %>%
+        dplyr::left_join(GO_Ec, by = join_by(GeneID)) %>%
+        dplyr::mutate(GO_present = case_when(
+                !is.na(GO_term) ~ "GO_present",
+                TRUE ~ "GO_notpresent"
+                )) %>%
+        dplyr::left_join(pTAI500, by = join_by(GeneID)) %>%
+        dplyr::mutate(pTAI500 = case_when(
+                pTAI500 == 1 ~ "top TAI contributors",
+                TRUE ~ "not top TAI contributors"
+                )) %>%
+        dplyr::select(-GO_term) %>%
+        dplyr::distinct()
+fisher.test(GO_fisher_input$pTAI500, GO_fisher_input$GO_present, alternative = "less")
+```
+
+There is significant enrichment for genes **without** GO annotations.
+
+We now plot the results.
+
+```{r fig.height = 3, fig.width = 3}
+# sqrt males
+
+pTAI500 <- Ec_PES_32m.sqrt_unicell %>%
+        dplyr::mutate(pTAI500 = 1)
+
+GO_plot_input <- Ec_PES_32m.sqrt %>%
+        dplyr::select(GeneID) %>%
+        dplyr::left_join(GO_Ec, by = join_by(GeneID)) %>%
+        dplyr::mutate(GO_present = case_when(
+                !is.na(GO_term) ~ "present",
+                TRUE ~ "absent"
+                )) %>%
+        dplyr::left_join(pTAI500, by = join_by(GeneID)) %>%
+        dplyr::mutate(pTAI500 = case_when(
+                pTAI500 == 1 ~ T,
+                TRUE ~ F
+                )) %>%
+        dplyr::select(-GO_term) %>%
+        dplyr::distinct()
+
+GO_plot_input %>% 
+        dplyr::group_by(pTAI500, GO_present) %>%
+        dplyr::summarise(count = n()) %>%
+        dplyr::group_by(pTAI500) %>%
+        dplyr::mutate(perc = count/sum(count)) %>%
+        ggplot2::ggplot(aes(x = pTAI500, y = perc*100, fill = GO_present)) +
+        ggplot2::geom_col(colour = "black", width = 0.4) +
+        ggplot2::scale_fill_manual(values = c("#E64B35FF", "white")) +
+        ggplot2::theme_classic() +
+        ggplot2::labs(title = "GO term presence",
+                      subtitle = "Ectocarpus male sqrt TPM",
+                      fill = "GO term",
+                      x = "Top TAI contributors?",
+                      y = "Percentage (%)")
+# ggplot2::ggsave(filename = "pTAI_plots/Ec32m_uni_GO_presence.pdf", 
+#                 device = "pdf", width = 3, height = 3)
+
+# sqrt females
+
+pTAI500 <- Ec_PES_25f.sqrt_unicell %>%
+        dplyr::mutate(pTAI500 = 1)
+
+GO_plot_input <- Ec_PES_25f.sqrt %>%
+        dplyr::select(GeneID) %>%
+        dplyr::left_join(GO_Ec, by = join_by(GeneID)) %>%
+        dplyr::mutate(GO_present = case_when(
+                !is.na(GO_term) ~ "present",
+                TRUE ~ "absent"
+                )) %>%
+        dplyr::left_join(pTAI500, by = join_by(GeneID)) %>%
+        dplyr::mutate(pTAI500 = case_when(
+                pTAI500 == 1 ~ T,
+                TRUE ~ F
+                )) %>%
+        dplyr::select(-GO_term) %>%
+        dplyr::distinct()
+
+GO_plot_input %>% 
+        dplyr::group_by(pTAI500, GO_present) %>%
+        dplyr::summarise(count = n()) %>%
+        dplyr::group_by(pTAI500) %>%
+        dplyr::mutate(perc = count/sum(count)) %>%
+        ggplot2::ggplot(aes(x = pTAI500, y = perc*100, fill = GO_present)) +
+        ggplot2::geom_col(colour = "black", width = 0.4) +
+        ggplot2::scale_fill_manual(values = c("#E64B35FF", "white")) +
+        ggplot2::theme_classic() +
+        ggplot2::labs(title = "GO term presence",
+                      subtitle = "Ectocarpus female sqrt TPM",
+                      fill = "GO term",
+                      x = "Top TAI contributors?",
+                      y = "Percentage (%)")
+# ggplot2::ggsave(filename = "pTAI_plots/Ec25f_uni_GO_presence.pdf", 
+#                 device = "pdf", width = 3, height = 3)
+```
+
+```
+unicellular: 9.57% in males with GO terms
+unicellular: 6.12% in females with GO terms
+```
+
+### Multicellular stages
+
+```{r fig.height = 3, fig.width = 3}
+# sqrt males
+
+pTAI500 <- Ec_PES_32m.sqrt_multicell %>%
+        dplyr::mutate(pTAI500 = 1)
+
+GO_fisher_input <- Ec_PES_32m.sqrt %>%
+        dplyr::select(GeneID) %>%
+        dplyr::left_join(GO_Ec, by = join_by(GeneID)) %>%
+        dplyr::mutate(GO_present = case_when(
+                !is.na(GO_term) ~ "GO_present",
+                TRUE ~ "GO_notpresent"
+                )) %>%
+        dplyr::left_join(pTAI500, by = join_by(GeneID)) %>%
+        dplyr::mutate(pTAI500 = case_when(
+                pTAI500 == 1 ~ "top TAI contributors",
+                TRUE ~ "not top TAI contributors"
+                )) %>%
+        dplyr::select(-GO_term) %>%
+        dplyr::distinct()
+fisher.test(GO_fisher_input$pTAI500, GO_fisher_input$GO_present, alternative = "less")
+
+GO_plot_input <- Ec_PES_32m.sqrt %>%
+        dplyr::select(GeneID) %>%
+        dplyr::left_join(GO_Ec, by = join_by(GeneID)) %>%
+        dplyr::mutate(GO_present = case_when(
+                !is.na(GO_term) ~ "present",
+                TRUE ~ "absent"
+                )) %>%
+        dplyr::left_join(pTAI500, by = join_by(GeneID)) %>%
+        dplyr::mutate(pTAI500 = case_when(
+                pTAI500 == 1 ~ T,
+                TRUE ~ F
+                )) %>%
+        dplyr::select(-GO_term) %>%
+        dplyr::distinct()
+
+GO_plot_input %>% 
+        dplyr::group_by(pTAI500, GO_present) %>%
+        dplyr::summarise(count = n()) %>%
+        dplyr::group_by(pTAI500) %>%
+        dplyr::mutate(perc = count/sum(count)) %>%
+        ggplot2::ggplot(aes(x = pTAI500, y = perc*100, fill = GO_present)) +
+        ggplot2::geom_col(colour = "black", width = 0.4) +
+        ggplot2::scale_fill_manual(values = c("#E64B35FF", "white")) +
+        ggplot2::theme_classic() +
+        ggplot2::labs(title = "GO term presence",
+                      subtitle = "Ectocarpus male sqrt TPM",
+                      fill = "GO term",
+                      x = "Top TAI contributors?",
+                      y = "Percentage (%)")
+# ggplot2::ggsave(filename = "pTAI_plots/Ec32m_multi_GO_presence.pdf", 
+#                 device = "pdf", width = 3, height = 3)
+
+# sqrt females
+
+pTAI500 <- Ec_PES_25f.sqrt_multicell %>%
+        dplyr::mutate(pTAI500 = 1)
+
+GO_fisher_input <- Ec_PES_25f.sqrt %>%
+        dplyr::select(GeneID) %>%
+        dplyr::left_join(GO_Ec, by = join_by(GeneID)) %>%
+        dplyr::mutate(GO_present = case_when(
+                !is.na(GO_term) ~ "GO_present",
+                TRUE ~ "GO_notpresent"
+                )) %>%
+        dplyr::left_join(pTAI500, by = join_by(GeneID)) %>%
+        dplyr::mutate(pTAI500 = case_when(
+                pTAI500 == 1 ~ "top TAI contributors",
+                TRUE ~ "not top TAI contributors"
+                )) %>%
+        dplyr::select(-GO_term) %>%
+        dplyr::distinct()
+fisher.test(GO_fisher_input$pTAI500, GO_fisher_input$GO_present, alternative = "less")
+
+GO_plot_input <- Ec_PES_25f.sqrt %>%
+        dplyr::select(GeneID) %>%
+        dplyr::left_join(GO_Ec, by = join_by(GeneID)) %>%
+        dplyr::mutate(GO_present = case_when(
+                !is.na(GO_term) ~ "present",
+                TRUE ~ "absent"
+                )) %>%
+        dplyr::left_join(pTAI500, by = join_by(GeneID)) %>%
+        dplyr::mutate(pTAI500 = case_when(
+                pTAI500 == 1 ~ T,
+                TRUE ~ F
+                )) %>%
+        dplyr::select(-GO_term) %>%
+        dplyr::distinct()
+
+GO_plot_input %>% 
+        dplyr::group_by(pTAI500, GO_present) %>%
+        dplyr::summarise(count = n()) %>%
+        dplyr::group_by(pTAI500) %>%
+        dplyr::mutate(perc = count/sum(count)) %>%
+        ggplot2::ggplot(aes(x = pTAI500, y = perc*100, fill = GO_present)) +
+        ggplot2::geom_col(colour = "black", width = 0.4) +
+        ggplot2::scale_fill_manual(values = c("#E64B35FF", "white")) +
+        ggplot2::theme_classic() +
+        ggplot2::labs(title = "GO term presence",
+                      subtitle = "Ectocarpus female sqrt TPM",
+                      fill = "GO term",
+                      x = "Top TAI contributors?",
+                      y = "Percentage (%)")
+# ggplot2::ggsave(filename = "pTAI_plots/Ec25f_multi_GO_presence.pdf", 
+#                 device = "pdf", width = 3, height = 3)
+```
+
+```
+multicellular: 17.7% in males with GO terms
+multicellular: 18.9% in females with GO terms
+```
+
+Genes contributing to TAI in multicellular stages tend to have GO terms.
+
+### What is the proportion of genes without interproscan results?
+
+```{r fig.height = 3, fig.width = 3}
+# sqrt males
+
+pTAI500 <- Ec_PES_32m.sqrt_unicell %>%
+        dplyr::mutate(pTAI500 = 1)
+
+IPR_plot_input <- Ec_PES_32m.sqrt %>%
+        dplyr::select(GeneID) %>%
+        dplyr::left_join(IPR_Ec, by = join_by(GeneID)) %>%
+        dplyr::mutate(IPR_present = case_when(
+                !is.na(Analysis) ~ "present",
+                TRUE ~ "absent"
+                )) %>%
+        dplyr::left_join(pTAI500, by = join_by(GeneID)) %>%
+        dplyr::mutate(pTAI500 = case_when(
+                pTAI500 == 1 ~ T,
+                TRUE ~ F
+                )) %>%
+        dplyr::select(-c(GO_term, Analysis, Signature_description)) %>%
+        dplyr::distinct()
+
+IPR_plot_input %>% 
+        dplyr::group_by(pTAI500, IPR_present) %>%
+        dplyr::summarise(count = n()) %>%
+        dplyr::group_by(pTAI500) %>%
+        dplyr::mutate(perc = count/sum(count)) %>%
+        ggplot2::ggplot(aes(x = pTAI500, y = perc*100, fill = IPR_present)) +
+        ggplot2::geom_col(colour = "black", width = 0.4) +
+        ggplot2::scale_fill_manual(values = c("#E64B35FF", "white")) +
+        ggplot2::theme_classic() +
+        ggplot2::labs(title = "Interproscan presence",
+                      subtitle = "Ectocarpus male sqrt TPM",
+                      fill = "IPS term",
+                      x = "Top TAI contributors?",
+                      y = "Percentage (%)")
+# ggplot2::ggsave(filename = "pTAI_plots/Ec32m_uni_IPR_presence.pdf", 
+#                 device = "pdf", width = 3, height = 3)
+
+# sqrt females
+
+pTAI500 <- Ec_PES_25f.sqrt_unicell %>%
+        dplyr::mutate(pTAI500 = 1)
+
+IPR_plot_input <- Ec_PES_25f.sqrt %>%
+        dplyr::select(GeneID) %>%
+        dplyr::left_join(IPR_Ec, by = join_by(GeneID)) %>%
+        dplyr::mutate(IPR_present = case_when(
+                !is.na(Analysis) ~ "present",
+                TRUE ~ "absent"
+                )) %>%
+        dplyr::left_join(pTAI500, by = join_by(GeneID)) %>%
+        dplyr::mutate(pTAI500 = case_when(
+                pTAI500 == 1 ~ T,
+                TRUE ~ F
+                )) %>%
+        dplyr::select(-c(GO_term, Analysis, Signature_description)) %>%
+        dplyr::distinct()
+
+IPR_plot_input %>% 
+        dplyr::group_by(pTAI500, IPR_present) %>%
+        dplyr::summarise(count = n()) %>%
+        dplyr::group_by(pTAI500) %>%
+        dplyr::mutate(perc = count/sum(count)) %>%
+        ggplot2::ggplot(aes(x = pTAI500, y = perc*100, fill = IPR_present)) +
+        ggplot2::geom_col(colour = "black", width = 0.4) +
+        ggplot2::scale_fill_manual(values = c("#E64B35FF", "white")) +
+        ggplot2::theme_classic() +
+        ggplot2::labs(title = "Interproscan presence",
+                      subtitle = "Ectocarpus female sqrt TPM",
+                      fill = "IPS term",
+                      x = "Top TAI contributors?",
+                      y = "Percentage (%)")
+# ggplot2::ggsave(filename = "pTAI_plots/Ec25f_uni_IPR_presence.pdf", 
+#                 device = "pdf", width = 3, height = 3)
+```
+
+```
+unicellular: 57.4% in males with IPR
+unicellular: 58.2% in females with IPR
+```
+
+### Multicellular stages
+
+```{r fig.height = 3, fig.width = 3}
+# sqrt males
+
+pTAI500 <- Ec_PES_32m.sqrt_multicell %>%
+        dplyr::mutate(pTAI500 = 1)
+
+IPR_plot_input <- Ec_PES_32m.sqrt %>%
+        dplyr::select(GeneID) %>%
+        dplyr::left_join(IPR_Ec, by = join_by(GeneID)) %>%
+        dplyr::mutate(IPR_present = case_when(
+                !is.na(Analysis) ~ "present",
+                TRUE ~ "absent"
+                )) %>%
+        dplyr::left_join(pTAI500, by = join_by(GeneID)) %>%
+        dplyr::mutate(pTAI500 = case_when(
+                pTAI500 == 1 ~ T,
+                TRUE ~ F
+                )) %>%
+        dplyr::select(-c(GO_term, Analysis, Signature_description)) %>%
+        dplyr::distinct()
+
+IPR_plot_input %>% 
+        dplyr::group_by(pTAI500, IPR_present) %>%
+        dplyr::summarise(count = n()) %>%
+        dplyr::group_by(pTAI500) %>%
+        dplyr::mutate(perc = count/sum(count)) %>%
+        ggplot2::ggplot(aes(x = pTAI500, y = perc*100, fill = IPR_present)) +
+        ggplot2::geom_col(colour = "black", width = 0.4) +
+        ggplot2::scale_fill_manual(values = c("#E64B35FF", "white")) +
+        ggplot2::theme_classic() +
+        ggplot2::labs(title = "Interproscan presence",
+                      subtitle = "Ectocarpus male sqrt TPM",
+                      fill = "IPS term",
+                      x = "Top TAI contributors?",
+                      y = "Percentage (%)")
+# ggplot2::ggsave(filename = "pTAI_plots/Ec32m_multi_IPR_presence.pdf", 
+#                 device = "pdf", width = 3, height = 3)
+
+# sqrt females
+
+pTAI500 <- Ec_PES_25f.sqrt_multicell %>%
+        dplyr::mutate(pTAI500 = 1)
+
+IPR_plot_input <- Ec_PES_25f.sqrt %>%
+        dplyr::select(GeneID) %>%
+        dplyr::left_join(IPR_Ec, by = join_by(GeneID)) %>%
+        dplyr::mutate(IPR_present = case_when(
+                !is.na(Analysis) ~ "present",
+                TRUE ~ "absent"
+                )) %>%
+        dplyr::left_join(pTAI500, by = join_by(GeneID)) %>%
+        dplyr::mutate(pTAI500 = case_when(
+                pTAI500 == 1 ~ T,
+                TRUE ~ F
+                )) %>%
+        dplyr::select(-c(GO_term, Analysis, Signature_description)) %>%
+        dplyr::distinct()
+
+IPR_plot_input %>% 
+        dplyr::group_by(pTAI500, IPR_present) %>%
+        dplyr::summarise(count = n()) %>%
+        dplyr::group_by(pTAI500) %>%
+        dplyr::mutate(perc = count/sum(count)) %>%
+        ggplot2::ggplot(aes(x = pTAI500, y = perc*100, fill = IPR_present)) +
+        ggplot2::geom_col(colour = "black", width = 0.4) +
+        ggplot2::scale_fill_manual(values = c("#E64B35FF", "white")) +
+        ggplot2::theme_classic() +
+        ggplot2::labs(title = "Interproscan presence",
+                      subtitle = "Ectocarpus female sqrt TPM",
+                      fill = "IPS term",
+                      x = "Top TAI contributors?",
+                      y = "Percentage (%)")
+# ggplot2::ggsave(filename = "pTAI_plots/Ec25f_multi_IPR_presence.pdf", 
+#                 device = "pdf", width = 3, height = 3)
+```
+
+```
+multicellular: 51.0% in males with IPR
+multicellular: 54.7% in females with IPR
+```
+In contrast to the GO terms, multicellular stages tend to have less IPR domain annotation.
+
+## GO analysis
+
+```{r}
+library(topGO)
+```
+
+```{r}
+createGOdata <- function(geneList, ontology, gene2GO_map, nodeSize){
+  OUT <- 
+    methods::new(
+      "topGOdata", 
+      description = paste("GOtest", ontology, sep = "_"), 
+      ontology = ontology, 
+      allGenes = geneList,  
+      annot = annFUN.gene2GO, 
+      gene2GO = gene2GO_map, 
+      nodeSize = nodeSize)
+  return(OUT)
+}
+```
+
+`processedGOdata()` wraps around my function `createGOdata()`
+
+```{r}
+processedGOdata <-
+  function(DEG_contrasts, GO_data, GO_gene_mapping, ontology, nodeSize = 10, padj_threshold = 0.05){
+    gene_background <-
+      DEG_contrasts %>%
+      tidyr::drop_na()
+    gene_query <-
+      dplyr::filter(gene_background, padj < padj_threshold)
+    geneList <-
+      factor(as.integer(gene_background$GeneID %in% gene_query$GeneID))
+    names(geneList) <- gene_background$GeneID
+    myGOdata <-
+      createGOdata(
+        geneList,
+        ontology = ontology,
+        gene2GO_map = GO_gene_mapping,
+        nodeSize = nodeSize
+        )
+    return(myGOdata)
+  }
+```
+
+To use `processedGOdata()`
+
+```R
+myGOdata_CC <-
+  processedGOdata(
+    DEG_contrasts = dplyr::filter(Fs_DEG_contrasts, contrast == "48H vs 24H"),
+    GO_data = GO_Fs,
+    GO_gene_mapping = GO_Fs_gene_mapping,
+    ontology = "CC")
+```
+
+`resultGO()` plots or outputs the significant GO terms.
+
+```{r}
+resultGO <- function(GOdata, algorithm, firstSigNodes = 5, sig = F, plot = F, fisher_adjusted_threshold = 0.1){
+  ## Calculate fisher exact test
+  result_fisher <- 
+    topGO::runTest(
+      object = GOdata,
+      algorithm = algorithm,
+      statistic = "fisher")
+  OUT <- 
+    topGO::GenTable(
+      object  = GOdata,
+      fisher = result_fisher,
+      topNodes = length(score(result_fisher)))
+  
+  ## Correct for multiple testing:
+  OUT$fisher <- as.numeric(OUT$fisher)
+  OUT$fisher_adjusted <- 
+    stats::p.adjust(p = OUT$fisher, method = c("fdr"))
+  if(sig == F & plot == F){
+    return(OUT)
+  }
+  ## Subset calls with significance higher than expected:
+  if(plot == F){
+    OUT_sig <- 
+      OUT %>%
+      dplyr::filter(fisher_adjusted < fisher_adjusted_threshold) %>%
+      dplyr::select(GO.ID, Term, Significant, Expected, fisher)
+    return(OUT_sig)
+  }
+  plot_OUT <- 
+    topGO::showSigOfNodes(
+      GOdata, 
+      score(result_fisher),
+      firstSigNodes = firstSigNodes,
+      useInfo ='all')
+  return(plot_OUT)
+}
+# also possible
+# resGO_sig <- resultGO(myGOdata, "weight01", firstSigNodes = 10, sig = T)
+```
+
+The script above were motivated three blogposts:
+
+-[Archetypalecology](https://archetypalecology.wordpress.com/2021/01/27/how-to-perform-kegg-and-go-enrichment-analysis-of-non-model-species-using-r/)
+
+-[Avrilomics](https://avrilomics.blogspot.com/2015/07/using-topgo-to-test-for-go-term.html)
+
+-[Zhiganglu](https://zhiganglu.com/post/topgo-ks-test/)
+
+For the GO analysis I used Fisher’s exact test. This is because it is more flexible. It is flexible because it requires a simpler input and assumes just two classes of genes - DEG (or nonDEG) and background. Node size 5 is recommended. Here are the top level GO categories:
+
+> CC = Cellular Compartment
+> MF = Molecular Function
+> BP = Biological Process
+
+```{r}
+GO_Ec_gene_mapping <- base::split(GO_Ec$GO_term, GO_Ec$GeneID)
+```
+
+#### unicell Ec25f
+
+```{r}
+gene_background_unique <- unique(Ec_PES_25f$GeneID)
+geneList <-
+  factor(as.integer(gene_background_unique %in% Ec_PES_25f.sqrt_unicell$GeneID))
+names(geneList) <- gene_background_unique
+myGOdata_CC <-
+  createGOdata(
+    geneList,
+    ontology = "CC",
+    gene2GO_map = GO_Ec_gene_mapping,
+    nodeSize = 10
+    )
+myGOdata_BP <-
+  createGOdata(
+    geneList,
+    ontology = "BP",
+    gene2GO_map = GO_Ec_gene_mapping,
+    nodeSize = 10
+    )
+myGOdata_MF <-
+  createGOdata(
+    geneList,
+    ontology = "MF",
+    gene2GO_map = GO_Ec_gene_mapping,
+    nodeSize = 10
+    )
+
+resGO_CC <- 
+  resultGO(myGOdata_CC, algorithm = "parentchild", sig = T)
+resGO_BP <- 
+  resultGO(myGOdata_BP, algorithm = "parentchild", sig = T)
+resGO_MF <- 
+  resultGO(myGOdata_MF, algorithm = "parentchild", sig = T)
+
+resGO_CC; resGO_BP; resGO_MF
+```
+
+#### unicell Ec32m
+
+```{r}
+gene_background_unique <- unique(Ec_PES_32m$GeneID)
+geneList <-
+  factor(as.integer(gene_background_unique %in% Ec_PES_32m.sqrt_unicell$GeneID))
+names(geneList) <- gene_background_unique
+myGOdata_CC <-
+  createGOdata(
+    geneList,
+    ontology = "CC",
+    gene2GO_map = GO_Ec_gene_mapping,
+    nodeSize = 10
+    )
+myGOdata_BP <-
+  createGOdata(
+    geneList,
+    ontology = "BP",
+    gene2GO_map = GO_Ec_gene_mapping,
+    nodeSize = 10
+    )
+myGOdata_MF <-
+  createGOdata(
+    geneList,
+    ontology = "MF",
+    gene2GO_map = GO_Ec_gene_mapping,
+    nodeSize = 10
+    )
+
+resGO_CC <- 
+  resultGO(myGOdata_CC, algorithm = "parentchild", sig = T)
+resGO_BP <- 
+  resultGO(myGOdata_BP, algorithm = "parentchild", sig = T)
+resGO_MF <- 
+  resultGO(myGOdata_MF, algorithm = "parentchild", sig = T)
+
+resGO_CC; resGO_BP; resGO_MF
+```
+
+#### multicell Ec25f
+
+```{r}
+gene_background_unique <- unique(Ec_PES_25f$GeneID)
+geneList <-
+  factor(as.integer(gene_background_unique %in% Ec_PES_25f.sqrt_multicell$GeneID))
+names(geneList) <- gene_background_unique
+myGOdata_CC <-
+  createGOdata(
+    geneList,
+    ontology = "CC",
+    gene2GO_map = GO_Ec_gene_mapping,
+    nodeSize = 10
+    )
+myGOdata_BP <-
+  createGOdata(
+    geneList,
+    ontology = "BP",
+    gene2GO_map = GO_Ec_gene_mapping,
+    nodeSize = 10
+    )
+myGOdata_MF <-
+  createGOdata(
+    geneList,
+    ontology = "MF",
+    gene2GO_map = GO_Ec_gene_mapping,
+    nodeSize = 10
+    )
+
+resGO_CC <- 
+  resultGO(myGOdata_CC, algorithm = "parentchild", sig = T)
+resGO_BP <- 
+  resultGO(myGOdata_BP, algorithm = "parentchild", sig = T)
+resGO_MF <- 
+  resultGO(myGOdata_MF, algorithm = "parentchild", sig = T)
+
+resGO_CC; resGO_BP; resGO_MF
+```
+
+#### multicell Ec32m
+
+```{r}
+gene_background_unique <- unique(Ec_PES_32m$GeneID)
+geneList <-
+  factor(as.integer(gene_background_unique %in% Ec_PES_32m.sqrt_multicell$GeneID))
+names(geneList) <- gene_background_unique
+myGOdata_CC <-
+  createGOdata(
+    geneList,
+    ontology = "CC",
+    gene2GO_map = GO_Ec_gene_mapping,
+    nodeSize = 10
+    )
+myGOdata_BP <-
+  createGOdata(
+    geneList,
+    ontology = "BP",
+    gene2GO_map = GO_Ec_gene_mapping,
+    nodeSize = 10
+    )
+myGOdata_MF <-
+  createGOdata(
+    geneList,
+    ontology = "MF",
+    gene2GO_map = GO_Ec_gene_mapping,
+    nodeSize = 10
+    )
+
+resGO_CC <- 
+  resultGO(myGOdata_CC, algorithm = "parentchild", sig = T)
+resGO_BP <- 
+  resultGO(myGOdata_BP, algorithm = "parentchild", sig = T)
+resGO_MF <- 
+  resultGO(myGOdata_MF, algorithm = "parentchild", sig = T)
+
+resGO_CC; resGO_BP; resGO_MF
+```
+
+As expected from the "de-enrichment" of GO terms in unicellular stages, we can only obtain GO terms significantly enriched from the top contributors to the TAI in the multicellular stages.
+
+Get session info.
+
+```{r warning=FALSE,message=FALSE}
+devtools::session_info()
+```

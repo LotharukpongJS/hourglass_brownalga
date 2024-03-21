@@ -1,0 +1,1539 @@
+---
+title: "1. Obtaining RNA-seq data and gene age data"
+output:
+  html_document:
+    fig_width: 6
+    fig_height: 4
+    df_print: paged
+editor_options: 
+  chunk_output_type: inline
+---
+
+Here, I explain how the count and abundance data was obtained from the RNA-seq, and how the evolutionary age of each gene was obtained. Next, I provide the code for generating the processed dataset that can be used to run steps 2 and 3 on evolutionary transcriptomics. Importantly, the processed dataset (PhyloExpressionSet; see [`myTAI` documentation](https://drostlab.github.io/myTAI/articles/Introduction.html#expression-dataset-specification)) is also available as `Table S2` in the paper. The PhyloExpressionSet includes the gene age information as well as RNA-seq.
+
+# RNA-seq quantification
+
+The revision 3.5 of the nf-core RNA-seq pipeline was used, e.g. in _F. distichus_,
+
+```bash
+nextflow run nf-core/rnaseq -r 3.5 -params-file nf-params_Fdistichus_HG.json -profile singularity,sge
+```
+
+Where the `nf-params_Fdistichus_HG.json` points to the file locations.
+
+```JSON
+{
+    "input": "/tmp/global2/jlotharukpong/nfcore_rnaseq/Fucus_distichus_HG.csv",
+    "outdir": "/tmp/global2/jlotharukpong/nfcore_rnaseq/Fucus-distichus_HG_3_5",
+    "fasta": "/tmp/global2/jlotharukpong/nfcore_rnaseq/Phaeoexplorer_genomes/Fucus-distichus.fa",
+    "gff": "/tmp/global2/jlotharukpong/annotation_solve/annotation_post/Fucus-distichus.clean_gff3.gff",
+    "transcript_fasta": "/tmp/global2/jlotharukpong/Fucus_quant/Fd_quant/Fucus_distichus_de-novo-transcriptome.fasta",
+    "pseudo_aligner": "salmon",
+    "salmon_quant_libtype": "A",
+    "skip_alignment": true
+}
+```
+
+Salmon was used for the read mapping. The transcriptome assemblies for the two _Fucus_ species come from [Hatchett et al. (2023)](https://doi.org/10.1111/nph.18710), while the _Ectocarpus_ data comes from the version 3 of the genome.
+
+# Gene age inference
+
+Gene age inference was performed using [`GenEra` v1.0](https://github.com/josuebarrera/GenEra), using the `--ultra-sensitive` mode of the ultra-fast pairwise protein aligner [`DIAMOND`](https://github.com/bbuchfink/diamond). For example, for _F. distichus_,
+
+```bash
+genEra -q F_distichus_pep.faa -t 3012 -b /mnt/download/nrdl/nr -d /mnt/download/nrdl/taxdump -y ultra-sensitive -a protein_list.tsv
+```
+
+Where `-q` requires a fasta file with protein sequences, `-t` Taxonomy IDs, `-b` the location of the NCBI NR database, `-d` the location ofthe tax dump, `-y` the sensitivity mode of `DIAMOND` and `-a` the list of additional protein files with Taxonomy IDs. The last options were needed as the protein sequences from the _Fucus_ species were not in the NCBI. Taxonomy IDs from NCBI used for GenEra are as follows.
+
+```
+Species         Taxonomy IDs
+Fucus serratus          87148
+Fucus distichus         3012
+Ectocarpus sp7          2880
+```
+
+The gene age inference results in three files `data/2880_gene_ages.tsv` for _Ectocarpus_, `data/Fs_age_complete.tsv` for _F. serratus_ and `data/Fd_age_complete.tsv` for _F. distichus_.
+
+# Processing RNA-seq and gene age data 
+
+We now import the RNA-seq reads.
+
+```{r}
+# BiocManager::install("tximport")
+library(tximport)
+library(tidyverse)
+```
+
+We keep genes with average minimum count of 2 TPM.
+
+```R
+selectGenes <- function(counts, min.count=2){
+  keep <-
+    counts[rowMeans(counts)>min.count, ]
+  return(keep)
+}
+```
+
+## Load gene age data
+
+Then, read the gene age data for all species under study. Gene ages were chosen based on the isoform with the oldest age profile. Quantification was done for the _Fucus_ samples on genes so the age of the oldest isoform of each gene was kept.
+
+```R
+Ec_age <- readr::read_tsv("data/2880_gene_ages.tsv") %>% dplyr::rename(GeneID = `#gene`)
+Fd_age <- readr::read_tsv("data/Fd_age_complete.tsv") %>% 
+  dplyr::mutate(GeneID = str_remove(GeneID, '\\.p[0-9].*')) %>%
+  dplyr::group_by(GeneID) %>%
+  dplyr::slice(which.min(rank)) %>%
+  dplyr::ungroup()
+Fs_age <- readr::read_tsv("data/Fs_age_complete.tsv") %>% 
+  dplyr::mutate(GeneID = str_remove(GeneID, '\\.p[0-9].*')) %>%
+  dplyr::group_by(GeneID) %>%
+  dplyr::slice(which.min(rank)) %>%
+  dplyr::ungroup()
+```
+
+## Load count data
+
+### _F. distichus_ count data
+
+```R
+sample_info_fd <- 
+  readr::read_csv2("data/sample_info_fd.csv")
+
+Fd_files <- 
+  stringr::str_c(
+    "data/Fd_salmon/salmon/", 
+    sample_info_fd$LibName, 
+    "/quant.sf") %>%
+  purrr::set_names(sample_info_fd$LibName)
+
+Fd_tx2gene <- 
+  dplyr::select(Fd_age, GeneID) %>% 
+  dplyr::mutate(IsoID = GeneID)
+```
+
+```R
+# use abundance
+Fd_txi <- 
+  tximport(
+    Fd_files, 
+    type = "salmon", 
+    tx2gene = Fd_tx2gene,
+    countsFromAbundance = "lengthScaledTPM")
+Fd_keep <- 
+  selectGenes(Fd_txi$abundance, min.count = 2)
+```
+
+in Fd, out of 9914 genes, we keep 7907
+
+Note, after the 6 months Fd samples were sequenced, I quantified the expression using the nf-core RNA-seq pipeline as in the other samples (r3.5). The samples were added to the original directory and renamed.
+
+### _F. serratus_ count data
+
+```R
+sample_info_fs <- 
+  readr::read_csv2("data/sample_info_fs.csv")
+
+Fs_files <- 
+  stringr::str_c(
+    "data/Fs_salmon/salmon/", 
+    sample_info_fs$LibName, 
+    "/quant.sf") %>%
+  purrr::set_names(sample_info_fs$LibName)
+
+Fs_tx2gene <- 
+  dplyr::select(Fs_age, GeneID) %>% 
+  dplyr::mutate(IsoID = GeneID)
+```
+
+```R
+# use abundance
+Fs_txi <- 
+  tximport(
+    Fs_files, 
+    type = "salmon", 
+    tx2gene = Fs_tx2gene,
+    countsFromAbundance = "lengthScaledTPM")
+Fs_keep <- 
+  selectGenes(Fs_txi$abundance, min.count = 2)
+```
+
+in Fs, out of 13362 genes, we keep 8291
+
+
+### _Ectocarpus_ count data
+
+```R
+sample_info_ec <- 
+  readr::read_csv2("data/sample_info_ec.csv")
+
+Ec_files <- 
+  stringr::str_c(
+    "data/Ec_salmon2/", 
+    sample_info_ec$LibName, 
+    "/quant.sf") %>%
+  purrr::set_names(sample_info_ec$SampleName)
+
+Ec_tx2gene <- 
+  dplyr::select(Ec_age, GeneID) %>% 
+  dplyr::mutate(IsoID = GeneID)
+```
+
+```R
+# use abundance
+Ec_txi <- 
+  tximport(
+    Ec_files, 
+    type = "salmon", 
+    tx2gene = Ec_tx2gene,
+    countsFromAbundance = "lengthScaledTPM")
+Ec_keep <- 
+  selectGenes(Ec_txi$abundance, min.count = 2)
+```
+
+in Ec, out of 16732 genes, we keep 11582
+
+### Filter counts based on abundance threshold
+
+Here we use counts from `tximport` rather than abundance.
+
+```R
+Fd_counts <-
+  Fd_txi$counts[rownames(Fd_keep), ]
+Fs_counts <-
+  Fs_txi$counts[rownames(Fs_keep), ]
+Ec_counts <-
+  Ec_txi$counts[rownames(Ec_keep), ]
+```
+
+## Applying noisyR
+
+[_noisyR_](https://core-bioinformatics.github.io/noisyR/) can be used to remove genes that are thought to behave noisily. This filter is admittedly quite aggressive, removing a large proportion of the gene set.
+
+```{r}
+library(noisyr)
+```
+
+### Remove noise
+
+```R
+Fd_abundance.denoised <- 
+  noisyr::noisyr(
+    approach.for.similarity.calculation = "counts",
+    expression.matrix = Fd_keep
+  )
+Fs_abundance.denoised <- 
+  noisyr::noisyr(
+    approach.for.similarity.calculation = "counts",
+    expression.matrix = Fs_keep
+  )
+Ec_abundance.denoised <- 
+  noisyr::noisyr(
+    approach.for.similarity.calculation = "counts",
+    expression.matrix = Ec_keep
+  )
+```
+
+In _F. distichus_, we retain *1962* out of 7898 genes. In _F. serratus_, we retain *2214* out of 8291. In _Ectocarpus_, we retain *2695* out of 11582. This is not so high.
+
+## Save count data
+
+### Save _F. distichus_ count data
+
+Save abundance
+
+```R
+Fd_keep %>% 
+  dplyr::as_tibble(rownames = "GeneID") %>%
+  readr::write_csv(file = "data/Fd_abundance.csv")
+```
+
+Save denoised abundance
+
+```R
+Fd_abundance.denoised %>% 
+  dplyr::as_tibble(rownames = "GeneID") %>%
+  readr::write_csv(file = "data/Fd_abundance_denoised.csv")
+```
+
+Save counts
+
+```R
+# use counts
+Fd_counts %>% 
+  dplyr::as_tibble(rownames = "GeneID") %>%
+  readr::write_csv(file = "data/Fd_counts.csv")
+```
+
+Save denoised counts
+
+```R
+Fd_counts.denoised %>% 
+  dplyr::as_tibble(rownames = "GeneID") %>%
+  readr::write_csv(file = "data/Fd_counts_denoised.csv")
+```
+
+### Save _F. serratus_ count data
+
+Save abundance
+
+```R
+Fs_keep %>% 
+  dplyr::as_tibble(rownames = "GeneID") %>%
+  readr::write_csv(file = "data/Fs_abundance.csv")
+```
+
+Save denoised abundance
+
+```R
+Fs_abundance.denoised %>% 
+  dplyr::as_tibble(rownames = "GeneID") %>%
+  readr::write_csv(file = "data/Fs_abundance_denoised.csv")
+```
+
+Save counts
+
+```R
+# use counts
+Fs_counts %>% 
+  dplyr::as_tibble(rownames = "GeneID") %>%
+  readr::write_csv(file = "data/Fs_counts.csv")
+```
+
+Save denoised counts
+
+```R
+Fs_counts.denoised %>% 
+  dplyr::as_tibble(rownames = "GeneID") %>%
+  readr::write_csv(file = "data/Fs_counts_denoised.csv")
+```
+
+### Save _Ectocarpus_ count data
+
+Save abundance
+
+```R
+Ec_keep %>% 
+  dplyr::as_tibble(rownames = "GeneID") %>%
+  readr::write_csv(file = "data/Ec_abundance.csv")
+```
+
+Save denoised abundance
+
+```R
+Ec_abundance.denoised %>% 
+  dplyr::as_tibble(rownames = "GeneID") %>%
+  readr::write_csv(file = "data/Ec_abundance_denoised.csv")
+```
+
+Save counts
+
+```R
+# use counts
+Ec_counts %>% 
+  dplyr::as_tibble(rownames = "GeneID") %>%
+  readr::write_csv(file = "data/Ec_counts.csv")
+```
+
+Save denoised counts
+
+```R
+Ec_counts.denoised %>% 
+  dplyr::as_tibble(rownames = "GeneID") %>%
+  readr::write_csv(file = "data/Ec_counts_denoised.csv")
+```
+
+### Save processed age data
+
+```R
+Ec_age %>%
+  readr::write_csv(file = "data/Ec_age_processed.csv")
+Fd_age %>%
+  readr::write_csv(file = "data/Fd_age_processed.csv")
+Fs_age %>%
+  readr::write_csv(file = "data/Fs_age_processed.csv")
+```
+
+# Create input for myTAI
+
+Now that we saved the counts and abundances, we can turn the data into the pre-defined `PhyloExpressionSet` standard from `myTAI` (see [`myTAI` documentation](https://drostlab.github.io/myTAI/articles/Introduction.html#expression-dataset-specification)).
+
+## myTAI data standard
+
+```{r warning=FALSE,message=FALSE}
+library(tidyverse)
+library(myTAI)
+#  myTAI v1.0.1.9000 2023-07-12 Github (drostlab/myTAI@46eb927)
+library(DESeq2)
+# DESeq2 v1.38.3
+```
+
+Here is an example.
+
+```{r warning=FALSE,message=FALSE}
+# example file
+data("PhyloExpressionSetExample")
+head(PhyloExpressionSetExample)
+```
+
+## Loading the datasets
+
+First get the gene age data.
+
+```{r warning=FALSE,message=FALSE}
+Ec_age <- readr::read_csv("data/Ec_age_processed.csv")
+Fd_age <- readr::read_csv("data/Fd_age_processed.csv")
+Fs_age <- readr::read_csv("data/Fs_age_processed.csv")
+```
+
+Get the abundance data.
+
+```{r warning=FALSE,message=FALSE}
+Fd_abundance <-
+  readr::read_csv("data/Fd_abundance.csv")
+Fs_abundance <-
+  readr::read_csv("data/Fs_abundance.csv")
+Ec_abundance <-
+  readr::read_csv("data/Ec_abundance.csv")
+
+Ec_abundance_25f <-
+  Ec_abundance %>%
+  dplyr::select(1 | dplyr::starts_with("F_"))
+Ec_abundance_32m <-
+  Ec_abundance %>%
+  dplyr::select(1 | dplyr::starts_with("M_"))
+```
+
+Get the sample information.
+
+```{r warning=FALSE,message=FALSE}
+sample_info_fd <-
+  readr::read_csv2("data/sample_info_fd.csv")
+sample_info_fs <-
+  readr::read_csv2("data/sample_info_fs.csv")
+sample_info_ec <-
+  readr::read_csv("data/sample_info_ec.csv")
+```
+
+
+## Construct PES
+
+Function to construct the PhyloExpressionSet (PES), saving lines.
+
+```{r warning=FALSE,message=FALSE}
+construct_PES <- 
+  function(
+    ExpressionMatrix, 
+    GeneAgeTable, 
+    metadata, 
+    AVG = median,
+    grouping_var = "Stage",
+    name_var = "LibName",
+    transform_opt = F,
+    transformation){
+  RepCol <- 
+    metadata %>% 
+    dplyr::group_by(.data[[grouping_var]]) %>% 
+    dplyr::summarize(n=dplyr::n()) %>% 
+    dplyr::arrange(
+      base::factor(
+        .data[[grouping_var]], 
+        levels = base::unique(metadata[,grouping_var][[1]])
+        )
+      ) %>% 
+    base::as.vector()
+  # making sure the metadata and the expression set match
+  PES <- 
+    ExpressionMatrix %>%
+    dplyr::left_join(
+      dplyr::select(
+        GeneAgeTable, 
+        c(GeneID, rank)
+        )
+      ) %>%
+    dplyr::rename("PS" = rank) %>%
+    tidyr::drop_na() %>% # NAs can ruin the transformation.
+    dplyr::relocate(PS, GeneID) 
+  if(transform_opt){
+    if(transformation == "rlog"){
+      PES <-
+        myTAI::tf(
+          PES,
+          FUN = rlog, 
+          integerise = TRUE)
+    }
+    else if(transformation == "vst"){
+      PES <-
+        myTAI::tf(
+          PES,
+          FUN = vst, 
+          integerise = TRUE)
+    }
+  }
+  PES_FILT <- 
+    PES %>%
+    dplyr::select(1:2 | metadata[,name_var][[1]])
+  OUT <- PES_FILT %>%
+    myTAI::CollapseReplicates(
+      RepCol$n,
+      AVG, 
+      stage.names = RepCol[[grouping_var]])
+  return(OUT)
+}
+```
+
+Unlike rank, sqrt and log2 transformations, the rlog and vst transformation looks at the columns.
+This is why we select columns `dplyr::select(1:2 | metadata[,name_var][[1]])` and collaps replicates `myTAI::CollapseReplicates()` after choosing either of the two transformations.
+
+```{r warning=FALSE,message=FALSE}
+Fd_PES <- 
+  construct_PES(
+    Fd_abundance,
+    Fd_age,
+    sample_info_fd
+  )
+Fd_PES_M <- 
+  construct_PES(
+    Fd_abundance,
+    Fd_age,
+    dplyr::filter(sample_info_fd, Sex == "M")
+  )
+Fd_PES_F <- 
+  construct_PES(
+    Fd_abundance,
+    Fd_age,
+    dplyr::filter(sample_info_fd, Sex == "F")
+  )
+
+Fs_PES <- 
+  construct_PES(
+    Fs_abundance,
+    Fs_age,
+    sample_info_fs
+  )
+Fs_PES_M <- 
+  construct_PES(
+    Fs_abundance,
+    Fs_age,
+    dplyr::filter(sample_info_fs, Sex == "M")
+  )
+Fs_PES_F <- 
+  construct_PES(
+    Fs_abundance,
+    Fs_age,
+    dplyr::filter(sample_info_fs, Sex == "F")
+  )
+
+Ec_PES_25f <- 
+  construct_PES(
+    Ec_abundance_25f, 
+    Ec_age, 
+    dplyr::filter(
+      sample_info_ec, 
+      Sex == "F"),
+    name_var = "SampleName"
+    )
+Ec_PES_32m <- 
+  construct_PES(
+    Ec_abundance_32m, 
+    Ec_age, 
+    dplyr::filter(
+      sample_info_ec, 
+      Sex == "M"),
+    name_var = "SampleName"
+    )
+```
+
+We further look into the PES of *all* _Fucus_ tissues in the matSP.
+
+```{r warning=FALSE,message=FALSE}
+Fd_PES_matSP <- 
+  construct_PES(
+    Fd_abundance,
+    Fd_age,
+    dplyr::filter(
+      sample_info_fd, 
+      Stage == "matSP"),
+    grouping_var = "Tissue"
+  )
+Fs_PES_F_matSP <- 
+  construct_PES(
+    Fs_abundance,
+    Fs_age,
+    dplyr::filter(
+      sample_info_fs, 
+      Stage == "matSP" & Sex == "F"),
+    grouping_var = "Tissue"
+  )
+Fs_PES_M_matSP <- 
+  construct_PES(
+    Fs_abundance,
+    Fs_age,
+    dplyr::filter(
+      sample_info_fs, 
+      Stage == "matSP" & Sex == "M"),
+    grouping_var = "Tissue"
+  )
+```
+
+rlog transformations of all the datasets.
+
+```{r warning=FALSE,message=FALSE}
+Fd_PES.rlog <- 
+  construct_PES(
+    Fd_abundance,
+    Fd_age,
+    sample_info_fd,
+    transform_opt = T,
+    transformation = "rlog"
+  )
+Fd_PES_M.rlog <- 
+  construct_PES(
+    Fd_abundance,
+    Fd_age,
+    dplyr::filter(sample_info_fd, Sex == "M"),
+    transform_opt = T,
+    transformation = "rlog"
+  )
+Fd_PES_F.rlog <- 
+  construct_PES(
+    Fd_abundance,
+    Fd_age,
+    dplyr::filter(sample_info_fd, Sex == "F"),
+    transform_opt = T,
+    transformation = "rlog"
+  )
+
+Fs_PES.rlog <- 
+  construct_PES(
+    Fs_abundance,
+    Fs_age,
+    sample_info_fs,
+    transform_opt = T,
+    transformation = "rlog"
+  )
+Fs_PES_M.rlog <- 
+  construct_PES(
+    Fs_abundance,
+    Fs_age,
+    dplyr::filter(sample_info_fs, Sex == "M"),
+    transform_opt = T,
+    transformation = "rlog"
+  )
+Fs_PES_F.rlog <- 
+  construct_PES(
+    Fs_abundance,
+    Fs_age,
+    dplyr::filter(sample_info_fs, Sex == "F"),
+    transform_opt = T,
+    transformation = "rlog"
+  )
+
+Ec_PES_25f.rlog <- 
+  construct_PES(
+    Ec_abundance_25f, 
+    Ec_age, 
+    dplyr::filter(
+      sample_info_ec, 
+      Sex == "F"),
+    name_var = "SampleName",
+    transform_opt = T,
+    transformation = "rlog"
+    )
+Ec_PES_32m.rlog <- 
+  construct_PES(
+    Ec_abundance_32m, 
+    Ec_age, 
+    dplyr::filter(
+      sample_info_ec, 
+      Sex == "M"),
+    name_var = "SampleName",
+    transform_opt = T,
+    transformation = "rlog"
+    )
+Fd_PES_matSP.rlog <- 
+  construct_PES(
+    Fd_abundance,
+    Fd_age,
+    dplyr::filter(
+      sample_info_fd, 
+      Stage == "matSP"),
+    grouping_var = "Tissue",
+    transform_opt = T,
+    transformation = "rlog"
+  )
+Fs_PES_F_matSP.rlog <- 
+  construct_PES(
+    Fs_abundance,
+    Fs_age,
+    dplyr::filter(
+      sample_info_fs, 
+      Stage == "matSP" & Sex == "F"),
+    grouping_var = "Tissue",
+    transform_opt = T,
+    transformation = "rlog"
+  )
+Fs_PES_M_matSP.rlog <- 
+  construct_PES(
+    Fs_abundance,
+    Fs_age,
+    dplyr::filter(
+      sample_info_fs, 
+      Stage == "matSP" & Sex == "M"),
+    grouping_var = "Tissue",
+    transform_opt = T,
+    transformation = "rlog"
+  )
+```
+
+## denoised data
+
+```{r warning=FALSE,message=FALSE}
+Fd_abundance.denoised <-
+  readr::read_csv("data/Fd_abundance_denoised.csv")
+Fs_abundance.denoised <-
+  readr::read_csv("data/Fs_abundance_denoised.csv")
+```
+
+#### Developmental stages
+
+```{r warning=FALSE,message=FALSE}
+Fd_PES.denoised <- 
+  construct_PES(
+    Fd_abundance.denoised,
+    Fd_age,
+    sample_info_fd
+  )
+Fd_PES_M.denoised <- 
+  construct_PES(
+    Fd_abundance.denoised,
+    Fd_age,
+    dplyr::filter(sample_info_fd, Sex == "M")
+  )
+Fd_PES_F.denoised <- 
+  construct_PES(
+    Fd_abundance.denoised,
+    Fd_age,
+    dplyr::filter(sample_info_fd, Sex == "F")
+  )
+
+Fs_PES.denoised <- 
+  construct_PES(
+    Fs_abundance.denoised,
+    Fs_age,
+    sample_info_fs
+  )
+Fs_PES_M.denoised <- 
+  construct_PES(
+    Fs_abundance.denoised,
+    Fs_age,
+    dplyr::filter(sample_info_fs, Sex == "M")
+  )
+Fs_PES_F.denoised <- 
+  construct_PES(
+    Fs_abundance.denoised,
+    Fs_age,
+    dplyr::filter(sample_info_fs, Sex == "F")
+  )
+```
+
+#### Tissues
+
+```{r warning=FALSE,message=FALSE}
+Fd_PES_matSP.denoised <- 
+  construct_PES(
+    Fd_abundance.denoised,
+    Fd_age,
+    dplyr::filter(
+      sample_info_fd, 
+      Stage == "matSP"),
+    grouping_var = "Tissue"
+  )
+Fs_PES_F_matSP.denoised <- 
+  construct_PES(
+    Fs_abundance.denoised,
+    Fs_age,
+    dplyr::filter(
+      sample_info_fs, 
+      Stage == "matSP" & Sex == "F"),
+    grouping_var = "Tissue"
+  )
+Fs_PES_M_matSP.denoised <- 
+  construct_PES(
+    Fs_abundance.denoised,
+    Fs_age,
+    dplyr::filter(
+      sample_info_fs, 
+      Stage == "matSP" & Sex == "M"),
+    grouping_var = "Tissue"
+  )
+```
+
+In the denoised dataset, it makes little sense to apply the r-log transformation.
+
+### Save PES
+
+```{r warning=FALSE,message=FALSE}
+Fd_PES %>%
+  readr::write_csv(file = "data/Fd_PES.csv")
+Fd_PES_F %>%
+  readr::write_csv(file = "data/Fd_PES_F.csv")
+Fd_PES_M %>%
+  readr::write_csv(file = "data/Fd_PES_M.csv")
+Fs_PES %>%
+  readr::write_csv(file = "data/Fs_PES.csv")
+Fs_PES_F %>%
+  readr::write_csv(file = "data/Fs_PES_F.csv")
+Fs_PES_M %>%
+  readr::write_csv(file = "data/Fs_PES_M.csv")
+Ec_PES_32m %>%
+  readr::write_csv(file = "data/Ec_PES_32m.csv")
+Ec_PES_25f %>%
+  readr::write_csv(file = "data/Ec_PES_25f.csv")
+
+Fd_PES_matSP %>%
+  readr::write_csv(file = "data/Fd_PES_matSP.csv")
+Fs_PES_M_matSP %>%
+  readr::write_csv(file = "data/Fs_PES_M_matSP.csv")
+Fs_PES_F_matSP %>%
+  readr::write_csv(file = "data/Fs_PES_F_matSP.csv")
+
+## and the rlog transformed abundances
+
+Fd_PES.rlog %>%
+  readr::write_csv(file = "data/Fd_PES.rlog.csv")
+Fd_PES_F.rlog %>%
+  readr::write_csv(file = "data/Fd_PES_F.rlog.csv")
+Fd_PES_M.rlog %>%
+  readr::write_csv(file = "data/Fd_PES_M.rlog.csv")
+Fs_PES.rlog %>%
+  readr::write_csv(file = "data/Fs_PES.rlog.csv")
+Fs_PES_F.rlog %>%
+  readr::write_csv(file = "data/Fs_PES_F.rlog.csv")
+Fs_PES_M.rlog %>%
+  readr::write_csv(file = "data/Fs_PES_M.rlog.csv")
+Ec_PES_32m.rlog %>%
+  readr::write_csv(file = "data/Ec_PES_32m.rlog.csv")
+Ec_PES_25f.rlog %>%
+  readr::write_csv(file = "data/Ec_PES_25f.rlog.csv")
+
+Fd_PES_matSP.rlog %>%
+  readr::write_csv(file = "data/Fd_PES_matSP.rlog.csv")
+Fs_PES_M_matSP.rlog %>%
+  readr::write_csv(file = "data/Fs_PES_M_matSP.rlog.csv")
+Fs_PES_F_matSP.rlog %>%
+  readr::write_csv(file = "data/Fs_PES_F_matSP.rlog.csv")
+
+## and the denoised data
+
+Fd_PES.denoised %>%
+  readr::write_csv(file = "data/Fd_PES_denoised.csv")
+Fd_PES_F.denoised %>%
+  readr::write_csv(file = "data/Fd_PES_F_denoised.csv")
+Fd_PES_M.denoised %>%
+  readr::write_csv(file = "data/Fd_PES_M_denoised.csv")
+Fs_PES.denoised %>%
+  readr::write_csv(file = "data/Fs_PES_denoised.csv")
+Fs_PES_F.denoised %>%
+  readr::write_csv(file = "data/Fs_PES_F_denoised.csv")
+Fs_PES_M.denoised %>%
+  readr::write_csv(file = "data/Fs_PES_M_denoised.csv")
+
+Fd_PES_matSP.denoised %>%
+  readr::write_csv(file = "data/Fd_PES_matSP_denoised.csv")
+Fs_PES_M_matSP.denoised %>%
+  readr::write_csv(file = "data/Fs_PES_M_matSP_denoised.csv")
+Fs_PES_F_matSP.denoised %>%
+  readr::write_csv(file = "data/Fs_PES_F_matSP_denoised.csv")
+```
+
+
+## Transformations
+
+RNA-seq data transformations can affect the hourglass profile. 
+This issue has been brought to attention in [Piasecka et al., 2013 _PLOS Genetics_](https://journals.plos.org/plosgenetics/article?id=10.1371/journal.pgen.1003476) and has since been employed by various studies (e.g. [Liu & Robinson-Rechavi, 2018 _GBE_](https://academic.oup.com/gbe/article/10/9/2266/5076813)).
+
+The transformation function (`tf()`) for `myTAI` has been extended in v1.0.1.9000.
+Here, we save the transformed data.
+
+Note: `rlog` transformations have been done already.
+
+```{r warning=FALSE,message=FALSE}
+library(tidyverse)
+library(myTAI)
+```
+
+```{r warning=FALSE,message=FALSE}
+Fd_PES <-
+  readr::read_csv(file = "data/Fd_PES.csv")
+Fd_PES_F <-
+  readr::read_csv(file = "data/Fd_PES_F.csv")
+Fd_PES_M <-
+  readr::read_csv(file = "data/Fd_PES_M.csv")
+Fs_PES <-
+  readr::read_csv(file = "data/Fs_PES.csv")
+Fs_PES_F <-
+  readr::read_csv(file = "data/Fs_PES_F.csv")
+Fs_PES_M <-
+  readr::read_csv(file = "data/Fs_PES_M.csv")
+Ec_PES_32m <-
+  readr::read_csv(file = "data/Ec_PES_32m.csv")
+Ec_PES_25f <-
+  readr::read_csv(file = "data/Ec_PES_25f.csv")
+# tissues in the matSP
+Fd_PES_matSP <-
+  readr::read_csv(file = "data/Fd_PES_matSP.csv")
+Fs_PES_F_matSP <-
+  readr::read_csv(file = "data/Fs_PES_F_matSP.csv")
+Fs_PES_M_matSP <-
+  readr::read_csv(file = "data/Fs_PES_M_matSP.csv")
+
+# denoised data
+Fd_PES.denoised <-
+  readr::read_csv(file = "data/Fd_PES_denoised.csv")
+Fd_PES_F.denoised <-
+  readr::read_csv(file = "data/Fd_PES_F_denoised.csv")
+Fd_PES_M.denoised <-
+  readr::read_csv(file = "data/Fd_PES_M_denoised.csv")
+Fs_PES.denoised <-
+  readr::read_csv(file = "data/Fs_PES_denoised.csv")
+Fs_PES_F.denoised <-
+  readr::read_csv(file = "data/Fs_PES_F_denoised.csv")
+Fs_PES_M.denoised <-
+  readr::read_csv(file = "data/Fs_PES_M_denoised.csv")
+
+Fd_PES_matSP.denoised <-
+  readr::read_csv(file = "data/Fd_PES_matSP_denoised.csv")
+Fs_PES_M_matSP.denoised <-
+  readr::read_csv(file = "data/Fs_PES_M_matSP_denoised.csv")
+Fs_PES_F_matSP.denoised <-
+  readr::read_csv(file = "data/Fs_PES_F_matSP_denoised.csv")
+```
+
+### Log transformations
+
+```{r warning=FALSE,message=FALSE}
+Fd_PES.log2 <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES, 
+  FUN = log2,
+  pseudocount = 1)
+Fd_PES_F.log2 <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES_F, 
+  FUN = log2,
+  pseudocount = 1)
+Fd_PES_M.log2 <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES_M, 
+  FUN = log2,
+  pseudocount = 1)
+Fs_PES.log2 <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES, 
+  FUN = log2,
+  pseudocount = 1)
+Fs_PES_F.log2 <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_F, 
+  FUN = log2,
+  pseudocount = 1)
+Fs_PES_M.log2 <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_M, 
+  FUN = log2,
+  pseudocount = 1)
+Ec_PES_32m.log2 <- 
+  myTAI::tf(
+  ExpressionSet = Ec_PES_32m, 
+  FUN = log2,
+  pseudocount = 1)
+Ec_PES_25f.log2 <- 
+  myTAI::tf(
+  ExpressionSet = Ec_PES_25f, 
+  FUN = log2,
+  pseudocount = 1)
+Fd_PES_matSP.log2 <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES_matSP, 
+  FUN = log2,
+  pseudocount = 1)
+Fs_PES_F_matSP.log2 <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_F_matSP, 
+  FUN = log2,
+  pseudocount = 1)
+Fs_PES_M_matSP.log2 <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_M_matSP, 
+  FUN = log2,
+  pseudocount = 1)
+
+# denoised data
+
+Fd_PES.log2.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES.denoised, 
+  FUN = log2,
+  pseudocount = 1)
+Fd_PES_F.log2.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES_F.denoised, 
+  FUN = log2,
+  pseudocount = 1)
+Fd_PES_M.log2.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES_M.denoised, 
+  FUN = log2,
+  pseudocount = 1)
+Fs_PES.log2.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES.denoised, 
+  FUN = log2,
+  pseudocount = 1)
+Fs_PES_F.log2.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_F.denoised, 
+  FUN = log2,
+  pseudocount = 1)
+Fs_PES_M.log2.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_M.denoised, 
+  FUN = log2,
+  pseudocount = 1)
+Fd_PES_matSP.log2.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES_matSP.denoised, 
+  FUN = log2,
+  pseudocount = 1)
+Fs_PES_F_matSP.log2.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_F_matSP.denoised, 
+  FUN = log2,
+  pseudocount = 1)
+Fs_PES_M_matSP.log2.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_M_matSP.denoised, 
+  FUN = log2,
+  pseudocount = 1)
+```
+
+### Square-root transformations
+
+```{r warning=FALSE,message=FALSE}
+Fd_PES.sqrt <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES, 
+  FUN = sqrt)
+Fd_PES_F.sqrt <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES_F, 
+  FUN = sqrt)
+Fd_PES_M.sqrt <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES_M, 
+  FUN = sqrt)
+Fs_PES.sqrt <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES, 
+  FUN = sqrt)
+Fs_PES_F.sqrt <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_F, 
+  FUN = sqrt)
+Fs_PES_M.sqrt <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_M, 
+  FUN = sqrt)
+Ec_PES_32m.sqrt <- 
+  myTAI::tf(
+  ExpressionSet = Ec_PES_32m, 
+  FUN = sqrt)
+Ec_PES_25f.sqrt <- 
+  myTAI::tf(
+  ExpressionSet = Ec_PES_25f, 
+  FUN = sqrt)
+Fd_PES_matSP.sqrt <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES_matSP, 
+  FUN = sqrt)
+Fs_PES_F_matSP.sqrt <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_F_matSP, 
+  FUN = sqrt)
+Fs_PES_M_matSP.sqrt <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_M_matSP, 
+  FUN = sqrt)
+
+# denoised data
+
+Fd_PES.sqrt.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES.denoised, 
+  FUN = sqrt)
+Fd_PES_F.sqrt.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES_F.denoised, 
+  FUN = sqrt)
+Fd_PES_M.sqrt.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES_M.denoised, 
+  FUN = sqrt)
+Fs_PES.sqrt.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES.denoised, 
+  FUN = sqrt)
+Fs_PES_F.sqrt.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_F.denoised, 
+  FUN = sqrt)
+Fs_PES_M.sqrt.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_M.denoised, 
+  FUN = sqrt)
+Fd_PES_matSP.sqrt.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES_matSP.denoised, 
+  FUN = sqrt)
+Fs_PES_F_matSP.sqrt.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_F_matSP.denoised, 
+  FUN = sqrt)
+Fs_PES_M_matSP.sqrt.denoised <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_M_matSP.denoised, 
+  FUN = sqrt)
+```
+
+### Rank transformations
+
+```{r warning=FALSE,message=FALSE}
+Fd_PES.rank <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES, 
+  FUN = function(x) apply(x, 2, base::rank))
+Fd_PES_F.rank <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES_F, 
+  FUN = function(x) apply(x, 2, base::rank))
+Fd_PES_M.rank <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES_M, 
+  FUN = function(x) apply(x, 2, base::rank))
+Fs_PES.rank <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES, 
+  FUN = function(x) apply(x, 2, base::rank))
+Fs_PES_F.rank <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_F, 
+  FUN = function(x) apply(x, 2, base::rank))
+Fs_PES_M.rank <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_M, 
+  FUN = function(x) apply(x, 2, base::rank))
+Ec_PES_32m.rank <- 
+  myTAI::tf(
+  ExpressionSet = Ec_PES_32m, 
+  FUN = function(x) apply(x, 2, base::rank))
+Ec_PES_25f.rank <- 
+  myTAI::tf(
+  ExpressionSet = Ec_PES_25f, 
+  FUN = function(x) apply(x, 2, base::rank))
+Fd_PES_matSP.rank <- 
+  myTAI::tf(
+  ExpressionSet = Fd_PES_matSP, 
+  FUN = function(x) apply(x, 2, base::rank))
+Fs_PES_F_matSP.rank <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_F_matSP, 
+  FUN = function(x) apply(x, 2, base::rank))
+Fs_PES_M_matSP.rank <- 
+  myTAI::tf(
+  ExpressionSet = Fs_PES_M_matSP, 
+  FUN = function(x) apply(x, 2, base::rank))
+```
+
+### Save transformations
+
+```{r warning=FALSE,message=FALSE}
+Fd_PES.log2 %>%
+  readr::write_csv("data/Fd_PES.log2.csv")
+Fd_PES.rank %>%
+  readr::write_csv("data/Fd_PES.rank.csv")
+Fd_PES.sqrt %>%
+  readr::write_csv("data/Fd_PES.sqrt.csv")
+
+Fd_PES_F.log2 %>%
+  readr::write_csv("data/Fd_PES_F.log2.csv")
+Fd_PES_F.rank %>%
+  readr::write_csv("data/Fd_PES_F.rank.csv")
+Fd_PES_F.sqrt %>%
+  readr::write_csv("data/Fd_PES_F.sqrt.csv")
+
+Fd_PES_M.log2 %>%
+  readr::write_csv("data/Fd_PES_M.log2.csv")
+Fd_PES_M.rank %>%
+  readr::write_csv("data/Fd_PES_M.rank.csv")
+Fd_PES_M.sqrt %>%
+  readr::write_csv("data/Fd_PES_M.sqrt.csv")
+
+Fs_PES.log2 %>%
+  readr::write_csv("data/Fs_PES.log2.csv")
+Fs_PES.rank %>%
+  readr::write_csv("data/Fs_PES.rank.csv")
+Fs_PES.sqrt %>%
+  readr::write_csv("data/Fs_PES.sqrt.csv")
+
+Fs_PES_M.log2 %>%
+  readr::write_csv("data/Fs_PES_M.log2.csv")
+Fs_PES_M.rank %>%
+  readr::write_csv("data/Fs_PES_M.rank.csv")
+Fs_PES_M.sqrt %>%
+  readr::write_csv("data/Fs_PES_M.sqrt.csv")
+
+Fs_PES_F.log2 %>%
+  readr::write_csv("data/Fs_PES_F.log2.csv")
+Fs_PES_F.rank %>%
+  readr::write_csv("data/Fs_PES_F.rank.csv")
+Fs_PES_F.sqrt %>%
+  readr::write_csv("data/Fs_PES_F.sqrt.csv")
+
+Ec_PES_32m.log2 %>%
+  readr::write_csv("data/Ec_PES_32m.log2.csv")
+Ec_PES_32m.rank %>%
+  readr::write_csv("data/Ec_PES_32m.rank.csv")
+Ec_PES_32m.sqrt %>%
+  readr::write_csv("data/Ec_PES_32m.sqrt.csv")
+
+Ec_PES_25f.log2 %>%
+  readr::write_csv("data/Ec_PES_25f.log2.csv")
+Ec_PES_25f.rank %>%
+  readr::write_csv("data/Ec_PES_25f.rank.csv")
+Ec_PES_25f.sqrt %>%
+  readr::write_csv("data/Ec_PES_25f.sqrt.csv")
+
+Fd_PES_matSP.log2 %>%
+  readr::write_csv("data/Fd_PES_matSP.log2.csv")
+Fd_PES_matSP.rank %>%
+  readr::write_csv("data/Fd_PES_matSP.rank.csv")
+Fd_PES_matSP.sqrt %>%
+  readr::write_csv("data/Fd_PES_matSP.sqrt.csv")
+
+Fs_PES_M_matSP.log2 %>%
+  readr::write_csv("data/Fs_PES_M_matSP.log2.csv")
+Fs_PES_M_matSP.rank %>%
+  readr::write_csv("data/Fs_PES_M_matSP.rank.csv")
+Fs_PES_M_matSP.sqrt %>%
+  readr::write_csv("data/Fs_PES_M_matSP.sqrt.csv")
+
+Fs_PES_F_matSP.log2 %>%
+  readr::write_csv("data/Fs_PES_F_matSP.log2.csv")
+Fs_PES_F_matSP.rank %>%
+  readr::write_csv("data/Fs_PES_F_matSP.rank.csv")
+Fs_PES_F_matSP.sqrt %>%
+  readr::write_csv("data/Fs_PES_F_matSP.sqrt.csv")
+
+# denoised data
+
+Fd_PES.log2.denoised %>%
+  readr::write_csv("data/Fd_PES.log2_denoised.csv")
+Fd_PES.sqrt.denoised %>%
+  readr::write_csv("data/Fd_PES.sqrt_denoised.csv")
+
+Fd_PES_F.log2.denoised %>%
+  readr::write_csv("data/Fd_PES_F.log2_denoised.csv")
+Fd_PES_F.sqrt.denoised %>%
+  readr::write_csv("data/Fd_PES_F.sqrt_denoised.csv")
+
+Fd_PES_M.log2.denoised %>%
+  readr::write_csv("data/Fd_PES_M.log2_denoised.csv")
+Fd_PES_M.sqrt.denoised %>%
+  readr::write_csv("data/Fd_PES_M.sqrt_denoised.csv")
+
+Fs_PES.log2.denoised %>%
+  readr::write_csv("data/Fs_PES.log2_denoised.csv")
+Fs_PES.sqrt.denoised %>%
+  readr::write_csv("data/Fs_PES.sqrt_denoised.csv")
+
+Fs_PES_M.log2.denoised %>%
+  readr::write_csv("data/Fs_PES_M.log2_denoised.csv")
+Fs_PES_M.sqrt.denoised%>%
+  readr::write_csv("data/Fs_PES_M.sqrt_denoised.csv")
+
+Fs_PES_F.log2.denoised %>%
+  readr::write_csv("data/Fs_PES_F.log2_denoised.csv")
+Fs_PES_F.sqrt.denoised %>%
+  readr::write_csv("data/Fs_PES_F.sqrt_denoised.csv")
+
+Fd_PES_matSP.log2.denoised %>%
+  readr::write_csv("data/Fd_PES_matSP.log2_denoised.csv")
+Fd_PES_matSP.sqrt.denoised %>%
+  readr::write_csv("data/Fd_PES_matSP.sqrt_denoised.csv")
+
+Fs_PES_M_matSP.log2.denoised %>%
+  readr::write_csv("data/Fs_PES_M_matSP.log2_denoised.csv")
+Fs_PES_M_matSP.sqrt.denoised %>%
+  readr::write_csv("data/Fs_PES_M_matSP.sqrt_denoised.csv")
+
+Fs_PES_F_matSP.log2.denoised %>%
+  readr::write_csv("data/Fs_PES_F_matSP.log2_denoised.csv")
+Fs_PES_F_matSP.sqrt.denoised %>%
+  readr::write_csv("data/Fs_PES_F_matSP.sqrt_denoised.csv")
+```
+
+# Visualise gene age distribution
+
+```{r warning=FALSE,message=FALSE}
+library(tidyverse)
+library(scales)
+```
+
+```{r warning=FALSE,message=FALSE}
+Ec_age <- readr::read_csv("data/Ec_age_processed.csv")
+Fd_age <- readr::read_csv("data/Fd_age_processed.csv")
+Fs_age <- readr::read_csv("data/Fs_age_processed.csv")
+```
+
+```{r fig.height = 2.5, fig.width = 3}
+Fd_age %>% 
+  dplyr::group_by(rank) %>% 
+  dplyr::summarise(count = dplyr::n()) %>%
+  tidyr::drop_na() %>%
+  ggplot2::ggplot(aes(x = factor(rank), y = count)) + 
+  ggplot2::geom_col(colour = "black", fill = "black", width = 0.1) +
+  ggplot2::geom_point(shape = 21, colour = "#DC0000FF", fill = "white", size = 3, stroke = 1.5) +
+  ggplot2::labs(title = "PS size",
+       subtitle = "Fucus distichus",
+       fill = "GO term",
+       y = "Number of genes (log-scaled)",
+       x = "Gene age") +
+  ggplot2::theme_classic() +
+  ggplot2::scale_y_log10() +
+  ggplot2::coord_flip()
+ggplot2::ggsave(filename = "Fd_age_dist.pdf", device = "pdf", width = 3, height = 2.5)
+```
+
+```{r fig.height = 2.5, fig.width = 3}
+Fs_age %>% 
+  dplyr::group_by(rank) %>% 
+  dplyr::summarise(count = dplyr::n()) %>%
+  tidyr::drop_na() %>%
+  ggplot2::ggplot(aes(x = factor(rank), y = count)) + 
+  ggplot2::geom_col(colour = "black", fill = "black", width = 0.1) +
+  ggplot2::geom_point(shape = 21, colour = "#DC0000FF", fill = "white", size = 3, stroke = 1.5) +
+  ggplot2::labs(title = "PS size",
+       subtitle = "Fucus serratus",
+       fill = "GO term",
+       y = "Number of genes (log-scaled)",
+       x = "Gene age") +
+  ggplot2::theme_classic() +
+  ggplot2::scale_y_log10() +
+  ggplot2::coord_flip()
+ggplot2::ggsave(filename = "Fs_age_dist.pdf", device = "pdf", width = 3, height = 2.5)
+```
+
+```{r fig.height = 3, fig.width = 3}
+Ec_age %>% 
+  dplyr::group_by(rank) %>% 
+  dplyr::summarise(count = dplyr::n()) %>%
+  tidyr::drop_na() %>%
+  ggplot2::ggplot(aes(x = factor(rank), y = count)) + 
+  ggplot2::geom_col(colour = "black", fill = "black", width = 0.05) +
+  ggplot2::geom_point(shape = 21, colour = "#DC0000FF", fill = "white", size = 3, stroke = 1.5) +
+  ggplot2::labs(title = "PS size",
+       subtitle = "Ectocarpus",
+       fill = "GO term",
+       y = "Number of genes (log-scaled)",
+       x = "Gene age") +
+  ggplot2::theme_classic() +
+  ggplot2::scale_y_log10() +
+  ggplot2::coord_flip()
+ggplot2::ggsave(filename = "Ec_age_dist.pdf", device = "pdf", width = 3, height = 3)
+```
+
+# Orthogroup abundance
+
+## Running orthofinder
+
+We first run orthofinder to obtain related groups of genes.
+
+```bash
+# I first made a directory that contains the Ec, Fs and Fd peptide sequences
+orthofinder -f Fs_Fd_EC_complete/ -t 8
+```
+
+This results in:
+
+From `Statistics_Overall.tsv`
+
+```bash
+Number of species in orthogroup Number of orthogroups
+1   2293
+2   5590
+3   2723
+```
+
+and from `Statistics_PerSpecies.tsv`
+
+```bash
+    F_distichus_pep_CA  F_serratus_pep_CA   PUBLIC_Ectocarpus-sp7_proteins
+Number of genes 10213   13584   24428
+Number of genes in orthogroups  7037    8630    16614
+Number of unassigned genes  3176    4954    7814
+Percentage of genes in orthogroups  68.9    63.5    68.0
+Percentage of unassigned genes  31.1    36.5    32.0
+Number of orthogroups containing species    6324    7031    8287
+Percentage of orthogroups containing species    59.6    66.3    78.1
+Number of species-specific orthogroups  62  181 2050
+Number of genes in species-specific orthogroups 163 467 6630
+Percentage of genes in species-specific orthogroups 1.6 3.4 27.1
+```
+
+## `tximport` of Orthogroups
+
+To capture the expression of in-paralogues, we import the count tables treating orthogroups (OGs) as genes and genes and isoforms as isoforms, according to the categorisation of `tximport`.
+
+Thus, as you'd expect, we use the `tximport` library. We also use the script from [`OthoMantegazza/crossr`](https://github.com/othomantegazza/crossr/blob/master/R/parsers.R) called `parse_orthogroups.R`. This is needed because it was quicker to parse the `Orthogroup.tsv` file.
+
+```{r warning=FALSE,message=FALSE}
+library(tximport)
+library(tidyverse)
+library(myTAI)
+```
+
+### Parse orthogroups
+
+```{r warning=FALSE,message=FALSE}
+# From https://github.com/othomantegazza/crossr/blob/master/R/parsers.R
+parse_orthogroups <- function(path_2_ogroups)
+{
+  orthogroups <- scan(path_2_ogroups, what = "",
+                      skip = 1, sep = "\n")
+  
+  ### Not sure why some values are separated by tab in file
+  orthogroups <- gsub("\t", ", ",
+                      orthogroups)
+  
+  orthogroups <- strsplit(orthogroups, ", ")
+  
+  ### names of orthogroup are read in first list element
+  names(orthogroups) <- sapply(orthogroups,
+                               function(i) i[1])
+  orthogroups <- lapply(orthogroups,
+                        function(i) i[-1])
+  
+  ## Dont know why some elements in orthogroups are null ( "" )
+  orthogroups <- lapply(orthogroups,
+                        function(i) i[i != ""])
+  
+  
+  return(orthogroups)
+}
+```
+
+```R
+OG_tx2gene <- 
+  parse_orthogroups("data/Results_Nov29/Orthogroups/Orthogroups.tsv") %>% 
+  stack() %>% 
+  tidyr::as_tibble() %>% 
+  dplyr::rename(GeneID = values) %>% 
+  dplyr::rename(OG = ind) %>%
+  dplyr::relocate(GeneID) %>%
+  # dplyr::filter(str_detect(GeneID, "ser_|dis_")) %>%
+  dplyr::mutate(GeneID = str_remove(GeneID, "\\.p[0-9].*"))
+```
+
+### Import OG as genes
+
+#### Abundance
+
+```R
+sample_info_fd <-
+  readr::read_csv("data/sample_info_fd.csv")
+sample_info_fs <-
+  readr::read_csv("data/sample_info_fs.csv")
+```
+
+```R
+selectGenes <- function(counts, min.count=2){
+  keep <-
+    counts[rowMeans(counts)>min.count, ]
+  return(keep)
+}
+```
+
+```R
+Fd_files <- 
+  stringr::str_c(
+    "data/Fd_salmon/salmon/", 
+    sample_info_fd$LibName, 
+    "/quant.sf") %>%
+  purrr::set_names(sample_info_fd$LibName)
+
+# use abundance
+Fd_txi <- 
+  tximport(
+    Fd_files, 
+    type = "salmon", 
+    tx2gene = OG_tx2gene,
+    countsFromAbundance = "lengthScaledTPM")
+Fd_keep <- 
+  selectGenes(Fd_txi$abundance, min.count = 2)
+```
+
+```R
+Fs_files <- 
+  stringr::str_c(
+    "data/Fs_salmon/salmon/", 
+    sample_info_fs$LibName, 
+    "/quant.sf") %>%
+  purrr::set_names(sample_info_fs$LibName)
+
+# use abundance
+Fs_txi <- 
+  tximport(
+    Fs_files, 
+    type = "salmon", 
+    tx2gene = OG_tx2gene,
+    countsFromAbundance = "lengthScaledTPM")
+Fs_keep <- 
+  selectGenes(Fs_txi$abundance, min.count = 2)
+```
+
+### Counts
+
+```R
+Fd_counts <-
+  Fd_txi$counts[rownames(Fd_keep), ]
+Fs_counts <-
+  Fs_txi$counts[rownames(Fs_keep), ]
+```
+
+### Save OG abundance
+
+```R
+Fs_keep %>% 
+  dplyr::as_tibble(rownames = "OG") %>%
+  readr::write_csv(file = "data/Fs_OG_abundance.csv")
+
+Fs_counts %>% 
+  dplyr::as_tibble(rownames = "OG") %>%
+  readr::write_csv(file = "data/Fs_OG_counts.csv")
+
+Fd_keep %>% 
+  dplyr::as_tibble(rownames = "OG") %>%
+  readr::write_csv(file = "data/Fd_OG_abundance.csv")
+
+Fd_counts %>% 
+  dplyr::as_tibble(rownames = "OG") %>%
+  readr::write_csv(file = "data/Fd_OG_counts.csv")
+```
+
+Get session info.
+
+```{r}
+devtools::session_info()
+```
