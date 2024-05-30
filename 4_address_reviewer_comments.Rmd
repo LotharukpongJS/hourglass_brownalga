@@ -1,0 +1,250 @@
+---
+title: "4. Further evolutionary transcriptomics analyses (addressing reviewers)"
+output:
+  html_document:
+    fig_width: 6
+    fig_height: 4
+    df_print: paged
+editor_options: 
+  chunk_output_type: inline
+---
+
+Having pre-processed the data, here, I analyse the evolutionary transcriptomics in three brown algal species, across life cycle stages and in different tissues. I use the term `TAI` often here. It stands for "transcriptome age index" (see the R package [`myTAI`](https://drostlab.github.io/myTAI/) for further details). Note: permutations here are set at 500 rather than 50000 to ensure a fast run.
+
+# Reporting the difference in TAI using the `pairwiseTest()`
+
+Here, we examine the TAI across the _Fucus_ embryogenesis. We find a developmental hourglass.
+
+```{r warning=FALSE,message=FALSE}
+library(tidyverse)
+library(myTAI)
+```
+
+### Load PES
+
+non-transformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_PES_matSP <-
+  readr::read_csv(file = "data/Fd_PES_matSP.csv", show_col_types = FALSE)
+Fs_PES_F_matSP <-
+  readr::read_csv(file = "data/Fs_PES_F_matSP.csv", show_col_types = FALSE)
+Fs_PES_M_matSP <-
+  readr::read_csv(file = "data/Fs_PES_M_matSP.csv", show_col_types = FALSE)
+```
+
+sqrt-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_PES_matSP.sqrt <-
+  readr::read_csv(file = "data/Fd_PES_matSP.sqrt.csv", show_col_types = FALSE)
+Fs_PES_F_matSP.sqrt <-
+  readr::read_csv(file = "data/Fs_PES_F_matSP.sqrt.csv", show_col_types = FALSE)
+Fs_PES_M_matSP.sqrt <-
+  readr::read_csv(file = "data/Fs_PES_M_matSP.sqrt.csv", show_col_types = FALSE)
+```
+
+log2-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_PES_matSP.log2 <-
+  readr::read_csv(file = "data/Fd_PES_matSP.log2.csv", show_col_types = FALSE)
+Fs_PES_F_matSP.log2 <-
+  readr::read_csv(file = "data/Fs_PES_F_matSP.log2.csv", show_col_types = FALSE)
+Fs_PES_M_matSP.log2 <-
+  readr::read_csv(file = "data/Fs_PES_M_matSP.log2.csv", show_col_types = FALSE)
+```
+
+## `PairwiseTest()` for matSP reptip vs vegtip
+
+non-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_pairwisetest <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fd_PES_matSP,
+                modules = list(contrast1 = 2, contrast2 = 4),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+Fs_F_pairwisetest <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fs_PES_F_matSP,
+                modules = list(contrast1 = 2, contrast2 = 4),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+Fs_M_pairwisetest <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fs_PES_M_matSP,
+                modules = list(contrast1 = 2, contrast2 = 4),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+```
+
+sqrt-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_pairwisetest.sqrt <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fd_PES_matSP.sqrt,
+                modules = list(contrast1 = 2, contrast2 = 4),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+Fs_F_pairwisetest.sqrt <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fs_PES_F_matSP.sqrt,
+                modules = list(contrast1 = 2, contrast2 = 4),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+Fs_M_pairwisetest.sqrt <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fs_PES_M_matSP.sqrt,
+                modules = list(contrast1 = 2, contrast2 = 4),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+```
+
+log2-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_pairwisetest.log2 <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fd_PES_matSP.log2,
+                modules = list(contrast1 = 2, contrast2 = 4),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+Fs_F_pairwisetest.log2 <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fs_PES_F_matSP.log2,
+                modules = list(contrast1 = 2, contrast2 = 4),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+Fs_M_pairwisetest.log2 <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fs_PES_M_matSP.log2,
+                modules = list(contrast1 = 2, contrast2 = 4),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+```
+
+```{r}
+p_res <- data.frame(
+        pvalues = c(Fd_pairwisetest, Fs_M_pairwisetest, Fs_F_pairwisetest, 
+          Fd_pairwisetest.sqrt, Fs_M_pairwisetest.sqrt, Fs_F_pairwisetest.sqrt, 
+          Fd_pairwisetest.log2, Fs_M_pairwisetest.log2, Fs_F_pairwisetest.log2),
+        species = c("Fd", "Fs", "Fs", "Fd", "Fs", "Fs", "Fd", "Fs", "Fs"),
+        sex = c("mixed", "M", "F", "mixed", "M", "F", "mixed", "M", "F"),
+        tf = c("none", "none", "none", 
+                           "sqrt", "sqrt", "sqrt", 
+                           "log2", "log2", "log2"),
+        sample = c("Fd", "Fs_M", "Fs_F", "Fd", "Fs_M", "Fs_F", "Fd", "Fs_M", "Fs_F")
+)
+
+p_res |>
+        ggplot2::ggplot(aes(x = sample, y = -log10(pvalues), linetype = tf, group = tf)) +
+        ggplot2::geom_line() +
+        ggplot2::geom_point() +
+        ggplot2::geom_hline(yintercept = -log10(0.05), colour = "red", linetype = 2) +
+        ggplot2::coord_flip()
+```
+
+From all the transformations, it appears that _F. distichus_ reptip is significantly younger than the vegtip (`p = 7.679781e-18` for sqrt-transformation). In _F. serratus_, this is also the case for males (`p = 1.388551e-06` for sqrt-transformation) but not females (`p = 0.0672199` for sqrt-transformation).
+
+## `PairwiseTest()` for matSP reptip vs all
+
+non-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_pairwisetest <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fd_PES_matSP,
+                modules = list(contrast1 = 2, contrast2 = c(1,3,4)),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+Fs_F_pairwisetest <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fs_PES_F_matSP,
+                modules = list(contrast1 = 2, contrast2 = c(1,3,4)),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+Fs_M_pairwisetest <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fs_PES_M_matSP,
+                modules = list(contrast1 = 2, contrast2 = c(1,3,4)),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+```
+
+sqrt-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_pairwisetest.sqrt <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fd_PES_matSP.sqrt,
+                modules = list(contrast1 = 2, contrast2 = c(1,3,4)),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+Fs_F_pairwisetest.sqrt <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fs_PES_F_matSP.sqrt,
+                modules = list(contrast1 = 2, contrast2 = c(1,3,4)),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+Fs_M_pairwisetest.sqrt <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fs_PES_M_matSP.sqrt,
+                modules = list(contrast1 = 2, contrast2 = c(1,3,4)),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+```
+
+log2-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_pairwisetest.log2 <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fd_PES_matSP.log2,
+                modules = list(contrast1 = 2, contrast2 = c(1,3,4)),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+Fs_F_pairwisetest.log2 <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fs_PES_F_matSP.log2,
+                modules = list(contrast1 = 2, contrast2 = c(1,3,4)),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+Fs_M_pairwisetest.log2 <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fs_PES_M_matSP.log2,
+                modules = list(contrast1 = 2, contrast2 = c(1,3,4)),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+```
+
+```{r}
+p_res <- data.frame(
+        pvalues = c(Fd_pairwisetest, Fs_M_pairwisetest, Fs_F_pairwisetest, 
+          Fd_pairwisetest.sqrt, Fs_M_pairwisetest.sqrt, Fs_F_pairwisetest.sqrt, 
+          Fd_pairwisetest.log2, Fs_M_pairwisetest.log2, Fs_F_pairwisetest.log2),
+        species = c("Fd", "Fs", "Fs", "Fd", "Fs", "Fs", "Fd", "Fs", "Fs"),
+        sex = c("mixed", "M", "F", "mixed", "M", "F", "mixed", "M", "F"),
+        tf = c("none", "none", "none", 
+                           "sqrt", "sqrt", "sqrt", 
+                           "log2", "log2", "log2"),
+        sample = c("Fd", "Fs_M", "Fs_F", "Fd", "Fs_M", "Fs_F", "Fd", "Fs_M", "Fs_F")
+)
+
+p_res |>
+        ggplot2::ggplot(aes(x = sample, y = -log10(pvalues), linetype = tf, group = tf)) +
+        ggplot2::geom_line() +
+        ggplot2::geom_point() +
+        ggplot2::geom_hline(yintercept = -log10(0.05), colour = "red", linetype = 2) +
+        ggplot2::coord_flip()
+```
+
+Results differ between transformations. If we go by the **square-root** transformation, which we were reporting in other cases in the paper, it appears that _F. distichus_ reptip is significantly younger than the mean TAI of other tissues (`p = 0.003029956`). In _F. serratus_, this is also the case for males (`p = 0.003790212`) but not females (`p = 0.402316`).
+
+Get session info.
+
+```{r warning=FALSE,message=FALSE}
+devtools::session_info()
+```
