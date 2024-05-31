@@ -142,7 +142,7 @@ p_res <- data.frame(
 p_res |>
         ggplot2::ggplot(aes(x = sample, y = -log10(pvalues), linetype = tf, group = tf)) +
         ggplot2::geom_line() +
-        ggplot2::geom_point() +
+        ggplot2::geom_point(size = 2) +
         ggplot2::geom_hline(yintercept = -log10(0.05), colour = "red", linetype = 2) +
         ggplot2::coord_flip()
 ```
@@ -236,12 +236,229 @@ p_res <- data.frame(
 p_res |>
         ggplot2::ggplot(aes(x = sample, y = -log10(pvalues), linetype = tf, group = tf)) +
         ggplot2::geom_line() +
-        ggplot2::geom_point() +
+        ggplot2::geom_point(size = 2) +
         ggplot2::geom_hline(yintercept = -log10(0.05), colour = "red", linetype = 2) +
         ggplot2::coord_flip()
 ```
 
 Results differ between transformations. If we go by the **square-root** transformation, which we were reporting in other cases in the paper, it appears that _F. distichus_ reptip is significantly younger than the mean TAI of other tissues (`p = 0.003029956`). In _F. serratus_, this is also the case for males (`p = 0.003790212`) but not females (`p = 0.402316`).
+
+## `PairwiseTest()` for matSP reptip male vs female
+
+non-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Fs_PES_reptip <-
+        dplyr::full_join(
+        Fs_PES_M_matSP, 
+        Fs_PES_F_matSP, 
+        by = c("PS", "GeneID"), 
+        suffix = c(".M", ".F")) |>
+        dplyr::select(!dplyr::contains(c("holdfast", "stipe", "vegtip")))
+
+Fs_rt_pairwisetest <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fs_PES_reptip,
+                modules = list(contrast1 = 1, contrast2 = 2),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+```
+
+sqrt-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Fs_PES_reptip.sqrt <-
+        dplyr::full_join(
+        Fs_PES_M_matSP.sqrt, 
+        Fs_PES_F_matSP.sqrt, 
+        by = c("PS", "GeneID"), 
+        suffix = c(".M", ".F")) |>
+        dplyr::select(!dplyr::contains(c("holdfast", "stipe", "vegtip")))
+
+Fs_rt_pairwisetest.sqrt <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fs_PES_reptip.sqrt,
+                modules = list(contrast1 = 1, contrast2 = 2),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+```
+
+log2-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Fs_PES_reptip.log2 <-
+        dplyr::full_join(
+        Fs_PES_M_matSP.log2, 
+        Fs_PES_F_matSP.log2, 
+        by = c("PS", "GeneID"), 
+        suffix = c(".M", ".F")) |>
+        dplyr::select(!dplyr::contains(c("holdfast", "stipe", "vegtip")))
+
+Fs_rt_pairwisetest.log2 <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fs_PES_reptip.log2,
+                modules = list(contrast1 = 1, contrast2 = 2),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+```
+
+```{r}
+p_res <- data.frame(
+        pvalues = c(Fs_rt_pairwisetest, Fs_rt_pairwisetest.sqrt, Fs_rt_pairwisetest.log2),
+        species = c("Fs", "Fs", "Fs"),
+        tf = c("none", "sqrt", "log2"),
+        sample = c("Fs", "Fs", "Fs")
+)
+
+p_res |>
+        ggplot2::ggplot(aes(x = tf, y = -log10(pvalues), group = 1, shape = tf)) +
+        ggplot2::geom_col(width = 0.01) +
+        ggplot2::geom_point(size = 4) +
+        ggplot2::geom_hline(yintercept = -log10(0.05), colour = "red", linetype = 2) +
+        ggplot2::ylim(0, -log10(min(p_res$pvalues)))
+```
+
+Results differ between transformations. If we go by the **square-root** transformation, which we were reporting in other cases in the paper, it appears that _F. serratus_ reptip is significantly younger for **males** than the **females** (`p = 2.703377e-06`).
+
+## `PairwiseTest()` for matSP gamete male vs female
+
+### Load PES
+
+non-transformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_PES_M <-
+  readr::read_csv(file = "data/Fd_PES_M.csv", show_col_types = FALSE)
+Fd_PES_F <-
+  readr::read_csv(file = "data/Fd_PES_F.csv", show_col_types = FALSE)
+Fs_PES_M <-
+  readr::read_csv(file = "data/Fs_PES_M.csv", show_col_types = FALSE) |> dplyr::select(-matSP)
+Fs_PES_F <-
+  readr::read_csv(file = "data/Fs_PES_F.csv", show_col_types = FALSE) |> dplyr::select(-matSP)
+Fd_PES_gamete <- 
+        dplyr::full_join(
+                Fd_PES_M, Fd_PES_F,
+                by = c("PS", "GeneID"), 
+                suffix = c(".M", ".F"))
+Fs_PES_gamete <- 
+        dplyr::full_join(
+                Fs_PES_M, Fs_PES_F,
+                by = c("PS", "GeneID"), 
+                suffix = c(".M", ".F"))
+```
+
+sqrt-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_PES_M.sqrt <-
+  readr::read_csv(file = "data/Fd_PES_M.sqrt.csv", show_col_types = FALSE) |> dplyr::rename(gamete = V1)
+Fd_PES_F.sqrt <-
+  readr::read_csv(file = "data/Fd_PES_F.sqrt.csv", show_col_types = FALSE) |> dplyr::rename(gamete = V1)
+Fs_PES_M.sqrt <-
+  readr::read_csv(file = "data/Fs_PES_M.sqrt.csv", show_col_types = FALSE) |> dplyr::select(-matSP)
+Fs_PES_F.sqrt <-
+  readr::read_csv(file = "data/Fs_PES_F.sqrt.csv", show_col_types = FALSE) |> dplyr::select(-matSP)
+Fd_PES_gamete.sqrt <- 
+        dplyr::full_join(
+                Fd_PES_M.sqrt, Fd_PES_F.sqrt,
+                by = c("PS", "GeneID"), 
+                suffix = c(".M", ".F"))
+Fs_PES_gamete.sqrt <- 
+        dplyr::full_join(
+                Fs_PES_M.sqrt, Fs_PES_F.sqrt,
+                by = c("PS", "GeneID"), 
+                suffix = c(".M", ".F"))
+```
+
+log2-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_PES_M.log2 <-
+  readr::read_csv(file = "data/Fd_PES_M.log2.csv", show_col_types = FALSE) |> dplyr::rename(gamete = V1)
+Fd_PES_F.log2 <-
+  readr::read_csv(file = "data/Fd_PES_F.log2.csv", show_col_types = FALSE) |> dplyr::rename(gamete = V1)
+Fs_PES_M.log2 <-
+  readr::read_csv(file = "data/Fs_PES_M.log2.csv", show_col_types = FALSE) |> dplyr::select(-matSP)
+Fs_PES_F.log2 <-
+  readr::read_csv(file = "data/Fs_PES_F.log2.csv", show_col_types = FALSE) |> dplyr::select(-matSP)
+
+Fd_PES_gamete.log2 <- 
+        dplyr::full_join(
+                Fd_PES_M.log2, Fd_PES_F.log2,
+                by = c("PS", "GeneID"), 
+                suffix = c(".M", ".F"))
+Fs_PES_gamete.log2 <- 
+        dplyr::full_join(
+                Fs_PES_M.log2, Fs_PES_F.log2,
+                by = c("PS", "GeneID"), 
+                suffix = c(".M", ".F"))
+```
+
+non-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_gam_pairwisetest <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fd_PES_gamete,
+                modules = list(contrast1 = 1, contrast2 = 2),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+Fs_gam_pairwisetest <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fs_PES_gamete,
+                modules = list(contrast1 = 1, contrast2 = 2),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+```
+
+sqrt-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_gam_pairwisetest.sqrt <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fd_PES_gamete.sqrt,
+                modules = list(contrast1 = 1, contrast2 = 2),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+Fs_gam_pairwisetest.sqrt <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fs_PES_gamete.sqrt,
+                modules = list(contrast1 = 1, contrast2 = 2),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+```
+
+log2-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_gam_pairwisetest.log2 <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fd_PES_gamete.log2,
+                modules = list(contrast1 = 1, contrast2 = 2),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+Fs_gam_pairwisetest.log2 <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fs_PES_gamete.log2,
+                modules = list(contrast1 = 1, contrast2 = 2),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+```
+
+```{r}
+p_res <- data.frame(
+        pvalues = c(Fd_gam_pairwisetest, Fs_gam_pairwisetest, 
+          Fd_gam_pairwisetest.sqrt, Fs_gam_pairwisetest.sqrt, 
+          Fd_gam_pairwisetest.log2, Fs_gam_pairwisetest.log2),
+        species = c("Fd", "Fs", "Fd", "Fs", "Fd", "Fs"),
+        tf = c("none", "none", "sqrt", "sqrt", "log2", "log2")
+)
+
+p_res
+```
+
+Male gametes are not significantly younger than females.
+I suspect that this is because the variance in the TAI values are generally higher in the gametes.
 
 Get session info.
 
