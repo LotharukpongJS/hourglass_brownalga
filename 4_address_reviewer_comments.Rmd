@@ -9,7 +9,7 @@ editor_options:
   chunk_output_type: inline
 ---
 
-Having pre-processed the data, here, I analyse the evolutionary transcriptomics in three brown algal species, across life cycle stages and in different tissues. I use the term `TAI` often here. It stands for "transcriptome age index" (see the R package [`myTAI`](https://drostlab.github.io/myTAI/) for further details). Note: permutations here are set at 500 rather than 50000 to ensure a fast run.
+Having pre-processed the data, here, I analyse the evolutionary transcriptomics in three brown algal species, across life cycle stages and in different tissues. I use the term `TAI` often here. It stands for "transcriptome age index" (see the R package [`myTAI`](https://drostlab.github.io/myTAI/) for further details). Note: permutations here are set at 500 rather than 1000 to ensure a fast run.
 
 # Reporting the difference in TAI using the `pairwiseTest()`
 
@@ -126,7 +126,7 @@ Fs_M_pairwisetest.log2 <-
                 permutations = 1000)$p.value
 ```
 
-```{r}
+```{r, results='hide', warning=FALSE, message=FALSE}
 p_res <- data.frame(
         pvalues = c(Fd_pairwisetest, Fs_M_pairwisetest, Fs_F_pairwisetest, 
           Fd_pairwisetest.sqrt, Fs_M_pairwisetest.sqrt, Fs_F_pairwisetest.sqrt, 
@@ -220,7 +220,7 @@ Fs_M_pairwisetest.log2 <-
                 permutations = 1000)$p.value
 ```
 
-```{r}
+```{r, results='hide', warning=FALSE, message=FALSE}
 p_res <- data.frame(
         pvalues = c(Fd_pairwisetest, Fs_M_pairwisetest, Fs_F_pairwisetest, 
           Fd_pairwisetest.sqrt, Fs_M_pairwisetest.sqrt, Fs_F_pairwisetest.sqrt, 
@@ -302,7 +302,7 @@ Fs_rt_pairwisetest.log2 <-
                 permutations = 1000)$p.value
 ```
 
-```{r}
+```{r, results='hide', warning=FALSE, message=FALSE}
 p_res <- data.frame(
         pvalues = c(Fs_rt_pairwisetest, Fs_rt_pairwisetest.sqrt, Fs_rt_pairwisetest.log2),
         species = c("Fs", "Fs", "Fs"),
@@ -445,7 +445,7 @@ Fs_gam_pairwisetest.log2 <-
                 permutations = 1000)$p.value
 ```
 
-```{r}
+```{r, results='hide', warning=FALSE, message=FALSE}
 p_res <- data.frame(
         pvalues = c(Fd_gam_pairwisetest, Fs_gam_pairwisetest, 
           Fd_gam_pairwisetest.sqrt, Fs_gam_pairwisetest.sqrt, 
@@ -459,6 +459,721 @@ p_res
 
 Male gametes are not significantly younger than females.
 I suspect that this is because the variance in the TAI values are generally higher in the gametes.
+
+# _Laminaria_ and _Saccorhiza_ data
+
+Here, we check the TAI for _Saccorhiza polyschides_ and _Laminaria digitata_.
+
+## RNA-seq quantification
+
+The revision 3.5 of the nf-core RNA-seq pipeline was used in _Laminaria digitata_ and _Saccorhiza polyschides_, so we use the same version.
+
+```bash
+nextflow run nf-core/rnaseq -r 3.5 -params-file nf-params_Ldigitata_HG.json -profile singularity,sge
+
+nextflow run nf-core/rnaseq -r 3.5 -params-file nf-params_Spolyschides_HG.json -profile singularity,sge
+```
+
+Where the `nf-params_*.json` points to the file locations.
+
+```bash
+{
+    "input": "/tmp/global2/jlotharukpong/nfcore_rnaseq/Laminaria_digitata.csv",
+    "outdir": "/tmp/global2/jlotharukpong/nfcore_rnaseq/Laminaria-digitata_HG",
+    "fasta": "/tmp/global2/jlotharukpong/nfcore_rnaseq/Phaeoexplorer_genomes/Laminaria-digitata_MALE.fa",
+    "gff": "/tmp/global2/jlotharukpong/annotation_solve/annotation_post/Laminaria-digitata_MALE.clean_gff3.gff",
+    "pseudo_aligner": "salmon",
+    "salmon_quant_libtype": "A"
+}
+```
+
+```bash
+{
+    "input": "/tmp/global2/jlotharukpong/nfcore_rnaseq/Saccorhiza_polyschides_HG.csv",
+    "outdir": "/tmp/global2/jlotharukpong/nfcore_rnaseq/Saccorhiza-polyschides_HG",
+    "fasta": "/tmp/global2/jlotharukpong/nfcore_rnaseq/Phaeoexplorer_genomes/Saccorhiza-polyschides_MALE.fa",
+    "gff": "/tmp/global2/jlotharukpong/annotation_solve/annotation_post/Saccorhiza-polyschides_MALE.clean_gff3.gff",
+    "pseudo_aligner": "salmon",
+    "salmon_quant_libtype": "A"
+}
+```
+
+## Gene age inference
+
+### _Laminaria digitata_
+
+TaxID: `80365`.
+
+```bash
+genEra \
+	-q /ebio/abt5_projects/Phaeoexplorer/data/04__FINAL_PROTEOMES/Laminaria-digitata_MALE_proteins.fa \
+	-t 80365 \
+	-b /tmp/global2/jlotharukpong/diamond_mkd/nr \
+	-d /tmp/global2/jlotharukpong/genEra/taxdump \
+	-a sodai_proteins.tsv \
+	-f sodai_genomes.tsv \
+	-n 20
+```
+
+### _Saccorhiza polyschides_
+
+TaxID: `45365`.
+
+```bash
+genEra \
+	-q /ebio/abt5_projects/Phaeoexplorer/data/04__FINAL_PROTEOMES/Saccorhiza-polyschides_MALE_proteins.fa \
+  -t 45365 \
+	-b /tmp/global2/jlotharukpong/diamond_mkd/nr \
+	-d /tmp/global2/jlotharukpong/genEra/taxdump \
+	-a sodai_proteins.tsv \
+	-f sodai_genomes.tsv \
+	-n 20
+```
+
+In the protein list file, we include the _Fucus_ and the _Ectocarpus_ species. This is to ensure a similar number of PS with _Fucus_ and _Ectocarpus_.
+
+### Plotting gene age distribution
+
+```{r warning=FALSE,message=FALSE}
+library(tidyverse)
+library(scales)
+```
+
+```{r fig.height = 2.5, fig.width = 3}
+# Load gene age
+Ld_age.all <- readr::read_tsv("data/Ld_HG_default.gene_ages.tsv",
+                        col_names = c("tx", "PS", "rank", "tax_rep"),
+                        skip = 1)
+Sp_age.all <- readr::read_tsv("data/Sp_HG_default.gene_ages.tsv",
+                        col_names = c("tx", "PS", "rank", "tax_rep"),
+                        skip = 1)
+# Plot distribution
+Ld_age.all %>% 
+  dplyr::group_by(rank) %>% 
+  dplyr::summarise(count = dplyr::n()) %>%
+  tidyr::drop_na() %>%
+  ggplot2::ggplot(aes(x = factor(rank), y = count)) + 
+  ggplot2::geom_col(colour = "black", fill = "black", width = 0.1) +
+  ggplot2::geom_point(shape = 21, colour = "#DC0000FF", fill = "white", size = 3, stroke = 1.5) +
+  ggplot2::labs(title = "PS size",
+       subtitle = "Laminaria digitata",
+       fill = "GO term",
+       y = "Number of genes (log-scaled)",
+       x = "Gene age") +
+  ggplot2::theme_classic() +
+  ggplot2::scale_y_log10() +
+  ggplot2::coord_flip()
+# ggplot2::ggsave(filename = "figures/Ld_age_dist.pdf", device = "pdf", width = 2.5, height = 2.5)
+
+Sp_age.all %>% 
+  dplyr::group_by(rank) %>% 
+  dplyr::summarise(count = dplyr::n()) %>%
+  tidyr::drop_na() %>%
+  ggplot2::ggplot(aes(x = factor(rank), y = count)) + 
+  ggplot2::geom_col(colour = "black", fill = "black", width = 0.1) +
+  ggplot2::geom_point(shape = 21, colour = "#DC0000FF", fill = "white", size = 3, stroke = 2) +
+  ggplot2::labs(title = "PS size",
+       subtitle = "Saccorhiza polyschides",
+       fill = "GO term",
+       y = "Number of genes (log-scaled)",
+       x = "Gene age") +
+  ggplot2::theme_classic() +
+  ggplot2::scale_y_log10() +
+  ggplot2::coord_flip()
+# ggplot2::ggsave(filename = "figures/Sp_age_dist.pdf", device = "pdf", width = 2.5, height = 2.5)
+```
+
+## Developmental hourglass
+
+### Preprocessing for TAI
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+library(tidyverse)
+library(duckplyr)
+library(myTAI)
+```
+
+```R
+Sp_abundance <- readr::read_tsv("data/Sp_HG.salmon.merged.gene_tpm.tsv")
+Ld_abundance <- readr::read_tsv("data/Ld_HG.salmon.merged.gene_tpm.tsv")
+
+# filter genes with mean expression less than 2
+Sp_keep <- Sp_abundance[rowMeans(Sp_abundance[-c(1,2)])>2, ]
+Ld_keep <- Ld_abundance[rowMeans(Ld_abundance[-c(1,2)])>2, ]
+```
+
+The data was then processed to `Ld_PES` and `Sp_PES` in the same way as done for _F. serratus_, _F. distichus_ and _Ectocarpus_. The median TPM between replicates were chosen.
+
+#### _Laminaria digitata_
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+Ld_PES <- readr::read_csv("data/Ld_PES.csv")
+```
+
+#### _Saccorhiza polyschides_
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+Sp_PES <- readr::read_csv("data/Sp_PES.csv")
+```
+
+### Plot TAI
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+#TI stands for transcriptome index
+TI.preplot <- function(ExpressionSet, permutations = 1000){
+  std <- 
+    myTAI::bootMatrix(
+      ExpressionSet = ExpressionSet, 
+      permutations  = permutations) %>% 
+    apply(2, stats::sd)
+  TI.out <- 
+    myTAI::TAI(ExpressionSet) %>%
+    tibble::as_tibble(rownames = "Stage", colnames = c("TAI", "PS")) %>% 
+    dplyr::bind_cols(as_tibble(std)) %>%
+    dplyr::rename(TAI = 2, sd = 3)
+  return(TI.out)
+}
+```
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+get_TAI <- function(PES_all, ordered_stages){
+        TI_all <- 
+                TI.preplot(PES_all)
+        
+        TI_combined <- 
+                TI_SP |>
+                rbind(TI_M) |>
+                rbind(TI_F) |>
+                dplyr::mutate(Stage.common = Stage) |>
+                dplyr::mutate(Stage.common = stringr::str_remove(Stage.common, "m_|f_")) |>
+                dplyr::mutate(Stage.common = stringr::str_remove(Stage.common, "_stipe|_meristem|_vegfrond|_holdfast")) |>
+                dplyr::mutate(Stage.common = stringr::str_replace(Stage.common, "PSP", "SP"))
+        TI_combined$Stage.common <- base::factor(TI_combined$Stage.common, ordered_stages)
+        return(TI_combined)
+}
+```
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+# Fucus style plot
+plot_TAI <- function(TI){
+        plotTAI_out <- TI |>
+                ggplot2::ggplot(
+                        aes(x = Stage, 
+                            y = TAI,
+                            group = 1,
+                            colour = "#00A087FF",
+                            fill = "#00A087FF")) +
+                ggplot2::geom_ribbon(
+                        aes(ymin = TAI - sd,
+                            ymax = TAI + sd
+                            ), 
+                        alpha = 0.1) +
+                ggplot2::geom_line(size = 2, lineend = "round")
+        return(plotTAI_out)
+}
+
+# Ectocarpus style plot
+plot_TAI2 <- function(TI){
+        plotTAI_out <- TI |>
+                ggplot2::ggplot(
+                        aes(x = Stage, 
+                            y = TAI,
+                            group = 1,
+                            colour = "#E64B35FF",
+                            fill = "#E64B35FF")) +
+                ggplot2::geom_crossbar(
+                        aes(ymin = TAI - sd,
+                            ymax = TAI + sd),
+                            alpha = 0.5,
+                            position = ggplot2::position_dodge(0.55), 
+                            width = 0.5)
+        return(plotTAI_out)
+}
+```
+
+### sqrt transform
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+TI_Ld.sqrt <- TI.preplot(myTAI::tf(Ld_PES, sqrt)) # square-root transformation
+TI_Sp.sqrt <- TI.preplot(myTAI::tf(Sp_PES, sqrt)) # square-root transformation
+```
+
+#### adult stages
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+TI_Ld.sqrt.matSP <- 
+        TI_Ld.sqrt |>
+        dplyr::filter(stringr::str_detect(Stage, "matSP")) |>
+        dplyr::mutate(contains_unicell = dplyr::case_when(
+                stringr::str_detect(Stage, "sorus") ~ TRUE,
+                .default = FALSE
+        ))
+TI_Ld.sqrt.matSP <- TI_Ld.sqrt.matSP[order(TI_Ld.sqrt.matSP$TAI),]
+TI_Ld.sqrt.matSP$Stage <- factor(TI_Ld.sqrt.matSP$Stage,levels=TI_Ld.sqrt.matSP$Stage)
+```
+
+```{r fig.height = 2.5, fig.width = 3}
+TI_Ld.sqrt.matSP |>
+        ggplot2::ggplot(
+                aes(x = Stage, 
+                    y = TAI,
+                    colour = contains_unicell)) +
+        ggplot2::geom_crossbar(
+                aes(ymin = TAI - sd,
+                    ymax = TAI + sd),
+                alpha = 0.5,
+                position = ggplot2::position_dodge(0.55), 
+                width = 0.5) +
+        ggplot2::labs(title = "Laminaria digitata", 
+                      subtitle = "sqrt(TPM)", 
+                      x = "Tissue",
+                      colour = "contains\nunicell") +
+        ggplot2::theme_classic() +
+        ggplot2::scale_colour_manual(values=c("grey", "black")) +
+        ggplot2::theme(axis.text.x = element_text(angle = 30, vjust = 1, hjust=1))
+```
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+TI_Sp.sqrt.matSP <-
+        TI_Sp.sqrt |>
+        dplyr::filter(stringr::str_detect(Stage, "matSP")) |>
+        dplyr::mutate(contains_unicell = dplyr::case_when(
+                stringr::str_detect(Stage, "sorus") ~ TRUE,
+                .default = FALSE
+        ))
+
+TI_Sp.sqrt.matSP <- TI_Sp.sqrt.matSP[order(TI_Sp.sqrt.matSP$TAI),]
+TI_Sp.sqrt.matSP$Stage <- factor(TI_Sp.sqrt.matSP$Stage,levels=TI_Sp.sqrt.matSP$Stage)
+```
+
+```{r fig.height = 2.5, fig.width = 3}
+TI_Sp.sqrt.matSP |>
+        ggplot2::ggplot(
+                aes(x = Stage, 
+                    y = TAI,
+                    colour = contains_unicell)) +
+        ggplot2::geom_crossbar(
+                aes(ymin = TAI - sd,
+                    ymax = TAI + sd),
+                alpha = 0.5,
+                position = ggplot2::position_dodge(0.55), 
+                width = 0.5) +
+        ggplot2::labs(title = "Saccorhiza polyschides", 
+                      subtitle = "sqrt(TPM)", 
+                      x = "Tissue",
+                      colour = "contains\nunicell") +
+        ggplot2::theme_classic() +
+        ggplot2::scale_colour_manual(values=c("grey", "black")) +
+        ggplot2::theme(axis.text.x = element_text(angle = 20, vjust = 1, hjust=1))
+```
+
+The unicells (meiospores) very likely contributes to driving the TAI higher in the reproductive tissues.
+The `vegfrond` (analogous tissue to vegtip) represent the average TAI of `matSP` in both species. For simplicity, they will be used in the further analysis.
+
+#### development
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+# Laminaria
+TI_Ld.sqrt.GA <- TI_Ld.sqrt |>
+        dplyr::filter(!stringr::str_detect(Stage, "earlySP|4wSP|meristem|stipe|holdfast|matSP_vegfrond")) |>
+        dplyr::mutate(Stage = stringr::str_replace(Stage, "matSP_sorus", "meiospore_sorus"))
+TI_Ld.sqrt.SP <- TI_Ld.sqrt |>
+        dplyr::filter(!stringr::str_detect(Stage, "GA|meristem|stipe|holdfast|sorus")) |>
+        dplyr::mutate(Stage = stringr::str_remove(Stage, "_vegfrond")) # vegfrond is the mean TAI of all adult stages
+# Saccorhiza
+TI_Sp.sqrt.GA <- TI_Sp.sqrt |>
+        dplyr::filter(!stringr::str_detect(Stage, "earlySP|4wSP|meristem|stipe|holdfast|matSP_vegfrond")) |>
+        dplyr::mutate(Stage = stringr::str_replace(Stage, "matSP_frond_sorus", "meiospore_frond_sorus")) |>
+        dplyr::mutate(Stage = stringr::str_replace(Stage, "matSP_sporophyll_sorus", "meiospore_sporophyll_sorus"))
+
+# order the stages
+TI_Ld.sqrt.SP$Stage <- factor(TI_Ld.sqrt.SP$Stage, levels = c("earlySP", "4wSP", "matSP"))
+TI_Ld.sqrt.GA$Stage <- factor(TI_Ld.sqrt.GA$Stage, levels = c("meiospore_sorus", "f_immGA", "f_matGA"))
+TI_Sp.sqrt.GA$Stage <- factor(TI_Sp.sqrt.GA$Stage, levels = c("meiospore_sporophyll_sorus", "meiospore_frond_sorus", "f_immGA", "f_matGA"))
+
+```
+
+```{r fig.height = 2.5, fig.width = 3}
+TI_Ld.sqrt.SP |>
+        plot_TAI() +
+        ggplot2::scale_colour_manual(values="#00A087FF") +
+        ggplot2::scale_fill_manual(values="#00A087FF") +
+        ggplot2::labs(title = "Laminaria digitata", subtitle = "sqrt(TPM)", x = "Stage") +
+        ggplot2::theme_classic() +
+        ggplot2::theme(legend.position = "")
+
+TI_Ld.sqrt.GA |>
+        plot_TAI2() +
+        ggplot2::scale_colour_manual(values="#E64B35FF") +
+        ggplot2::scale_fill_manual(values="#E64B35FF") +
+        ggplot2::labs(title = "Laminaria digitata", subtitle = "sqrt(TPM)", x = "Stage") +
+        ggplot2::theme_classic() +
+        ggplot2::theme(legend.position = "")
+
+TI_Sp.sqrt.GA |>
+        plot_TAI2() +
+        ggplot2::scale_colour_manual(values="#E64B35FF") +
+        ggplot2::scale_fill_manual(values="#E64B35FF") +
+        ggplot2::labs(title = "Saccorhiza polyschides", subtitle = "sqrt(TPM)", x = "Stage") +
+        ggplot2::theme_classic() +
+        ggplot2::scale_x_discrete(guide = ggplot2::guide_axis(n.dodge=2)) +
+        ggplot2::theme(legend.position = "")
+```
+
+### log2 transform
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+TI_Ld.log2 <- TI.preplot(myTAI::tf(Ld_PES, log2, pseudocount = 1)) # log2 transformation
+TI_Sp.log2 <- TI.preplot(myTAI::tf(Sp_PES, log2, pseudocount = 1)) # log2 transformation
+```
+
+#### development
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+# Laminaria
+TI_Ld.log2.GA <- TI_Ld.log2 |>
+        dplyr::filter(!stringr::str_detect(Stage, "earlySP|4wSP|meristem|stipe|holdfast|matSP_vegfrond")) |>
+        dplyr::mutate(Stage = stringr::str_replace(Stage, "matSP_sorus", "meiospore_sorus"))
+TI_Ld.log2.SP <- TI_Ld.log2 |>
+        dplyr::filter(!stringr::str_detect(Stage, "GA|meristem|stipe|holdfast|sorus")) |>
+        dplyr::mutate(Stage = stringr::str_remove(Stage, "_vegfrond")) # vegfrond is the mean TAI of all adult stages
+# Saccorhiza
+TI_Sp.log2.GA <- TI_Sp.log2 |>
+        dplyr::filter(!stringr::str_detect(Stage, "earlySP|4wSP|meristem|stipe|holdfast|matSP_vegfrond")) |>
+        dplyr::mutate(Stage = stringr::str_replace(Stage, "matSP_frond_sorus", "meiospore_frond_sorus")) |>
+        dplyr::mutate(Stage = stringr::str_replace(Stage, "matSP_sporophyll_sorus", "meiospore_sporophyll_sorus"))
+
+# order the stages
+TI_Ld.log2.SP$Stage <- factor(TI_Ld.log2.SP$Stage, levels = c("earlySP", "4wSP", "matSP"))
+TI_Ld.log2.GA$Stage <- factor(TI_Ld.log2.GA$Stage, levels = c("meiospore_sorus", "f_immGA", "f_matGA"))
+TI_Sp.log2.GA$Stage <- factor(TI_Sp.log2.GA$Stage, levels = c("meiospore_sporophyll_sorus", "meiospore_frond_sorus", "f_immGA", "f_matGA"))
+
+```
+
+```{r fig.height = 2.5, fig.width = 3}
+TI_Ld.log2.SP |>
+        plot_TAI() +
+        ggplot2::scale_colour_manual(values="#00A087FF") +
+        ggplot2::scale_fill_manual(values="#00A087FF") +
+        ggplot2::labs(title = "Laminaria digitata", subtitle = "log2(TPM+1)", x = "Stage") +
+        ggplot2::theme_classic() +
+        ggplot2::theme(legend.position = "")
+
+TI_Ld.log2.GA |>
+        plot_TAI2() +
+        ggplot2::scale_colour_manual(values="#E64B35FF") +
+        ggplot2::scale_fill_manual(values="#E64B35FF") +
+        ggplot2::labs(title = "Laminaria digitata", subtitle = "log2(TPM+1)", x = "Stage") +
+        ggplot2::theme_classic() +
+        ggplot2::theme(legend.position = "")
+
+TI_Sp.log2.GA |>
+        plot_TAI2() +
+        ggplot2::scale_colour_manual(values="#E64B35FF") +
+        ggplot2::scale_fill_manual(values="#E64B35FF") +
+        ggplot2::labs(title = "Saccorhiza polyschides", subtitle = "log2(TPM+1)", x = "Stage") +
+        ggplot2::theme_classic() +
+        ggplot2::scale_x_discrete(guide = ggplot2::guide_axis(n.dodge=2)) +
+        ggplot2::theme(legend.position = "")
+```
+
+## Transcriptome distance of earlySP in _L. digitata_
+
+Is earlySP in _L. digitata_ close in distance to the conserved stage in _Fucus_?
+
+### Running orthofinder
+
+We first run orthofinder to obtain related groups of genes.
+
+```bash
+# I first made a directory that contains the Fs, Fd, Ld and Sp peptide sequences
+orthofinder -f protein_seq/ -t 24
+```
+
+This results in:
+
+From `Statistics_Overall.tsv`
+
+```bash
+Number of species in orthogroup Number of orthogroups
+1       5090
+2       20139
+3       3915
+4       6852
+```
+
+and from `Statistics_PerSpecies.tsv`
+
+```bash
+        Fd_tasm Fs_tasm Laminaria-digitata_MALE_proteins        Saccorhiza-polyschides_MALE_proteins
+Number of genes 44694   75869   42270   19747
+Number of genes in orthogroups  35620   52227   28066   14310
+Number of unassigned genes      9074    23642   14204   5437
+Percentage of genes in orthogroups      79.7    68.8    66.4    72.5
+Percentage of unassigned genes  20.3    31.2    33.6    27.5
+Number of orthogroups containing species        27933   31257   14206   11125
+Percentage of orthogroups containing species    77.6    86.8    39.5    30.9
+Number of species-specific orthogroups  302     2384    2130    274
+Number of genes in species-specific orthogroups 891     7509    8303    866
+Percentage of genes in species-specific orthogroups     2.0     9.9     19.6    4.4
+```
+
+### `tximport` of Orthogroups
+
+To capture the expression of in-paralogues, we import the count tables treating orthogroups (OGs) as genes and genes and isoforms as isoforms, according to the categorisation of `tximport`.
+
+Thus, as you'd expect, we use the `tximport` library. We also use the script from [`OthoMantegazza/crossr`](https://github.com/othomantegazza/crossr/blob/master/R/parsers.R) called `parse_orthogroups.R`. This is needed because it was quicker to parse the `Orthogroup.tsv` file.
+
+```{r warning=FALSE,message=FALSE}
+library(tximport)
+library(tidyverse)
+library(myTAI)
+```
+
+### Parse orthogroups
+
+```{r warning=FALSE,message=FALSE}
+# From https://github.com/othomantegazza/crossr/blob/master/R/parsers.R
+parse_orthogroups <- function(path_2_ogroups)
+{
+  orthogroups <- scan(path_2_ogroups, what = "",
+                      skip = 1, sep = "\n")
+  
+  ### Not sure why some values are separated by tab in file
+  orthogroups <- gsub("\t", ", ",
+                      orthogroups)
+  
+  orthogroups <- strsplit(orthogroups, ", ")
+  
+  ### names of orthogroup are read in first list element
+  names(orthogroups) <- sapply(orthogroups,
+                               function(i) i[1])
+  orthogroups <- lapply(orthogroups,
+                        function(i) i[-1])
+  
+  ## Dont know why some elements in orthogroups are null ( "" )
+  orthogroups <- lapply(orthogroups,
+                        function(i) i[i != ""])
+  
+  
+  return(orthogroups)
+}
+```
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+OG_tx2gene <- 
+  parse_orthogroups("data/LdSpFucus/Orthogroups.tsv") %>% 
+  stack() %>% 
+  tidyr::as_tibble() %>% 
+  dplyr::rename(GeneID = values) %>% 
+  dplyr::rename(OG = ind) %>%
+  dplyr::relocate(GeneID) %>%
+  # dplyr::filter(str_detect(GeneID, "digitata")) %>%
+  dplyr::mutate(GeneID = str_remove(GeneID, "\\.p[0-9].*"))
+
+
+
+OG_tx2gene <- OG_tx2gene |>
+  # dplyr::mutate(OG = as.character(OG)) |>
+  dplyr::rename(tx = GeneID)
+```
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+Ld_tx2gene <- readr::read_tsv("data/Ld.salmon_tx2gene.tsv", col_names = c("tx", "gene_id")) |>
+        dplyr::select(1, 2) |>
+        dplyr::mutate(tx = stringr::str_replace(tx, "mRNA_", "prot_"))
+Ld_tx2gene2OG <- 
+  Ld_tx2gene |>
+  dplyr::left_join(OG_tx2gene, by = "tx") |>
+  tidyr::drop_na()
+```
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+Ld_PES.OG <- 
+        Ld_PES |> 
+        dplyr::select(1,2,"earlySP") |>
+        tidyr::pivot_longer(!c(rank, gene_id), names_to = "SampleID", values_to = "TPM") |>
+        dplyr::left_join(Ld_tx2gene2OG) |>
+        tidyr::drop_na() |>
+        duckplyr::summarise(TPM = sum(TPM), .by = c(SampleID, OG)) # sum TPM
+        
+# 12099 unique gene IDs
+# 9124 unique orthogroups
+
+Ld_PES.OG.filt <-
+        Ld_PES.OG |>
+        dplyr::select(-SampleID) |>
+        dplyr::mutate(stage = "earlySP", species = "Ld")
+
+Ld_PES.OG.filt.log2 <-
+        Ld_PES.OG.filt |>
+        dplyr::filter(TPM > 0) |>
+        dplyr::mutate(TPM = log2(TPM+1))
+# we keep 1,826 orthogroups
+```
+
+#### Load _Fucus serratus_ data
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+Fs_PES <- readr::read_csv("data/Fs_PES.log2.csv")
+
+Fs_PES.OG <- Fs_PES |>
+  dplyr::rename(tx = GeneID) |>
+  dplyr::left_join(OG_tx2gene) |>
+  dplyr::select(-c(gamete, matSP, PS)) |>
+  tidyr::drop_na() |>
+  tidyr::pivot_longer(!c(tx,OG), names_to = "stage", values_to = "TPM") |>
+  duckplyr::summarise(TPM = sum(TPM), .by = c(stage, OG)) |> # sum TPM
+  dplyr::mutate(species = "Fs")
+```
+
+#### Load _Fucus distichus_ data
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+Fd_PES <- readr::read_csv("data/Fd_PES.log2.csv")
+
+Fd_PES.OG <- Fd_PES |>
+  dplyr::rename(tx = GeneID) |>
+  dplyr::left_join(OG_tx2gene) |>
+  dplyr::select(-c(gamete, matSP, PS)) |>
+  tidyr::drop_na() |>
+  tidyr::pivot_longer(!c(tx,OG), names_to = "stage", values_to = "TPM") |>
+  duckplyr::summarise(TPM = sum(TPM), .by = c(stage, OG)) |> # sum TPM
+  dplyr::mutate(species = "Fd")
+```
+
+#### Function to permute distance
+
+This function uses `philentropy`.
+
+```{r}
+permute_dist <- function(OG.bind.wide, method = "manhattan", bootstraps = 10, focal_col = 6) {
+  nCol <- ncol(OG.bind.wide)
+  perm_matrix <- matrix(ncol = nCol, nrow = bootstraps)
+  bootsample <- NULL
+  
+  for (i in seq_len(bootstraps)) {
+    bootsample <- OG.bind.wide[sample(seq_len(nrow(OG.bind.wide)), nrow(OG.bind.wide), replace = TRUE), ]
+    
+    # Compute the distance
+    dist_matrix <- philentropy::distance(t(bootsample), method = method, use.row.names = TRUE, mute.message = TRUE)
+    
+    # Ensure proper subsetting
+    if (nrow(dist_matrix) >= focal_col && ncol(dist_matrix) >= focal_col) {
+      bootdist <- dist_matrix[focal_col, -focal_col]
+    } else {
+      stop("The distance matrix does not have the expected dimensions")
+    }
+    
+    # Adjust perm_matrix dimensions to match bootdist length if necessary
+    if (i == 1 && ncol(perm_matrix) != length(bootdist)) {
+      cat("Adjusting perm_matrix dimensions to match bootdist length\n")
+      perm_matrix <- matrix(ncol = length(bootdist), nrow = bootstraps)
+    }
+    
+    if (length(bootdist) == ncol(perm_matrix)) {
+      perm_matrix[i, ] <- bootdist
+    } else {
+      stop("The length of bootdist does not match the number of columns in perm_matrix")
+    }
+  }
+  
+  return(perm_matrix)
+}
+```
+
+### Ld vs _Fucus serratus_ data
+
+The idea here is to bind and then summarise.
+
+```{r, fig.height=2.2, fig.width=2.5}
+OG.both <- intersect(Fs_PES.OG$OG, Ld_PES.OG.filt.log2$OG)
+
+# we keep 840 orthogroups.
+
+OG.bind <- rbind(Fs_PES.OG, Ld_PES.OG.filt.log2) |>
+  dplyr::filter(OG %in% OG.both)
+# normalise TPM by sum of all TPM
+OG.bind.scale <- OG.bind |>
+  dplyr::mutate(TPM = TPM/sum(TPM), .by = stage)
+
+OG.bind.wide <- OG.bind.scale |> 
+  select(-species) |> 
+  tidyr::pivot_wider(names_from = "stage", values_from = "TPM") |>
+  column_to_rownames(var = "OG")
+
+OG.manhattan.raw <- 
+  philentropy::distance(
+    t(OG.bind.wide),
+    method = "manhattan",
+    use.row.names = TRUE)
+
+OG.manhattan.raw.bs <- permute_dist(OG.bind.wide, method = "manhattan", bootstraps = 1000)
+# ^ for the real figure, I used 50,000 permutations.
+OG.manhattan.raw.bs.sd <- apply(OG.manhattan.raw.bs, 2, stats::sd)
+
+OG.manhattan.filt <- OG.manhattan.raw[6,1:5]
+data.frame(dist = OG.manhattan.filt,
+           stage = names(OG.manhattan.filt),
+           sd = OG.manhattan.raw.bs.sd) |>
+  ggplot2::ggplot(aes(x = stage, y = dist, group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = dist - sd,
+        ymax = dist + sd
+        ), 
+    alpha = 0.1) +
+  ggplot2::geom_line(size = 2, lineend = "round") +
+  ggplot2::theme_classic() +
+  ggplot2::labs(title = "Distance\nbetween Ld and Fs\nscaled log2(TPM+1)",
+                y = "distance",
+                x = "Stage in F. serratus")
+# ggplot2::ggsave(filename = "figures/Ld_Fs_dist.pdf", device = "pdf", width = 2.5, height = 2.2)
+```
+
+```{r, fig.height=2.2, fig.width=2.5}
+OG.both <- intersect(Fd_PES.OG$OG, Ld_PES.OG.filt.log2$OG)
+
+# we keep 880 orthogroups.
+
+OG.bind <- rbind(Fd_PES.OG, Ld_PES.OG.filt.log2) |>
+  dplyr::filter(OG %in% OG.both)
+# normalise TPM by sum of all TPM
+OG.bind.scale <- OG.bind |>
+  dplyr::mutate(TPM = TPM/sum(TPM), .by = stage)
+
+OG.bind.wide <- OG.bind.scale |> 
+  select(-species) |> 
+  tidyr::pivot_wider(names_from = "stage", values_from = "TPM") |>
+  column_to_rownames(var = "OG")
+
+OG.manhattan.raw <- 
+  philentropy::distance(
+    t(OG.bind.wide),
+    method = "manhattan",
+    use.row.names = TRUE)
+
+OG.manhattan.raw.bs <- permute_dist(OG.bind.wide, method = "manhattan", bootstraps = 1000, focal_col = 7)
+OG.manhattan.raw.bs.sd <- apply(OG.manhattan.raw.bs, 2, stats::sd)
+
+OG.manhattan.filt <- OG.manhattan.raw[7,-7]
+data.frame(dist = OG.manhattan.filt,
+           stage = names(OG.manhattan.filt),
+           sd = OG.manhattan.raw.bs.sd) |>
+  ggplot2::ggplot(aes(x = stage, y = dist, group = 1)) +
+  ggplot2::geom_ribbon(
+    aes(ymin = dist - sd,
+        ymax = dist + sd
+        ), 
+    alpha = 0.1) +
+  ggplot2::geom_line(size = 2, lineend = "round") +
+  ggplot2::theme_classic() +
+  ggplot2::labs(title = "Distance\nbetween Ld and Fd\nscaled log2(TPM+1)",
+                y = "distance",
+                x = "Stage in F. distichus")
+# ggplot2::ggsave(filename = "figures/Ld_Fd_dist.pdf", device = "pdf", width = 2.5, height = 2.2)
+```
+
+Based on the manhattan distance, we see that the earlySP in _Laminaria_ is similar to the most conserved stages in both species of _Fucus_. This suggests that the supposedly 'early conservation' pattern we see with just the few stages in fact is the tail-end of the hourglass pattern in _Laminaria_. Unfortunately, we cannot go earlier in the development of _Laminaria_ because it was difficult to extract the early embryo without interference from maternal tissue of the female gametophyte.
 
 Get session info.
 
