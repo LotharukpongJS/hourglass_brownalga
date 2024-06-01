@@ -30,6 +30,7 @@ I have rendered all the analysis (in Rmd) as HTML files. I have included all the
 ### 4 – Further evolutionary transcriptomics analyses (addressing reviewers) (available [here](https://lotharukpongjs.github.io/hourglass_brownalga/4_address_reviewer_comments.html)). 
 NOTE: the version of myTAI is newer due to an addition of the PairwiseTest(). However, the lower-level functions such as `cpp_TAI` remain the same, thus, results from other functions should not differ.
 
-* Difference in TAI between matSP stages.
+* Difference in TAI between sexes and tissues (matSP reptip vs vegtip; matSP reptip vs all; matSP reptip male vs female; matSP gamete male vs female)
+* Additional analysis of two *complex* brown algal species with haplodiplontic life cycles (_Laminaria digitata_ and _Saccorhiza polyschides_).
 
 At the end of each of these scripts, I list the software and versions used. R code here was run on MacBook Pro (Apple M1 Chip, 16 GB Memory, macOS Ventura v13.4.1). Some of the preprocessing step (e.g., RNA-seq quantification, gene age inference, interproscan) were run on a high performance compute cluster. Otherwise, the rest of the script should take less than 30 minutes to run on a "normal" desktop computer.
