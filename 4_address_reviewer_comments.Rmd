@@ -918,9 +918,9 @@ Number of genes in species-specific orthogroups 891     7509    8303    866
 Percentage of genes in species-specific orthogroups     2.0     9.9     19.6    4.4
 ```
 
-### `tximport` of Orthogroups
+### Convert gene to orthogroups
 
-To capture the expression of in-paralogues, we import the count tables treating orthogroups (OGs) as genes and genes and isoforms as isoforms, according to the categorisation of `tximport`.
+To capture the expression of in-paralogues, we import the count tables treating orthogroups (OGs) as genes and genes and isoforms as isoforms.
 
 Thus, as you'd expect, we use the `tximport` library. We also use the script from [`OthoMantegazza/crossr`](https://github.com/othomantegazza/crossr/blob/master/R/parsers.R) called `parse_orthogroups.R`. This is needed because it was quicker to parse the `Orthogroup.tsv` file.
 
@@ -1082,7 +1082,7 @@ permute_dist <- function(OG.bind.wide, method = "manhattan", bootstraps = 10, fo
 }
 ```
 
-### Ld vs _Fucus serratus_ data
+### Compute and display transcriptome distance
 
 The idea here is to bind and then summarise.
 
@@ -1174,6 +1174,8 @@ data.frame(dist = OG.manhattan.filt,
 ```
 
 Based on the manhattan distance, we see that the earlySP in _Laminaria_ is similar to the most conserved stages in both species of _Fucus_. This suggests that the supposedly 'early conservation' pattern we see with just the few stages in fact is the tail-end of the hourglass pattern in _Laminaria_. Unfortunately, we cannot go earlier in the development of _Laminaria_ because it was difficult to extract the early embryo without interference from maternal tissue of the female gametophyte.
+
+Note: by resampling the OGs and computing the orthogroups, I managed to obtain the spread of the distances.
 
 Get session info.
 
