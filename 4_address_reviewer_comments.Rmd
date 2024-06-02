@@ -11,7 +11,7 @@ editor_options:
 
 Having pre-processed the data, here, I analyse the evolutionary transcriptomics in three brown algal species, across life cycle stages and in different tissues. I use the term `TAI` often here. It stands for "transcriptome age index" (see the R package [`myTAI`](https://drostlab.github.io/myTAI/) for further details). Note: permutations here are set at 500 rather than 1000 to ensure a fast run.
 
-# Reporting the difference in TAI using the `pairwiseTest()`
+# Reporting the difference in TAI using the `pairwiseTest()` in _Fucus_
 
 Here, we examine the TAI across the _Fucus_ embryogenesis. We find a developmental hourglass.
 
@@ -147,6 +147,11 @@ p_res |>
         ggplot2::coord_flip()
 ```
 
+
+```{r}
+p_res
+```
+
 From all the transformations, it appears that _F. distichus_ reptip is significantly younger than the vegtip (`p = 7.679781e-18` for sqrt-transformation). In _F. serratus_, this is also the case for males (`p = 1.388551e-06` for sqrt-transformation) but not females (`p = 0.0672199` for sqrt-transformation).
 
 ## `PairwiseTest()` for matSP reptip vs all
@@ -241,6 +246,10 @@ p_res |>
         ggplot2::coord_flip()
 ```
 
+```{r}
+p_res
+```
+
 Results differ between transformations. If we go by the **square-root** transformation, which we were reporting in other cases in the paper, it appears that _F. distichus_ reptip is significantly younger than the mean TAI of other tissues (`p = 0.003029956`). In _F. serratus_, this is also the case for males (`p = 0.003790212`) but not females (`p = 0.402316`).
 
 ## `PairwiseTest()` for matSP reptip male vs female
@@ -316,6 +325,11 @@ p_res |>
         ggplot2::geom_point(size = 4) +
         ggplot2::geom_hline(yintercept = -log10(0.05), colour = "red", linetype = 2) +
         ggplot2::ylim(0, -log10(min(p_res$pvalues)))
+```
+
+
+```{r}
+p_res
 ```
 
 Results differ between transformations. If we go by the **square-root** transformation, which we were reporting in other cases in the paper, it appears that _F. serratus_ reptip is significantly younger for **males** than the **females** (`p = 2.703377e-06`).
@@ -453,12 +467,175 @@ p_res <- data.frame(
         species = c("Fd", "Fs", "Fd", "Fs", "Fd", "Fs"),
         tf = c("none", "none", "sqrt", "sqrt", "log2", "log2")
 )
+```
 
+```{r}
 p_res
 ```
 
 Male gametes are not significantly younger than females.
 I suspect that this is because the variance in the TAI values are generally higher in the gametes.
+
+# Further stats for evolutionary transcriptome pattern in _Ectocarpus_
+
+Here, we examine whether the significance in the difference between the TAI in _Ectocarpus_ unicellular stages vs multicellular stages.
+
+```{r warning=FALSE,message=FALSE}
+library(tidyverse)
+library(myTAI)
+```
+
+### Load PES
+
+non-transformed
+
+```{r warning=FALSE,message=FALSE}
+Ec_PES_M <-
+  readr::read_csv(file = "data/Ec_PES_32m.csv", show_col_types = FALSE)
+Ec_PES_F <-
+  readr::read_csv(file = "data/Ec_PES_25f.csv", show_col_types = FALSE)
+```
+
+sqrt-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Ec_PES_M.sqrt <-
+  readr::read_csv(file = "data/Ec_PES_32m.sqrt.csv", show_col_types = FALSE)
+Ec_PES_F.sqrt <-
+  readr::read_csv(file = "data/Ec_PES_25f.sqrt.csv", show_col_types = FALSE)
+```
+
+log2-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Ec_PES_M.log2 <-
+  readr::read_csv(file = "data/Ec_PES_32m.log2.csv", show_col_types = FALSE)
+Ec_PES_F.log2 <-
+  readr::read_csv(file = "data/Ec_PES_25f.log2.csv", show_col_types = FALSE)
+```
+
+## `PairwiseTest()` for unicell vs multicell TAI
+
+col 1, 5 and 9 are unicells.
+
+```{r warning=FALSE,message=FALSE}
+Ec_M_pairwisetest <-
+        myTAI::PairwiseTest(Ec_PES_M, modules = list(contrast1 = c(1,5,9), contrast2 = c(2,3,4,6,7,8)), altHypothesis = "greater", permutations = 1000)$p.value
+Ec_F_pairwisetest <-
+        myTAI::PairwiseTest(Ec_PES_F, modules = list(contrast1 = c(1,5,9), contrast2 = c(2,3,4,6,7,8)), altHypothesis = "greater", permutations = 1000)$p.value
+
+Ec_M_pairwisetest.sqrt <-
+        myTAI::PairwiseTest(Ec_PES_M.sqrt, modules = list(contrast1 = c(1,5,9), contrast2 = c(2,3,4,6,7,8)), altHypothesis = "greater", permutations = 1000)$p.value
+Ec_F_pairwisetest.sqrt <-
+        myTAI::PairwiseTest(Ec_PES_F.sqrt, modules = list(contrast1 = c(1,5,9), contrast2 = c(2,3,4,6,7,8)), altHypothesis = "greater", permutations = 1000)$p.value
+
+Ec_M_pairwisetest.log2 <-
+        myTAI::PairwiseTest(Ec_PES_M.log2, modules = list(contrast1 = c(1,5,9), contrast2 = c(2,3,4,6,7,8)), altHypothesis = "greater", permutations = 1000)$p.value
+Ec_F_pairwisetest.log2 <-
+        myTAI::PairwiseTest(Ec_PES_F.log2, modules = list(contrast1 = c(1,5,9), contrast2 = c(2,3,4,6,7,8)), altHypothesis = "greater", permutations = 1000)$p.value
+```
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+p_res <- data.frame(
+        pvalues = c(Ec_M_pairwisetest, Ec_M_pairwisetest.sqrt, Ec_M_pairwisetest.log2, 
+          Ec_F_pairwisetest, Ec_F_pairwisetest.sqrt, Ec_F_pairwisetest.log2),
+        sex = c("M", "M", "M", "F", "F", "F"),
+        tf = c("none", "sqrt", "log2", "none", "sqrt", "log2")
+)
+
+p_res |>
+        ggplot2::ggplot(aes(x = sex, y = -log10(pvalues), linetype = tf, group = tf)) +
+        ggplot2::geom_line() +
+        ggplot2::geom_point(size = 2) +
+        ggplot2::geom_hline(yintercept = -log10(0.05), colour = "red", linetype = 2) +
+        ggplot2::coord_flip()
+```
+
+```{r}
+p_res
+```
+
+Unicells are significantly younger than multicellular stages.
+
+## `ReductiveHourglassTest()` for multicell development
+
+cols 2,3,4 are multicellular GA and 6,7,8 are multicellular PSP.
+
+```{r}
+Ec_PES_M.GA <- Ec_PES_M |> dplyr::select(1,2,c(2,3,4)+2)
+Ec_PES_M.PSP <- Ec_PES_M |> dplyr::select(1,2,c(6,7,8)+2)
+Ec_PES_F.GA <- Ec_PES_F |> dplyr::select(1,2,c(2,3,4)+2)
+Ec_PES_F.PSP <- Ec_PES_F |> dplyr::select(1,2,c(6,7,8)+2)
+
+Ec_PES_M.GA.sqrt <- Ec_PES_M.sqrt |> dplyr::select(1,2,c(2,3,4)+2)
+Ec_PES_M.PSP.sqrt <- Ec_PES_M.sqrt |> dplyr::select(1,2,c(6,7,8)+2)
+Ec_PES_F.GA.sqrt <- Ec_PES_F.sqrt |> dplyr::select(1,2,c(2,3,4)+2)
+Ec_PES_F.PSP.sqrt <- Ec_PES_F.sqrt |> dplyr::select(1,2,c(6,7,8)+2)
+
+Ec_PES_M.GA.log2 <- Ec_PES_M.log2 |> dplyr::select(1,2,c(2,3,4)+2)
+Ec_PES_M.PSP.log2 <- Ec_PES_M.log2 |> dplyr::select(1,2,c(6,7,8)+2)
+Ec_PES_F.GA.log2 <- Ec_PES_F.log2 |> dplyr::select(1,2,c(2,3,4)+2)
+Ec_PES_F.PSP.log2 <- Ec_PES_F.log2 |> dplyr::select(1,2,c(6,7,8)+2)
+```
+
+```{r warning=FALSE,message=FALSE}
+Ec_M_GA_rht <-
+        myTAI::ReductiveHourglassTest(Ec_PES_M.GA, modules = list(early = 1, mid = 2, late = 3), permutations = 1000)$p.value
+Ec_M_PSP_rht <-
+        myTAI::ReductiveHourglassTest(Ec_PES_M.PSP, modules = list(early = 1, mid = 2, late = 3), permutations = 1000)$p.value
+Ec_F_GA_rht <-
+        myTAI::ReductiveHourglassTest(Ec_PES_F.GA, modules = list(early = 1, mid = 2, late = 3), permutations = 1000)$p.value
+Ec_F_PSP_rht <-
+        myTAI::ReductiveHourglassTest(Ec_PES_F.PSP, modules = list(early = 1, mid = 2, late = 3), permutations = 1000)$p.value
+
+Ec_M_GA_rht.sqrt <-
+        myTAI::ReductiveHourglassTest(Ec_PES_M.GA.sqrt, modules = list(early = 1, mid = 2, late = 3), permutations = 1000)$p.value
+Ec_M_PSP_rht.sqrt <-
+        myTAI::ReductiveHourglassTest(Ec_PES_M.PSP.sqrt, modules = list(early = 1, mid = 2, late = 3), permutations = 1000)$p.value
+Ec_F_GA_rht.sqrt <-
+        myTAI::ReductiveHourglassTest(Ec_PES_F.GA.sqrt, modules = list(early = 1, mid = 2, late = 3), permutations = 1000)$p.value
+Ec_F_PSP_rht.sqrt <-
+        myTAI::ReductiveHourglassTest(Ec_PES_F.PSP.sqrt, modules = list(early = 1, mid = 2, late = 3), permutations = 1000)$p.value
+
+Ec_M_GA_rht.log2 <-
+        myTAI::ReductiveHourglassTest(Ec_PES_M.GA.log2, modules = list(early = 1, mid = 2, late = 3), permutations = 1000)$p.value
+Ec_M_PSP_rht.log2 <-
+        myTAI::ReductiveHourglassTest(Ec_PES_M.PSP.log2, modules = list(early = 1, mid = 2, late = 3), permutations = 1000)$p.value
+Ec_F_GA_rht.log2 <-
+        myTAI::ReductiveHourglassTest(Ec_PES_F.GA.log2, modules = list(early = 1, mid = 2, late = 3), permutations = 1000)$p.value
+Ec_F_PSP_rht.log2 <-
+        myTAI::ReductiveHourglassTest(Ec_PES_F.PSP.log2, modules = list(early = 1, mid = 2, late = 3), permutations = 1000)$p.value
+```
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+p_res <- data.frame(
+        pvalues = c(Ec_M_GA_rht, Ec_M_PSP_rht, Ec_F_GA_rht, Ec_F_PSP_rht,
+                    Ec_M_GA_rht.sqrt, Ec_M_PSP_rht.sqrt, Ec_F_GA_rht.sqrt, Ec_F_PSP_rht.sqrt,
+                    Ec_M_GA_rht.log2, Ec_M_PSP_rht.log2, Ec_F_GA_rht.log2, Ec_F_PSP_rht.log2),
+        sex = c("M", "M", "F", "F", "M", "M", "F", "F", "M", "M", "F", "F"),
+        tf = c("none", "none", "none", "none", 
+               "sqrt", "sqrt", "sqrt", "sqrt", 
+               "log2", "log2", "log2", "log2"),
+        stage = c("GA", "PSP", "GA", "PSP", 
+                  "GA", "PSP", "GA", "PSP", 
+                  "GA", "PSP", "GA", "PSP")
+)
+
+p_res |>
+        ggplot2::ggplot(aes(x = interaction(sex, stage), y = -log10(pvalues), linetype = tf, group = tf)) +
+        ggplot2::geom_line() +
+        ggplot2::geom_point(size = 2) +
+        ggplot2::geom_hline(yintercept = -log10(0.05), colour = "red", linetype = 2) +
+        ggplot2::coord_flip()
+```
+
+```{r}
+p_res
+```
+
+The rht was done on request of one of the reviewers. I interpret the result as inconclusive _w.r.t._ the hourglass pattern in _Ectocarpus_ development. This is also due to the incongruence between male and female patterns which is not the case for the unicell vs multicell comparison.
+
+Taken together with the `PairwiseTest()` of the unicell vs multicell, the picture that is reinforced is that unicellular stages have a younger transcriptome than the multicellular stages. Due to differences in tissue composition in filamentous _Ectocarpus_, I suspect that the patterns are (in part) driven by tissue composition heterogeneity. Noticeably, in the earlyPSP of _Ectocarpus_, which contains exactly 3-5 cells (thus not influenced by tissue composition), the males are younger than females. However, I think this exploration is beyond the scope of this particular study.
 
 # _Laminaria_ and _Saccorhiza_ data
 
