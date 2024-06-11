@@ -252,6 +252,86 @@ p_res
 
 Results differ between transformations. If we go by the **square-root** transformation, which we were reporting in other cases in the paper, it appears that _F. distichus_ reptip is significantly younger than the mean TAI of other tissues (`p = 0.003029956`). In _F. serratus_, this is also the case for males (`p = 0.003790212`) but not females (`p = 0.402316`).
 
+## `FlatLineTest()` for matSP tissues
+
+non-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_FLT <-
+        myTAI::FlatLineTest(
+                ExpressionSet = Fd_PES_matSP,
+                permutations = 1000)$p.value
+Fs_F_FLT <-
+        myTAI::FlatLineTest(
+                ExpressionSet = Fs_PES_F_matSP,
+                permutations = 1000)$p.value
+Fs_M_FLT <-
+        myTAI::FlatLineTest(
+                ExpressionSet = Fs_PES_M_matSP,
+                permutations = 1000)$p.value
+```
+
+sqrt-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_FLT.sqrt <-
+        myTAI::FlatLineTest(
+                ExpressionSet = Fd_PES_matSP.sqrt,
+                permutations = 1000)$p.value
+Fs_F_FLT.sqrt <-
+        myTAI::FlatLineTest(
+                ExpressionSet = Fs_PES_F_matSP.sqrt,
+                permutations = 1000)$p.value
+Fs_M_FLT.sqrt <-
+        myTAI::FlatLineTest(
+                ExpressionSet = Fs_PES_M_matSP.sqrt,
+                permutations = 1000)$p.value
+```
+
+log2-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_FLT.log2 <-
+        myTAI::FlatLineTest(
+                ExpressionSet = Fd_PES_matSP.log2,
+                permutations = 1000)$p.value
+Fs_F_FLT.log2 <-
+        myTAI::FlatLineTest(
+                ExpressionSet = Fs_PES_F_matSP.log2,
+                permutations = 1000)$p.value
+Fs_M_FLT.log2 <-
+        myTAI::FlatLineTest(
+                ExpressionSet = Fs_PES_M_matSP.log2,
+                permutations = 1000)$p.value
+```
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+p_res <- data.frame(
+        pvalues = c(Fd_FLT, Fs_M_FLT, Fs_F_FLT, 
+          Fd_FLT.sqrt, Fs_M_FLT.sqrt, Fs_F_FLT.sqrt, 
+          Fd_FLT.log2, Fs_M_FLT.log2, Fs_F_FLT.log2),
+        species = c("Fd", "Fs", "Fs", "Fd", "Fs", "Fs", "Fd", "Fs", "Fs"),
+        sex = c("mixed", "M", "F", "mixed", "M", "F", "mixed", "M", "F"),
+        tf = c("none", "none", "none",
+               "sqrt", "sqrt", "sqrt", 
+               "log2", "log2", "log2"),
+        sample = c("Fd", "Fs_M", "Fs_F", 
+                   "Fd", "Fs_M", "Fs_F", 
+                   "Fd", "Fs_M", "Fs_F")
+)
+
+p_res |>
+        ggplot2::ggplot(aes(x = sample, y = -log10(pvalues), linetype = tf, group = tf)) +
+        ggplot2::geom_line() +
+        ggplot2::geom_point(size = 2) +
+        ggplot2::geom_hline(yintercept = -log10(0.05), colour = "red", linetype = 2) +
+        ggplot2::coord_flip()
+```
+
+```{r}
+p_res
+```
+
 ## `PairwiseTest()` for matSP reptip male vs female
 
 non-tranformed
