@@ -476,6 +476,160 @@ p_res
 Male gametes are not significantly younger than females.
 I suspect that this is because the variance in the TAI values are generally higher in the gametes.
 
+## `PairwiseTest()` for matSP gamete vs all (excluding reptip)
+
+We ask whether the gamete is generally younger than the vegetative tissues in general.
+
+### Combine PES
+
+```{r warning=FALSE,message=FALSE}
+Fs_PES_M_matSPG <- 
+        Fs_PES_M_matSP |> 
+        dplyr::left_join(Fs_PES_M)
+Fs_PES_M_matSPG.sqrt <- 
+        Fs_PES_M_matSP.sqrt |> 
+        dplyr::left_join(Fs_PES_M.sqrt)
+Fs_PES_M_matSPG.log2 <- 
+        Fs_PES_M_matSP.log2 |> 
+        dplyr::left_join(Fs_PES_M.log2)
+
+Fs_PES_F_matSPG <- 
+        Fs_PES_F_matSP |> 
+        dplyr::left_join(Fs_PES_F)
+Fs_PES_F_matSPG.sqrt <- 
+        Fs_PES_F_matSP.sqrt |> 
+        dplyr::left_join(Fs_PES_F.sqrt)
+Fs_PES_F_matSPG.log2 <- 
+        Fs_PES_F_matSP.log2 |> 
+        dplyr::left_join(Fs_PES_F.log2)
+
+# slightly different column name formats.
+
+Fd_PES_matSPG <- 
+        Fd_PES_matSP |> 
+        dplyr::left_join(Fd_PES_gamete)
+Fd_PES_matSPG.sqrt <- 
+        Fd_PES_matSP.sqrt |> 
+        dplyr::left_join(Fd_PES_gamete.sqrt)
+Fd_PES_matSPG.log2 <- 
+        Fd_PES_matSP.log2 |> 
+        dplyr::left_join(Fd_PES_gamete.log2)
+```
+
+non-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_F_pairwisetest <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fd_PES_matSPG,
+                modules = list(contrast1 = 6, contrast2 = c(1,3,4)),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+Fd_M_pairwisetest <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fd_PES_matSPG,
+                modules = list(contrast1 = 5, contrast2 = c(1,3,4)),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+Fs_F_pairwisetest <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fs_PES_F_matSPG,
+                modules = list(contrast1 = 5, contrast2 = c(1,3,4)),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+Fs_M_pairwisetest <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fs_PES_M_matSPG,
+                modules = list(contrast1 = 5, contrast2 = c(1,3,4)),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+```
+
+sqrt-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_F_pairwisetest.sqrt <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fd_PES_matSPG.sqrt,
+                modules = list(contrast1 = 6, contrast2 = c(1,3,4)),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+Fd_M_pairwisetest.sqrt <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fd_PES_matSPG.sqrt,
+                modules = list(contrast1 = 5, contrast2 = c(1,3,4)),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+Fs_F_pairwisetest.sqrt <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fs_PES_F_matSPG.sqrt,
+                modules = list(contrast1 = 5, contrast2 = c(1,3,4)),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+Fs_M_pairwisetest.sqrt <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fs_PES_M_matSPG.sqrt,
+                modules = list(contrast1 = 5, contrast2 = c(1,3,4)),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+```
+
+log2-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Fd_F_pairwisetest.log2 <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fd_PES_matSPG.log2,
+                modules = list(contrast1 = 6, contrast2 = c(1,3,4)),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+Fd_M_pairwisetest.log2 <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fd_PES_matSPG.log2,
+                modules = list(contrast1 = 5, contrast2 = c(1,3,4)),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+Fs_F_pairwisetest.log2 <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fs_PES_F_matSPG.log2,
+                modules = list(contrast1 = 5, contrast2 = c(1,3,4)),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+Fs_M_pairwisetest.log2 <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fs_PES_M_matSPG.log2,
+                modules = list(contrast1 = 5, contrast2 = c(1,3,4)),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+```
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+p_res <- data.frame(
+        pvalues = c(Fd_M_pairwisetest, Fd_F_pairwisetest, Fs_M_pairwisetest, Fs_F_pairwisetest, 
+          Fd_M_pairwisetest.sqrt, Fd_F_pairwisetest.sqrt, Fs_M_pairwisetest.sqrt, Fs_F_pairwisetest.sqrt, 
+          Fd_M_pairwisetest.sqrt, Fd_F_pairwisetest.sqrt, Fs_M_pairwisetest.log2, Fs_F_pairwisetest.log2),
+        species = c("Fd", "Fd", "Fs", "Fs", "Fd", "Fd", "Fs", "Fs", "Fd", "Fd", "Fs", "Fs"),
+        sex = c("M", "F", "M", "F", "M", "F", "M", "F", "M", "F", "M", "F"),
+        tf = c("none", "none", "none", "none", 
+                           "sqrt", "sqrt", "sqrt", "sqrt", 
+                           "log2", "log2", "log2", "log2"),
+        sample = c("Fd_M", "Fd_F", "Fs_M", "Fs_F", "Fd_M", "Fd_F", "Fs_M", "Fs_F", "Fd_M", "Fd_F", "Fs_M", "Fs_F")
+)
+
+p_res |>
+        ggplot2::ggplot(aes(x = sample, y = -log10(pvalues), linetype = tf, group = tf)) +
+        ggplot2::geom_line() +
+        ggplot2::geom_point(size = 2) +
+        ggplot2::geom_hline(yintercept = -log10(0.05), colour = "red", linetype = 2) +
+        ggplot2::coord_flip()
+```
+
+```{r}
+p_res
+```
+
+At the gamete level, the difference in TAI is not significant, partly due to the high variance in the TAI value from the gametes.
+
 # Further stats for evolutionary transcriptome pattern in _Ectocarpus_
 
 Here, we examine whether the significance in the difference between the TAI in _Ectocarpus_ unicellular stages vs multicellular stages.
