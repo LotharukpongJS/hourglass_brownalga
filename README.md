@@ -34,6 +34,7 @@ NOTE: the version of myTAI is newer due to an addition of the PairwiseTest(). Ho
 * Difference in TAI between sexes and tissues (matSP reptip vs vegtip; matSP reptip vs all; matSP reptip male vs female; matSP gamete male vs female).
 * Difference in TAI between multicell and unicell in _Ectocarpus_, as well as the reductive hourglass test in GA and PSP.
 * Additional analysis of two *complex* brown algal species with haplodiplontic life cycles (_Laminaria digitata_ and _Saccorhiza polyschides_).
+* Similarity/distance between _Ectocarpus_ and the embryo stages in the two species of _Fucus_.
 
 ## Version control
 
