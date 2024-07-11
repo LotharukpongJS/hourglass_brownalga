@@ -1588,6 +1588,463 @@ Based on the manhattan distance, we see that the earlySP in _Laminaria_ is simil
 
 Note: by resampling the OGs and computing the orthogroups, I managed to obtain the spread of the distances.
 
+# Transcriptome distance in _Ectocarpus_ vs _Fucus_.
+
+## Load data
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+Ec_PES_M <-
+  readr::read_csv(file = "data/Ec_PES_32m.csv", show_col_types = FALSE)
+Ec_PES_F <-
+  readr::read_csv(file = "data/Ec_PES_25f.csv", show_col_types = FALSE)
+Fs_PES <- readr::read_csv("data/Fs_PES.csv") |> dplyr::select(-c(gamete,matSP))
+Fd_PES <- readr::read_csv("data/Fd_PES.csv") |> dplyr::select(-c(gamete,matSP))
+```
+
+### Parse orthogroups
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+# From https://github.com/othomantegazza/crossr/blob/master/R/parsers.R
+parse_orthogroups <- function(path_2_ogroups)
+{
+  orthogroups <- scan(path_2_ogroups, what = "",
+                      skip = 1, sep = "\n")
+  
+  ### Not sure why some values are separated by tab in file
+  orthogroups <- gsub("\t", ", ",
+                      orthogroups)
+  
+  orthogroups <- strsplit(orthogroups, ", ")
+  
+  ### names of orthogroup are read in first list element
+  names(orthogroups) <- sapply(orthogroups,
+                               function(i) i[1])
+  orthogroups <- lapply(orthogroups,
+                        function(i) i[-1])
+  
+  ## Dont know why some elements in orthogroups are null ( "" )
+  orthogroups <- lapply(orthogroups,
+                        function(i) i[i != ""])
+  
+  
+  return(orthogroups)
+}
+```
+
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+OG_tx2gene <- 
+  parse_orthogroups("data/Results_Nov29/Orthogroups/Orthogroups.tsv") %>% 
+  stack() %>% 
+  tidyr::as_tibble() %>% 
+  dplyr::rename(GeneID = values) %>% 
+  dplyr::rename(OG = ind) %>%
+  dplyr::relocate(GeneID) %>%
+  # dplyr::filter(str_detect(GeneID, "ser_|dis_")) %>%
+  dplyr::mutate(GeneID = str_remove(GeneID, "\\.p[0-9].*"))
+```
+
+### Replace gene with OG
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+# TPM gene -> TPM orthogroup (sum) -> apply log transformation
+processOG <- function(PES, OG_tx2gene){
+        PES.out <- PES |>
+                dplyr::left_join(OG_tx2gene) |>
+                tidyr::drop_na() |>
+                dplyr::select(-c(GeneID, PS)) |>
+                tidyr::pivot_longer(!OG, names_to = "stage", values_to = "exp") |>
+                dplyr::summarise(exp = sum(exp), .by = c(stage,OG)) |>
+                tidyr::pivot_wider(names_from = "stage", values_from = "exp")
+        return(PES.out)
+}
+
+Fs_PES.OG <- 
+        processOG(Fs_PES,OG_tx2gene) |> # from 8,291 to 5,669
+        rename_with(~paste0(., "_Fs"), -1)
+Fd_PES.OG <- 
+        processOG(Fd_PES,OG_tx2gene) |> # from 7,953 to 5,514
+        rename_with(~paste0(., "_Fd"), -1)
+Ec_PES_M.OG <- 
+        processOG(Ec_PES_M,OG_tx2gene) |> # from 11,571 to 6,282
+        rename_with(~paste0(., "_EcM"), -1)
+Ec_PES_F.OG <- 
+        processOG(Ec_PES_F,OG_tx2gene) |> # from 11,571 to 6,282
+        rename_with(~paste0(., "_EcF"), -1)
+```
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+Big_OG_expression_Join <-
+        Fs_PES.OG |>
+        inner_join(Fd_PES.OG) |>
+        inner_join(Ec_PES_M.OG) |>
+        inner_join(Ec_PES_F.OG)
+# we now have 1,880 OGs
+# representing:
+OG_tx2gene |> 
+        dplyr::filter(OG %in% Big_OG_expression_Join$OG) |>
+        dplyr::filter(str_detect(GeneID, "Ec-"))
+# 2,968 genes in Ec
+OG_tx2gene |> 
+        dplyr::filter(OG %in% Big_OG_expression_Join$OG) |>
+        dplyr::filter(str_detect(GeneID, "ser_"))
+# 2,433 genes in Fs
+OG_tx2gene |> 
+        dplyr::filter(OG %in% Big_OG_expression_Join$OG) |>
+        dplyr::filter(str_detect(GeneID, "dis_"))
+# 2,134 genes in Fd
+
+# BUT can we do better? Join for only Fs vs Ec and Fd vs Ec.
+Fs_OG_expression_Join <-
+        Fs_PES.OG |>
+        inner_join(Ec_PES_M.OG) |>
+        inner_join(Ec_PES_F.OG)
+# we now have 3,196 OGs
+# representing:
+OG_tx2gene |> 
+        dplyr::filter(OG %in% Fs_OG_expression_Join$OG) |>
+        dplyr::filter(str_detect(GeneID, "Ec-"))
+# 5,122 genes in Ec
+OG_tx2gene |> 
+        dplyr::filter(OG %in% Fs_OG_expression_Join$OG) |>
+        dplyr::filter(str_detect(GeneID, "ser_"))
+# 3,931 genes in Fs
+
+Fd_OG_expression_Join <-
+        Fd_PES.OG |>
+        inner_join(Ec_PES_M.OG) |>
+        inner_join(Ec_PES_F.OG)
+# we now have 3,160 OGs
+# representing:
+OG_tx2gene |> 
+        dplyr::filter(OG %in% Fd_OG_expression_Join$OG) |>
+        dplyr::filter(str_detect(GeneID, "Ec-"))
+# 4,840 genes in Ec
+OG_tx2gene |> 
+        dplyr::filter(OG %in% Fd_OG_expression_Join$OG) |>
+        dplyr::filter(str_detect(GeneID, "dis_"))
+# 3,495 genes in Fd
+```
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+Fs_OG_expression_Join <- Fs_OG_expression_Join |> column_to_rownames(var = "OG")
+Fd_OG_expression_Join <- Fd_OG_expression_Join |> column_to_rownames(var = "OG")
+```
+
+## Distance/similarity
+
+### Pearson correlation
+
+Fucus serratus
+```{r}
+ncol_Fs <- stringr::str_detect(colnames(Fs_OG_expression_Join), "_Fs")
+ncol_Ec_M <- stringr::str_detect(colnames(Fs_OG_expression_Join), "_EcM")
+ncol_Ec_F <- stringr::str_detect(colnames(Fs_OG_expression_Join), "_EcF")
+ExpData <- log2(Fs_OG_expression_Join+1)
+M = cor(x = ExpData[,ncol_Fs], 
+        y = ExpData[,ncol_Ec_F|ncol_Ec_M], 
+        method = "pearson")
+M_melt <- reshape2::melt(M)
+
+M_melt.prep <- M_melt |>
+        dplyr::mutate(Fs_stage = stringr::str_remove(Var1, "_Fs")) |>
+        tidyr::separate(Var2, into = c("Ec_stage", "Sex"), sep="_(?=[^_]+$)") |>
+        dplyr::mutate(Sex = stringr::str_remove(Sex, "Ec")) |>
+        dplyr::mutate(type = case_when(
+                Ec_stage %in% c("meiospore", "mitospore", "gamete") ~ "Unicellular",
+                .default = "Multicellular"
+        ))
+M_melt.prep |>
+        ggplot2::ggplot(aes(x = Fs_stage, 
+                            y = 1 - value, 
+                            shape = type,
+                            colour = Ec_stage, 
+                            group = Ec_stage)) +
+        ggplot2::geom_point(size = 3) +
+        ggplot2::geom_line(linewidth = 2, alpha  = 0.5) +
+        labs(shape = NULL) +
+        ggplot2::facet_grid(~ Sex) +
+        ggplot2::labs(x = "Fucus serratus stages",
+                      y = "1 - correlation",
+                      title = "Pearson correlation",
+                      colour = "Ectocarpus stages") +
+        ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1))
+# ggplot2::ggsave(filename = "Fs_Ec_pearson.pdf", device = "pdf", width = 4.5, height = 3.5)
+```
+
+Fucus distichus
+```{r}
+ncol_Fd <- stringr::str_detect(colnames(Fd_OG_expression_Join), "_Fd")
+ncol_Ec_M <- stringr::str_detect(colnames(Fd_OG_expression_Join), "_EcM")
+ncol_Ec_F <- stringr::str_detect(colnames(Fd_OG_expression_Join), "_EcF")
+ExpData <- log2(Fd_OG_expression_Join+1)
+M = cor(x = ExpData[,ncol_Fd], 
+        y = ExpData[,ncol_Ec_F|ncol_Ec_M], 
+        method = "pearson")
+M_melt <- reshape2::melt(M)
+
+M_melt.prep <- M_melt |>
+        dplyr::mutate(Fd_stage = stringr::str_remove(Var1, "_Fd")) |>
+        tidyr::separate(Var2, into = c("Ec_stage", "Sex"), sep="_(?=[^_]+$)") |>
+        dplyr::mutate(Sex = stringr::str_remove(Sex, "Ec")) |>
+        dplyr::mutate(type = case_when(
+                Ec_stage %in% c("meiospore", "mitospore", "gamete") ~ "Unicellular",
+                .default = "Multicellular"
+        ))
+M_melt.prep |>
+        ggplot2::ggplot(aes(x = Fd_stage, 
+                            y = 1 - value, 
+                            shape = type,
+                            colour = Ec_stage, 
+                            group = Ec_stage)) +
+        ggplot2::geom_point(size = 3) +
+        ggplot2::geom_line(linewidth = 2, alpha  = 0.5) +
+        labs(shape = NULL) +
+        ggplot2::facet_grid(~ Sex) +
+        ggplot2::labs(x = "Fucus distichus stages",
+                      y = "1 - correlation",
+                      title = "Pearson correlation",
+                      colour = "Ectocarpus stages") +
+        ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1))
+# ggplot2::ggsave(filename = "Fd_Ec_pearson.pdf", device = "pdf", width = 4.5, height = 3.5)
+```
+
+### Spearman correlation
+
+Fucus serratus
+```{r}
+ncol_Fs <- stringr::str_detect(colnames(Fs_OG_expression_Join), "_Fs")
+ncol_Ec_M <- stringr::str_detect(colnames(Fs_OG_expression_Join), "_EcM")
+ncol_Ec_F <- stringr::str_detect(colnames(Fs_OG_expression_Join), "_EcF")
+ExpData <- log2(Fs_OG_expression_Join+1)
+M = cor(x = ExpData[,ncol_Fs], 
+        y = ExpData[,ncol_Ec_F|ncol_Ec_M], 
+        method = "spearman")
+M_melt <- reshape2::melt(M)
+
+M_melt.prep <- M_melt |>
+        dplyr::mutate(Fs_stage = stringr::str_remove(Var1, "_Fs")) |>
+        tidyr::separate(Var2, into = c("Ec_stage", "Sex"), sep="_(?=[^_]+$)") |>
+        dplyr::mutate(Sex = stringr::str_remove(Sex, "Ec")) |>
+        dplyr::mutate(type = case_when(
+                Ec_stage %in% c("meiospore", "mitospore", "gamete") ~ "Unicellular",
+                .default = "Multicellular"
+        ))
+M_melt.prep |>
+        ggplot2::ggplot(aes(x = Fs_stage, 
+                            y = 1 - value, 
+                            shape = type,
+                            colour = Ec_stage, 
+                            group = Ec_stage)) +
+        ggplot2::geom_point(size = 3) +
+        ggplot2::geom_line(linewidth = 2, alpha  = 0.5) +
+        labs(shape = NULL) +
+        ggplot2::facet_grid(~ Sex) +
+        ggplot2::labs(x = "Fucus serratus stages",
+                      y = "1 - correlation",
+                      title = "Spearman correlation",
+                      colour = "Ectocarpus stages") +
+        ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1))
+# ggplot2::ggsave(filename = "Fs_Ec_spearman.pdf", device = "pdf", width = 4.5, height = 3.5)
+```
+
+Fucus distichus
+```{r}
+ncol_Fd <- stringr::str_detect(colnames(Fd_OG_expression_Join), "_Fd")
+ncol_Ec_M <- stringr::str_detect(colnames(Fd_OG_expression_Join), "_EcM")
+ncol_Ec_F <- stringr::str_detect(colnames(Fd_OG_expression_Join), "_EcF")
+ExpData <- log2(Fd_OG_expression_Join+1)
+M = cor(x = ExpData[,ncol_Fd], 
+        y = ExpData[,ncol_Ec_F|ncol_Ec_M], 
+        method = "spearman")
+M_melt <- reshape2::melt(M)
+
+M_melt.prep <- M_melt |>
+        dplyr::mutate(Fd_stage = stringr::str_remove(Var1, "_Fd")) |>
+        tidyr::separate(Var2, into = c("Ec_stage", "Sex"), sep="_(?=[^_]+$)") |>
+        dplyr::mutate(Sex = stringr::str_remove(Sex, "Ec")) |>
+        dplyr::mutate(type = case_when(
+                Ec_stage %in% c("meiospore", "mitospore", "gamete") ~ "Unicellular",
+                .default = "Multicellular"
+        ))
+M_melt.prep |>
+        ggplot2::ggplot(aes(x = Fd_stage, 
+                            y = 1 - value, 
+                            shape = type,
+                            colour = Ec_stage, 
+                            group = Ec_stage)) +
+        ggplot2::geom_point(size = 3) +
+        ggplot2::geom_line(linewidth = 2, alpha  = 0.5) +
+        labs(shape = NULL) +
+        ggplot2::facet_grid(~ Sex) +
+        ggplot2::labs(x = "Fucus distichus stages",
+                      y = "1 - correlation",
+                      title = "Spearman correlation",
+                      colour = "Ectocarpus stages") +
+        ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1))
+# ggplot2::ggsave(filename = "Fd_Ec_spearman.pdf", device = "pdf", width = 4.5, height = 3.5)
+```
+
+### Manhattan distance
+
+Fucus serratus
+```{r}
+ncol_Fs <- stringr::str_detect(colnames(Fs_OG_expression_Join), "_Fs")
+ncol_Ec_M <- stringr::str_detect(colnames(Fs_OG_expression_Join), "_EcM")
+ncol_Ec_F <- stringr::str_detect(colnames(Fs_OG_expression_Join), "_EcF")
+ExpData <- log2(Fs_OG_expression_Join+1)
+
+M <- philentropy::distance(t(ExpData), use.row.names = TRUE, method = "manhattan")
+M2 <- M[ncol_Fs, ncol_Ec_F|ncol_Ec_M]
+
+M_melt <- reshape2::melt(M2)
+
+M_melt.prep <- M_melt |>
+        dplyr::mutate(Fs_stage = stringr::str_remove(Var1, "_Fs")) |>
+        tidyr::separate(Var2, into = c("Ec_stage", "Sex"), sep="_(?=[^_]+$)") |>
+        dplyr::mutate(Sex = stringr::str_remove(Sex, "Ec")) |>
+        dplyr::mutate(type = case_when(
+                Ec_stage %in% c("meiospore", "mitospore", "gamete") ~ "Unicellular",
+                .default = "Multicellular"
+        ))
+M_melt.prep |>
+        ggplot2::ggplot(aes(x = Fs_stage, 
+                            y = value, 
+                            shape = type,
+                            colour = Ec_stage, 
+                            group = Ec_stage)) +
+        ggplot2::geom_point(size = 3) +
+        ggplot2::geom_line(linewidth = 2, alpha  = 0.5) +
+        labs(shape = NULL) +
+        ggplot2::facet_grid(~ Sex) +
+        ggplot2::labs(x = "Fucus serratus stages",
+                      y = "distance",
+                      title = "Manhattan",
+                      colour = "Ectocarpus stages") +
+        ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1))
+# ggplot2::ggsave(filename = "Fs_Ec_Manhattan.pdf", device = "pdf", width = 4.5, height = 3.5)
+```
+
+Fucus distichus
+```{r}
+ncol_Fd <- stringr::str_detect(colnames(Fd_OG_expression_Join), "_Fd")
+ncol_Ec_M <- stringr::str_detect(colnames(Fd_OG_expression_Join), "_EcM")
+ncol_Ec_F <- stringr::str_detect(colnames(Fd_OG_expression_Join), "_EcF")
+ExpData <- log2(Fd_OG_expression_Join+1)
+
+M <- philentropy::distance(t(ExpData), use.row.names = TRUE, method = "manhattan")
+M2 <- M[ncol_Fd, ncol_Ec_F|ncol_Ec_M]
+
+M_melt <- reshape2::melt(M2)
+
+M_melt.prep <- M_melt |>
+        dplyr::mutate(Fd_stage = stringr::str_remove(Var1, "_Fd")) |>
+        tidyr::separate(Var2, into = c("Ec_stage", "Sex"), sep="_(?=[^_]+$)") |>
+        dplyr::mutate(Sex = stringr::str_remove(Sex, "Ec")) |>
+        dplyr::mutate(type = case_when(
+                Ec_stage %in% c("meiospore", "mitospore", "gamete") ~ "Unicellular",
+                .default = "Multicellular"
+        ))
+M_melt.prep |>
+        ggplot2::ggplot(aes(x = Fd_stage, 
+                            y = value, 
+                            shape = type,
+                            colour = Ec_stage, 
+                            group = Ec_stage)) +
+        ggplot2::geom_point(size = 3) +
+        ggplot2::geom_line(linewidth = 2, alpha  = 0.5) +
+        labs(shape = NULL) +
+        ggplot2::facet_grid(~ Sex) +
+        ggplot2::labs(x = "Fucus distichus stages",
+                      y = "distance",
+                      title = "Manhattan",
+                      colour = "Ectocarpus stages") +
+        ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1))
+# ggplot2::ggsave(filename = "Fd_Ec_Manhattan.pdf", device = "pdf", width = 4.5, height = 3.5)
+```
+
+### JSD metric
+
+Fucus serratus
+```{r}
+ncol_Fs <- stringr::str_detect(colnames(Fs_OG_expression_Join), "_Fs")
+ncol_Ec_M <- stringr::str_detect(colnames(Fs_OG_expression_Join), "_EcM")
+ncol_Ec_F <- stringr::str_detect(colnames(Fs_OG_expression_Join), "_EcF")
+ExpData <- log2(Fs_OG_expression_Join+1)
+
+ExpDat.norm <- apply(ExpData, 2, function(x) x/sum(x)) %>% as.data.frame()
+# colSums(ExpDat.norm)
+M <- philentropy::distance(t(ExpDat.norm), use.row.names = TRUE, method = "jensen-shannon")
+M2 <- M[ncol_Fs, ncol_Ec_F|ncol_Ec_M]
+
+M_melt <- reshape2::melt(M2)
+
+M_melt.prep <- M_melt |>
+        dplyr::mutate(Fs_stage = stringr::str_remove(Var1, "_Fs")) |>
+        tidyr::separate(Var2, into = c("Ec_stage", "Sex"), sep="_(?=[^_]+$)") |>
+        dplyr::mutate(Sex = stringr::str_remove(Sex, "Ec")) |>
+        dplyr::mutate(type = case_when(
+                Ec_stage %in% c("meiospore", "mitospore", "gamete") ~ "Unicellular",
+                .default = "Multicellular"
+        ))
+M_melt.prep |>
+        ggplot2::ggplot(aes(x = Fs_stage, 
+                            y = value, 
+                            shape = type,
+                            colour = Ec_stage, 
+                            group = Ec_stage)) +
+        ggplot2::geom_point(size = 3) +
+        ggplot2::geom_line(linewidth = 2, alpha  = 0.5) +
+        labs(shape = NULL) +
+        ggplot2::facet_grid(~ Sex) +
+        ggplot2::labs(x = "Fucus serratus stages",
+                      y = "distance",
+                      title = "JSD",
+                      colour = "Ectocarpus stages") +
+        ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1))
+# ggplot2::ggsave(filename = "Fs_Ec_JSD.pdf", device = "pdf", width = 4.5, height = 3.5)
+```
+
+Fucus distichus
+```{r}
+ncol_Fd <- stringr::str_detect(colnames(Fd_OG_expression_Join), "_Fd")
+ncol_Ec_M <- stringr::str_detect(colnames(Fd_OG_expression_Join), "_EcM")
+ncol_Ec_F <- stringr::str_detect(colnames(Fd_OG_expression_Join), "_EcF")
+ExpData <- log2(Fd_OG_expression_Join+1)
+
+ExpDat.norm <- apply(ExpData, 2, function(x) x/sum(x)) %>% as.data.frame()
+# colSums(ExpDat.norm)
+M <- philentropy::distance(t(ExpDat.norm), use.row.names = TRUE, method = "jensen-shannon")
+M2 <- M[ncol_Fd, ncol_Ec_F|ncol_Ec_M]
+
+M_melt <- reshape2::melt(M2)
+
+M_melt.prep <- M_melt |>
+        dplyr::mutate(Fd_stage = stringr::str_remove(Var1, "_Fd")) |>
+        tidyr::separate(Var2, into = c("Ec_stage", "Sex"), sep="_(?=[^_]+$)") |>
+        dplyr::mutate(Sex = stringr::str_remove(Sex, "Ec")) |>
+        dplyr::mutate(type = case_when(
+                Ec_stage %in% c("meiospore", "mitospore", "gamete") ~ "Unicellular",
+                .default = "Multicellular"
+        ))
+M_melt.prep |>
+        ggplot2::ggplot(aes(x = Fd_stage, 
+                            y = value, 
+                            shape = type,
+                            colour = Ec_stage, 
+                            group = Ec_stage)) +
+        ggplot2::geom_point(size = 3) +
+        ggplot2::geom_line(linewidth = 2, alpha  = 0.5) +
+        labs(shape = NULL) +
+        ggplot2::facet_grid(~ Sex) +
+        ggplot2::labs(x = "Fucus distichus stages",
+                      y = "distance",
+                      title = "JSD",
+                      colour = "Ectocarpus stages") +
+        ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1))
+# ggplot2::ggsave(filename = "Fd_Ec_JSD.pdf", device = "pdf", width = 4.5, height = 3.5)
+```
+
 Get session info.
 
 ```{r warning=FALSE,message=FALSE}
