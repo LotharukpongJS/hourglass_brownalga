@@ -414,6 +414,84 @@ p_res
 
 Results differ between transformations. If we go by the **square-root** transformation, which we were reporting in other cases in the paper, it appears that _F. serratus_ reptip is significantly younger for **males** than the **females** (`p = 2.703377e-06`).
 
+## `PairwiseTest()` for matSP vegetative tissues (vegtip, holdfast, stipe) male vs female
+
+Here I focus on showing all the tissue comparisons.
+
+sqrt-tranformed
+
+```{r warning=FALSE,message=FALSE}
+Fs_PES_vegtip.sqrt <-
+        dplyr::full_join(
+        Fs_PES_M_matSP.sqrt, 
+        Fs_PES_F_matSP.sqrt, 
+        by = c("PS", "GeneID"), 
+        suffix = c(".M", ".F")) |>
+        dplyr::select(!dplyr::contains(c("holdfast", "stipe", "reptip")))
+
+Fs_rt_pairwisetest.vegtip.sqrt <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fs_PES_vegtip.sqrt,
+                modules = list(contrast1 = 1, contrast2 = 2),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+
+Fs_PES_stipe.sqrt <-
+        dplyr::full_join(
+        Fs_PES_M_matSP.sqrt, 
+        Fs_PES_F_matSP.sqrt, 
+        by = c("PS", "GeneID"), 
+        suffix = c(".M", ".F")) |>
+        dplyr::select(!dplyr::contains(c("holdfast", "vegtip", "reptip")))
+
+Fs_rt_pairwisetest.stipe.sqrt <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fs_PES_stipe.sqrt,
+                modules = list(contrast1 = 1, contrast2 = 2),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+
+Fs_PES_holdfast.sqrt <-
+        dplyr::full_join(
+        Fs_PES_M_matSP.sqrt, 
+        Fs_PES_F_matSP.sqrt, 
+        by = c("PS", "GeneID"), 
+        suffix = c(".M", ".F")) |>
+        dplyr::select(!dplyr::contains(c("stipe", "vegtip", "reptip")))
+
+Fs_rt_pairwisetest.holdfast.sqrt <-
+        myTAI::PairwiseTest(
+                ExpressionSet = Fs_PES_holdfast.sqrt,
+                modules = list(contrast1 = 1, contrast2 = 2),
+                altHypothesis = "greater",
+                permutations = 1000)$p.value
+```
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+p_res <- data.frame(
+        pvalues = c(
+                Fs_rt_pairwisetest.vegtip.sqrt, 
+                Fs_rt_pairwisetest.stipe.sqrt, 
+                Fs_rt_pairwisetest.holdfast.sqrt),
+        species = c("Fs", "Fs", "Fs"),
+        tf = c("sqrt", "sqrt", "sqrt"),
+        sample = c("vegtip", "stipe", "holdfast")
+)
+
+p_res |>
+        ggplot2::ggplot(aes(x = sample, y = -log10(pvalues), group = 1, shape = tf)) +
+        ggplot2::geom_col(width = 0.01) +
+        ggplot2::geom_point(size = 4) +
+        ggplot2::geom_hline(yintercept = -log10(0.05), colour = "red", linetype = 2) +
+        ggplot2::ylim(0, -log10(min(p_res$pvalues)))
+```
+
+
+```{r}
+p_res
+```
+
+
 ## `PairwiseTest()` for matSP gamete male vs female
 
 ### Load PES
@@ -1760,8 +1838,8 @@ M_melt.prep |>
                             shape = type,
                             colour = Ec_stage, 
                             group = Ec_stage)) +
-        ggplot2::geom_point(size = 3) +
         ggplot2::geom_line(linewidth = 2, alpha  = 0.5) +
+        ggplot2::geom_point(size = 3) +
         labs(shape = NULL) +
         ggplot2::facet_grid(~ Sex) +
         ggplot2::labs(x = "Fucus serratus stages",
@@ -1769,7 +1847,7 @@ M_melt.prep |>
                       title = "Pearson correlation",
                       colour = "Ectocarpus stages") +
         ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1))
-# ggplot2::ggsave(filename = "Fs_Ec_pearson.pdf", device = "pdf", width = 4.5, height = 3.5)
+ggplot2::ggsave(filename = "Fs_Ec_pearson.pdf", device = "pdf", width = 4.5, height = 2.5)
 ```
 
 Fucus distichus
@@ -1797,8 +1875,8 @@ M_melt.prep |>
                             shape = type,
                             colour = Ec_stage, 
                             group = Ec_stage)) +
-        ggplot2::geom_point(size = 3) +
         ggplot2::geom_line(linewidth = 2, alpha  = 0.5) +
+        ggplot2::geom_point(size = 3) +
         labs(shape = NULL) +
         ggplot2::facet_grid(~ Sex) +
         ggplot2::labs(x = "Fucus distichus stages",
@@ -1806,7 +1884,7 @@ M_melt.prep |>
                       title = "Pearson correlation",
                       colour = "Ectocarpus stages") +
         ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1))
-# ggplot2::ggsave(filename = "Fd_Ec_pearson.pdf", device = "pdf", width = 4.5, height = 3.5)
+ggplot2::ggsave(filename = "Fd_Ec_pearson.pdf", device = "pdf", width = 4.5, height = 2.5)
 ```
 
 ### Spearman correlation
@@ -1836,8 +1914,8 @@ M_melt.prep |>
                             shape = type,
                             colour = Ec_stage, 
                             group = Ec_stage)) +
-        ggplot2::geom_point(size = 3) +
         ggplot2::geom_line(linewidth = 2, alpha  = 0.5) +
+        ggplot2::geom_point(size = 3) +
         labs(shape = NULL) +
         ggplot2::facet_grid(~ Sex) +
         ggplot2::labs(x = "Fucus serratus stages",
@@ -1845,7 +1923,7 @@ M_melt.prep |>
                       title = "Spearman correlation",
                       colour = "Ectocarpus stages") +
         ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1))
-# ggplot2::ggsave(filename = "Fs_Ec_spearman.pdf", device = "pdf", width = 4.5, height = 3.5)
+ggplot2::ggsave(filename = "Fs_Ec_spearman.pdf", device = "pdf", width = 3.8, height = 2.5)
 ```
 
 Fucus distichus
@@ -1873,8 +1951,8 @@ M_melt.prep |>
                             shape = type,
                             colour = Ec_stage, 
                             group = Ec_stage)) +
-        ggplot2::geom_point(size = 3) +
         ggplot2::geom_line(linewidth = 2, alpha  = 0.5) +
+        ggplot2::geom_point(size = 3) +
         labs(shape = NULL) +
         ggplot2::facet_grid(~ Sex) +
         ggplot2::labs(x = "Fucus distichus stages",
@@ -1882,7 +1960,7 @@ M_melt.prep |>
                       title = "Spearman correlation",
                       colour = "Ectocarpus stages") +
         ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1))
-# ggplot2::ggsave(filename = "Fd_Ec_spearman.pdf", device = "pdf", width = 4.5, height = 3.5)
+ggplot2::ggsave(filename = "Fd_Ec_spearman.pdf", device = "pdf", width = 3.8, height = 2.5)
 ```
 
 ### Manhattan distance
@@ -1913,8 +1991,8 @@ M_melt.prep |>
                             shape = type,
                             colour = Ec_stage, 
                             group = Ec_stage)) +
-        ggplot2::geom_point(size = 3) +
         ggplot2::geom_line(linewidth = 2, alpha  = 0.5) +
+        ggplot2::geom_point(size = 3) +
         labs(shape = NULL) +
         ggplot2::facet_grid(~ Sex) +
         ggplot2::labs(x = "Fucus serratus stages",
@@ -1922,7 +2000,7 @@ M_melt.prep |>
                       title = "Manhattan",
                       colour = "Ectocarpus stages") +
         ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1))
-# ggplot2::ggsave(filename = "Fs_Ec_Manhattan.pdf", device = "pdf", width = 4.5, height = 3.5)
+ggplot2::ggsave(filename = "Fs_Ec_Manhattan.pdf", device = "pdf", width = 3.8, height = 2.5)
 ```
 
 Fucus distichus
@@ -1951,8 +2029,8 @@ M_melt.prep |>
                             shape = type,
                             colour = Ec_stage, 
                             group = Ec_stage)) +
-        ggplot2::geom_point(size = 3) +
         ggplot2::geom_line(linewidth = 2, alpha  = 0.5) +
+        ggplot2::geom_point(size = 3) +
         labs(shape = NULL) +
         ggplot2::facet_grid(~ Sex) +
         ggplot2::labs(x = "Fucus distichus stages",
@@ -1960,7 +2038,7 @@ M_melt.prep |>
                       title = "Manhattan",
                       colour = "Ectocarpus stages") +
         ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1))
-# ggplot2::ggsave(filename = "Fd_Ec_Manhattan.pdf", device = "pdf", width = 4.5, height = 3.5)
+ggplot2::ggsave(filename = "Fd_Ec_Manhattan.pdf", device = "pdf", width = 3.8, height = 2.5)
 ```
 
 ### JSD metric
@@ -1993,8 +2071,8 @@ M_melt.prep |>
                             shape = type,
                             colour = Ec_stage, 
                             group = Ec_stage)) +
-        ggplot2::geom_point(size = 3) +
         ggplot2::geom_line(linewidth = 2, alpha  = 0.5) +
+        ggplot2::geom_point(size = 3) +
         labs(shape = NULL) +
         ggplot2::facet_grid(~ Sex) +
         ggplot2::labs(x = "Fucus serratus stages",
@@ -2002,7 +2080,7 @@ M_melt.prep |>
                       title = "JSD",
                       colour = "Ectocarpus stages") +
         ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1))
-# ggplot2::ggsave(filename = "Fs_Ec_JSD.pdf", device = "pdf", width = 4.5, height = 3.5)
+ggplot2::ggsave(filename = "Fs_Ec_JSD.pdf", device = "pdf", width = 3.8, height = 2.5)
 ```
 
 Fucus distichus
@@ -2033,8 +2111,8 @@ M_melt.prep |>
                             shape = type,
                             colour = Ec_stage, 
                             group = Ec_stage)) +
-        ggplot2::geom_point(size = 3) +
         ggplot2::geom_line(linewidth = 2, alpha  = 0.5) +
+        ggplot2::geom_point(size = 3) +
         labs(shape = NULL) +
         ggplot2::facet_grid(~ Sex) +
         ggplot2::labs(x = "Fucus distichus stages",
@@ -2042,7 +2120,7 @@ M_melt.prep |>
                       title = "JSD",
                       colour = "Ectocarpus stages") +
         ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1))
-# ggplot2::ggsave(filename = "Fd_Ec_JSD.pdf", device = "pdf", width = 4.5, height = 3.5)
+ggplot2::ggsave(filename = "Fd_Ec_JSD.pdf", device = "pdf", width = 3.8, height = 2.5)
 ```
 
 Get session info.
