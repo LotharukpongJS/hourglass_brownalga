@@ -39,3 +39,24 @@ NOTE: the version of myTAI is newer due to an addition of the PairwiseTest(). Ho
 ## Version control
 
 At the end of each of these scripts, I list the software and versions used. R code here was run on MacBook Pro (Apple M1 Chip, 16 GB Memory, macOS Ventura v13.4.1). Some of the preprocessing step (e.g., RNA-seq quantification, gene age inference, interproscan) were run on a high performance compute cluster. Otherwise, the rest of the script should take less than 30 minutes to run on a "normal" desktop computer.
+
+Here is a summary of bioinformatic software used outside of base R (v4.2.2) packages and basic unix tools that were crucial to the analyses presented in this work. As mentioned previously, software versions are available at the end of each analysis script.
+
+<details>
+<summary>Selected software</summary>
+
+- `nf-core/rnaseq` r3.5 https://nf-co.re/rnaseq/3.5
+- `GenEra` v1.0 https://github.com/josuebarrera/GenEra
+- `diamond` v2.0.14 https://github.com/bbuchfink/diamond
+- `tidyverse` v2.0.0 https://www.tidyverse.org/
+- `myTAI` v1.0.1.9000 https://github.com/drostlab/myTAI
+- `OrthoFinder` v2.5.4 https://github.com/davidemms/OrthoFinder
+- `orthologr` v0.4.2 https://github.com/drostlab/orthologr/
+- `salmon` v1.5.2 https://github.com/COMBINE-lab/salmon
+- `noisyR` v1.0.0 https://github.com/Core-Bioinformatics/noisyR
+- `philentropy` v0.7.0 https://github.com/drostlab/philentropy
+- `DESeq2` v1.36.0 https://github.com/thelovelab/DESeq2
+- `interproscan` v5.61-93.0 https://github.com/ebi-pf-team/interproscan
+- `topGO` v2.48.0 https://bioconductor.org/packages/release/bioc/html/topGO.html
+
+</details>
