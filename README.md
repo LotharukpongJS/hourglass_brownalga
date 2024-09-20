@@ -1,5 +1,5 @@
 # Transcriptomic hourglass in brown algae
-Exploring the evolutionary transcriptome in three brown algal species (**_Fucus distichus_**, **_Fucus serratus_**, & **_Ectocarpus_ species 7**) across the entire life cycle. BioProject number (`PRJNA1090323`). In addition, analysis of two brown algal species with haplodiplontic life cycles (_Laminaria digitata_ and _Saccorhiza polyschides_) for taxonomic breadth.
+Exploring the transcriptome evolution in three brown algal species (**_Fucus distichus_**, **_Fucus serratus_**, & **_Ectocarpus_ species 7**) across the entire life cycle. BioProject number (`PRJNA1090323`). In addition, analysis of two brown algal species with haplodiplontic life cycles (_Laminaria digitata_ and _Saccorhiza polyschides_) for taxonomic breadth.
 
 ## Documentation
 I have rendered all the analysis (in Rmd) as HTML files. I have included all the necessary R scripts to generate the figures and interpretation of the brown algal developmental transcriptome datasets. Both `2_evolutionary_transcriptomics.Rmd` and `3_further_evolutionary_transcriptomics.Rmd` scripts can be run from the data available in the github repository (https://github.com/LotharukpongJS/hourglass_brownalga), which was generated using step 1 "Obtaining RNA-seq data and gene age data".
@@ -14,13 +14,13 @@ I have rendered all the analysis (in Rmd) as HTML files. I have included all the
 * Orthogroup abundance
 
 ### 2 – Evolutionary transcriptomics analyses (available [here](https://lotharukpongjs.github.io/hourglass_brownalga/2_evolutionary_transcriptomics.html))
-* Evolutionary transcriptome in _Fucus_ embryogenesis
-* Evolutionary transcriptome in _Ectocarpus_
-* Evolutionary transcriptome across _Fucus_ tissues
+* Transcriptome evolution in _Fucus_ embryogenesis
+* Transcriptome evolution in _Ectocarpus_
+* Transcriptome evolution across _Fucus_ tissues
 * Mean expression of different PS
 
 ### 3 – Further evolutionary transcriptomics analyses (available [here](https://lotharukpongjs.github.io/hourglass_brownalga/3_further_evolutionary_transcriptomics.html))
-* Evolutionary transcriptome in Fucus embryogenesis using RNA-seq that has been ‘denoised’ using noisyR
+* Transcriptome evolution in Fucus embryogenesis using RNA-seq that has been ‘denoised’ using noisyR
 * Stats for male-female difference in Ectocarpus
 * Tau profiles
 * TDI across _Ectocarpus_ life cycle stages
